@@ -405,7 +405,7 @@ def generate_lesson_plan(topic: str, subject: str, grade: int, max_retries: int 
     for attempt in range(max_retries + 1):
         try:
             response = client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-3.8-flash",
                 contents = current_promt,
                 config = types.GenerateContentConfig(
                     system_instruction = SYSTEM_PROMPT,
@@ -864,7 +864,14 @@ Chỉ trả về JSON hợp lệ theo đúng cấu trúc SlideDeckSchema sau. Kh
       "main_definition_latex": null,
       "teacher_note": "GV giới thiệu bài giảng...",
       "image_prompt": null,
-      "chart_spec": null
+      "chart_spec": {
+        "kind": "none",
+        "pedagogical_purpose": "Slide tiêu đề, không cần đồ thị.",
+        "expression": null,
+        "x_min": -4.0,
+        "x_max": 4.0,
+        "chart_title": null
+      }
     },
     {
       "slide_index": 2,
@@ -872,27 +879,41 @@ Chỉ trả về JSON hợp lệ theo đúng cấu trúc SlideDeckSchema sau. Kh
       "title": "Tình huống khởi động",
       "subtitle": null,
       "bullet_points": [
-        "Quan sát bài toán thực tế.",
-        "Dự đoán quy luật của dãy số."
+        "Xét hàm số $f(x) = 2x$.",
+        "Hãy tìm một hàm số $F(x)$ sao cho đạo hàm của nó bằng $f(x)$."
       ],
       "main_definition_latex": null,
-      "teacher_note": "GV đặt câu hỏi gợi mở cho học sinh...",
+      "teacher_note": "GV chiếu đồ thị đường thẳng, dẫn dắt học sinh suy nghĩ về bài toán ngược.",
       "image_prompt": null,
-      "chart_spec": null
+      "chart_spec": {
+        "kind": "function_plot",
+        "pedagogical_purpose": "Minh họa hình dáng đường thẳng f(x) = 2x để học sinh hình dung trực quan trước khi tìm nguyên hàm.",
+        "expression": "2*x",
+        "x_min": -5.0,
+        "x_max": 5.0,
+        "chart_title": "Đồ thị hàm số f(x) = 2x"
+      }
     },
     {
       "slide_index": 3,
       "type": "CONCEPT_SLIDE",
-      "title": "Khái niệm mới",
-      "subtitle": "Định nghĩa và công thức tổng quát",
+      "title": "Khái niệm Nguyên hàm",
+      "subtitle": "Định nghĩa tổng quát",
       "bullet_points": [
-        "Với $n \\ge 2$, số hạng sau bằng số hạng trước cộng số không đổi $d$.",
-        "Điều kiện là $a \\ne 0$."
+        "Hàm số $F(x)$ được gọi là một nguyên hàm của $f(x)$ trên $K$.",
+        "Điều kiện: $F'(x) = f(x)$ với mọi $x \\in K$."
       ],
-      "main_definition_latex": "u_n = u_1 + (n-1)d",
+      "main_definition_latex": "F'(x) = f(x)",
       "teacher_note": "GV phân tích ý nghĩa công thức...",
       "image_prompt": null,
-      "chart_spec": null
+      "chart_spec": {
+        "kind": "none",
+        "pedagogical_purpose": "Đây là slide nêu định nghĩa tổng quát bằng chữ, không có hàm số cụ thể để vẽ đồ thị.",
+        "expression": null,
+        "x_min": -4.0,
+        "x_max": 4.0,
+        "chart_title": null
+      }
     }
   ]
 }
@@ -980,7 +1001,7 @@ def fix_latex_backslashes_in_json(raw_text: str) -> str:
 
 #     try:
 #         response = client.models.generate_content(
-#             model="gemini-2.5-flash",
+#             model="gemini-3.8-flash",
 #             contents=user_prompt,
 #             config=types.GenerateContentConfig(
 #                 system_instruction=SLIDE_SYSTEM_PROMPT,
@@ -997,7 +1018,7 @@ def generate_lesson_plan(topic: str, subject: str, grade: int, max_retries: int 
     for attempt in range(max_retries + 1):
         try:
             response = client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-3.8-flash",
                 contents=current_prompt,
                 config=types.GenerateContentConfig(
                     system_instruction=SYSTEM_PROMPT,
@@ -1027,51 +1048,36 @@ def generate_lesson_plan(topic: str, subject: str, grade: int, max_retries: int 
 
 
 
-def generate_slide_deck(topic: str, subject: str, grade: int, plan: Optional[LessonPlanSchema] = None) -> SlideDeckSchema:
+def generate_slide_deck(topic: str, subject: str, grade: int, plan: Optional[LessonPlanSchema] = None, max_retries: int = 3) -> SlideDeckSchema:
     if plan:
         plan_json_str = plan.model_dump_json(indent=2)
         user_prompt = f"Dựa trên Kế hoạch bài dạy chuẩn 5512 sau:\n{plan_json_str}\n\nHãy soạn cấu trúc Slide bài giảng JSON cho bài dạy: '{topic}', Môn {subject}, Lớp {grade}."
     else:
         user_prompt = f"Hãy soạn cấu trúc Slide bài giảng JSON cho bài dạy: '{topic}', Môn {subject}, Lớp {grade}."
 
-    try:
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=user_prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=SLIDE_SYSTEM_PROMPT, # Dùng prompt chuẩn JSON
-                response_mime_type="application/json",
-                response_schema=SlideDeckSchema,
-                temperature=0.7
-            ),
-        )
-        fixed_json_text = fix_latex_backslashes_in_json(response.text)
-        return SlideDeckSchema.model_validate_json(fixed_json_text)
-    except Exception as e:
-        print(f"Lỗi API khi sinh SlideDeck: {e}")
-        raise e
-
-
-# def generate_slide_deck(topic: str, subject: str, grade: int) -> SlideDeckSchema:
-#     user_prompt = f"Hãy soạn cấu trúc Slide bài giảng cho bài dạy: '{topic}', Môn {subject}, Lớp {grade}."
-#     try:
-#         response = client.models.generate_content(
-#             model="gemini-2.5-flash",
-#             contents=user_prompt,
-#             config=types.GenerateContentConfig(
-#                 system_instruction=SLIDE_SYSTEM_PROMPT,
-#                 response_mime_type="application/json",
-#                 response_schema=SlideDeckSchema,
-#                 temperature=0.7
-#             ),
-#         )
-        
-#         #code cu : return response.parsed ->
-#         fixed_json_text = fix_latex_backslashes_in_json(response.text)
-#         return SlideDeckSchema.model_validate_json(fixed_json_text)
-#     except Exception as e:
-#         print(f"Lỗi API khi sinh SlideDeck: {e}")
-#         raise e
+    import time
+    for attempt in range(max_retries):
+        try:
+            response = client.models.generate_content(
+                model="gemini-3.8-flash",
+                contents=user_prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=SLIDE_SYSTEM_PROMPT, # Dùng prompt chuẩn JSON
+                    response_mime_type="application/json",
+                    response_schema=SlideDeckSchema,
+                    temperature=0.7,
+                    automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True)
+                ),
+            )
+            fixed_json_text = fix_latex_backslashes_in_json(response.text)
+            return SlideDeckSchema.model_validate_json(fixed_json_text)
+        except Exception as e:
+            if attempt < max_retries - 1 and ("503" in str(e) or "429" in str(e) or "UNAVAILABLE" in str(e) or "RESOURCE_EXHAUSTED" in str(e)):
+                print(f"Lỗi Server quá tải tạm thời ({e}). Đang chờ 3s để thử lại ({attempt + 1}/{max_retries})...")
+                time.sleep(3)
+            else:
+                print(f"Lỗi API khi sinh SlideDeck: {e}")
+                raise e
 
 def export_slide_to_pptx(data, pptx_path: str):
     """Xuất Slide PowerPoint Native 100% qua python-pptx Hybrid"""

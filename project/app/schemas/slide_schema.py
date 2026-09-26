@@ -8,7 +8,14 @@ class ChartType(str, Enum):
     NONE = "none"
 
 class ChartSpec(BaseModel):
-    kind: ChartType = ChartType.NONE
+    kind: ChartType = Field(
+        default=ChartType.FUNCTION_PLOT,
+        description="BẮT BUỘC chọn 'function_plot' nếu nội dung slide có xuất hiện bất kỳ hàm số cụ thể nào (VD: f(x) = 2x, F(x) = x^3). Chỉ chọn 'none' đối với các slide thuần định nghĩa tổng quát."
+    )
+    pedagogical_purpose: Optional[str] = Field(
+        default=None,
+        description="Lý do trực quan hóa. VD: 'Minh họa hình dáng đồ thị hàm số f(x) = 2x để học sinh có góc nhìn hình học'."
+    )
     expression: Optional[str] = Field(
         default=None,
         description=(
@@ -18,11 +25,11 @@ class ChartSpec(BaseModel):
             "KHÔNG chứa code, ký tự đặc biệt hay hướng dẫn khác."
         )
     )
-    x_min: float = -4
-    x_max: float = 4
+    x_min: float = Field(default= -4.0)
+    x_max: float = Field(default=4.0)
     chart_title: Optional[str] = Field(
         default=None,
-        description="Tiêu đề hiển thị trên đồ thị (VD: 'Đồ thị hàm số y = sin(x)')"
+        description="Tiêu đề hiển thị trên đồ thị. VD: 'Đồ thị hàm số y = 2x'."
     )
 class SlideType(str, Enum):
     """Phân loại các trang slide trong bài giảng"""
@@ -57,6 +64,7 @@ class SlideSchema(BaseModel):
     image_prompt: Optional[str] = Field(default=None, description="Mô tả ý tưởng đồ thị / hình vẽ để sinh tự động")
     chart_spec: Optional[ChartSpec] = Field(default=None, description="Cấu hình vẽ đồ thị hàm số tự động")
 
+    math_formulas: List[str] = Field(default=[], description="Danh sách các công thức toán phức tạp (phân số, tích phân). Mỗi công thức là một mã LaTex chuẩn.")
 
 class SlideDeckSchema(BaseModel):
     """

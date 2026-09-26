@@ -220,9 +220,11 @@ def export_slide_deck_to_pptx(data: Union[Dict[str, Any], SlideDeckSchema]) -> i
         subtitle_text = slide_data.get("subtitle", "")
         bullet_points = slide_data.get("bullet_points", [])
         latex_formula = slide_data.get("main_definition_latex", "")
+        math_formulas = slide_data.get("math_formulas", [])
         teacher_note = slide_data.get("teacher_note", "")
         image_prompt = slide_data.get("image_prompt", "")
 
+    
         # ---------------------------------------------------------------------
         # 1. TRƯỜNG HỢP: SLIDE TIÊU ĐỀ (TITLE_SLIDE)
         # ---------------------------------------------------------------------
@@ -288,8 +290,12 @@ def export_slide_deck_to_pptx(data: Union[Dict[str, Any], SlideDeckSchema]) -> i
             p_h.font.color.rgb = NAVY_BLUE
 
             chart_spec = slide_data.get("chart_spec")
-            has_image = bool(chart_spec or image_prompt)
-            content_width = Inches(6.8) if has_image else Inches(11.7)
+            has_valid_chart = (
+                isinstance(chart_spec, dict)
+                and chart_spec.get("kind") != "none"
+                and bool(chart_spec.get("expression"))
+            )
+            content_width = Inches(6.8) if has_valid_chart else Inches(11.7)
 
             content_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(1.8), content_width, Inches(5.0))
             content_box.fill.solid()
@@ -317,25 +323,45 @@ def export_slide_deck_to_pptx(data: Union[Dict[str, Any], SlideDeckSchema]) -> i
                 r_lbl.font.bold = True
                 r_lbl.font.size = Pt(20)
                 r_lbl.font.color.rgb = PRIMARY_BLUE
-
-                clean_formula = latex_to_unicode_math(latex_formula)
-                r_val = p_formula.add_run()
-                r_val.text = clean_formula
-                r_val.font.name = "Times New Roman"
-                r_val.font.bold = True
-                r_val.font.size = Pt(20)
-                r_val.font.color.rgb = PRIMARY_BLUE
-
-            if has_image:
                 try:
-                    if isinstance(chart_spec, dict):
-                        plot_config = chart_spec
-                    elif isinstance(image_prompt, dict):
-                        plot_config = image_prompt
-                    else:
-                        plot_config = {"plot_type": "function", "expression": "x", "x_range": (-5, 5)}
-                    img_buf = generate_math_plot(plot_config)
-                    img_stream = io.BytesIO(img_buf) if isinstance(img_buf, bytes) else img_buf
+                    latex_img_bytes = render_latex_to_bytes(latex_formula)
+                    latex_img_stream = io.BytesIO(latex_img_bytes)
+                    # Thuật toán tính tọa độ Y động
+                    base_y = 1.8
+                    estimated_text_height = len(bullet_points) * 0.6
+                    dynamic_y = base_y + estimated_text_height + 0.5
+                    if dynamic_y > 6.2:
+                        dynamic_y = 6.2
+                    
+                    slide.shapes.add_picture(latex_img_stream, Inches(1.2), dynamic_y, height = Inches(0.8))
+                except Exception as e:
+                    print(f"Loi sinh anh cong thuc: {e}")
+                    
+                    clean_formula = latex_to_unicode_math(latex_formula)
+                    r_val = p_formula.add_run()
+                    r_val.text = clean_formula
+                    r_val.font.name = "Times New Roman"
+                    r_val.font.bold = True
+                    r_val.font.size = Pt(20)
+                    r_val.font.color.rgb = PRIMARY_BLUE
+            if math_formulas:
+                start_y = Inches(3.0)
+                step_y = Inches(0.8)
+
+                for index, formula_latex in enumerate(math_formulas):
+                    try:
+                        latex_img_bytes = render_latex_to_bytes(formula_latex)
+                        latex_img_stream = io.BytesIO(latex_img_bytes)
+                        
+                        current_y = start_y + (index * step_y)
+                        slide.shapes.add_picture(latex_img_stream, Inches(1.2), current_y, height = Inches(0.6))
+                    except Exception as e:
+                        print(f"Lỗi sinh ảnh công thức thứ {index + 1}: {e}")
+            if has_valid_chart:
+                try:
+                    img_buff = generate_math_plot(chart_spec)
+                    img_stream = io.BytesIO(img_buff) if isinstance(img_buff, bytes) else img_buff
+
                     slide.shapes.add_picture(img_stream, Inches(7.8), Inches(1.8), width=Inches(4.7))
                 except Exception as e:
                     print(f"Lỗi sinh hình đồ thị Matplotlib: {e}")
