@@ -1,51 +1,49 @@
-# OS generated files
+# =========================================================
+#  WHITELIST MODE: bỏ qua TẤT CẢ, chỉ cho phép những gì liệt kê bên dưới
+# =========================================================
+
+# 1. Bỏ qua mọi thứ ở thư mục gốc
+/*
+
+# 2. Chỉ cho phép các file/thư mục này
+!/.gitignore
+!/project/
+
+# =========================================================
+#  Rác bên trong project/ (vẫn bị bỏ qua dù project/ được phép)
+# =========================================================
+
+# OS
 .DS_Store
-.DS_Store?
 ._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
-**/.DS_Store
 
 # Python
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
 *.egg-info/
-.installed.cfg
-*.egg
+.pytest_cache/
+build/
+dist/
 
-# Virtual environments
+# Virtual env
 venv/
-**/venv/
+.venv/
 env/
-**/env/
-ENV/
-env.bak/
-venv.bak/
 
-# Environment variables
+# Secrets
 .env
-**/.env
 *.env
 
-# IDEs
+# IDE
 .vscode/
 .idea/
 *.swp
-*.swo
+
+# File Office sinh ra khi test (giữ lại template)
+*.pptx
+*.docx
+~$*
+!project/app/templates/*.pptx
+project/test/pptx/
+project/test/word/
