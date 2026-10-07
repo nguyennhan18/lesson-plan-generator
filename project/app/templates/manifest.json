@@ -1,0 +1,174 @@
+{
+  "version": "1.0.0",
+  "default_theme": "math_academic",
+  "themes": {
+    "math_academic": {
+      "name": "Toán Học Cấp 3 Trang Nhã (High School Academic)",
+      "file": "template_3.pptx",
+      "description": "Bố cục trang nhã, chuyên nghiệp chuẩn Sư phạm THPT, phù hợp cho Đại số 11-12, Nguyên hàm, Đạo hàm, Hình học.",
+      "aspect_ratio": "16:9",
+      "dimensions": {
+        "width_inches": 10.0,
+        "height_inches": 5.62
+      },
+      "layout_mapping": {
+        "TITLE_SLIDE": {
+          "layout_index": 0,
+          "layout_name": "TITLE",
+          "description": "Slide tiêu đề chính bài học"
+        },
+        "WARM_UP_SLIDE": {
+          "layout_index": 1,
+          "layout_name": "SECTION_HEADER",
+          "description": "Slide mở đầu / dẫn dắt tình huống"
+        },
+        "CONCEPT_SLIDE": {
+          "layout_index": 3,
+          "layout_name": "TITLE_AND_TWO_COLUMNS",
+          "description": "Slide khái niệm với layout 2 cột"
+        },
+        "EXERCISE_SLIDE": {
+          "layout_index": 5,
+          "layout_name": "ONE_COLUMN_TEXT",
+          "description": "Slide bài tập & luyện tập"
+        },
+        "TEACHER_NOTE_SLIDE": {
+          "layout_index": 4,
+          "layout_name": "TITLE_ONLY",
+          "description": "Slide kịch bản giảng dạy dành cho GV"
+        },
+        "SUMMARY_SLIDE": {
+          "layout_index": 7,
+          "layout_name": "SECTION_TITLE_AND_DESCRIPTION",
+          "description": "Slide tóm tắt và dặn dò cuối bài"
+        }
+      }
+    },
+    "math_infographic": {
+      "name": "Toán Học Trực Quan & Infographic (Fractions & Algebra)",
+      "file": "template_2.pptx",
+      "description": "Giàu hình ảnh, sơ đồ tư duy, card 2-3 cột trực quan, phù hợp cho bài giảng Khái niệm mới và Luyện tập.",
+      "aspect_ratio": "16:9",
+      "dimensions": {
+        "width_inches": 10.0,
+        "height_inches": 5.62
+      },
+      "layout_mapping": {
+        "TITLE_SLIDE": {
+          "layout_index": 0,
+          "layout_name": "TITLE",
+          "description": "Slide tiêu đề chính bài học"
+        },
+        "WARM_UP_SLIDE": {
+          "layout_index": 7,
+          "layout_name": "SECTION_HEADER",
+          "description": "Slide tiêu đề phân đoạn / mở đầu"
+        },
+        "CONCEPT_SLIDE": {
+          "layout_index": 22,
+          "layout_name": "TITLE_AND_TWO_COLUMNS_1",
+          "description": "Slide khái niệm 2 cột trực quan"
+        },
+        "EXERCISE_SLIDE": {
+          "layout_index": 5,
+          "layout_name": "ONE_COLUMN_TEXT",
+          "description": "Slide dạng bài tập 1 cột"
+        },
+        "TEACHER_NOTE_SLIDE": {
+          "layout_index": 4,
+          "layout_name": "TITLE_ONLY",
+          "description": "Slide ghi chú dành cho GV"
+        },
+        "SUMMARY_SLIDE": {
+          "layout_index": 7,
+          "layout_name": "SECTION_TITLE_AND_DESCRIPTION",
+          "description": "Slide tóm tắt bài học"
+        }
+      }
+    },
+    "math_escape_room": {
+      "name": "Trò Chơi Khám Phá Toán Học (Math Escape Room)",
+      "file": "template_1.pptx",
+      "description": "Phong cách Game sinh động, kích thích tư duy, thích hợp cho Khởi động, bài tập giải đố và trò chơi.",
+      "aspect_ratio": "16:9",
+      "dimensions": {
+        "width_inches": 10.0,
+        "height_inches": 5.62
+      },
+      "layout_mapping": {
+        "TITLE_SLIDE": {
+          "layout_index": 0,
+          "layout_name": "TITLE",
+          "description": "Slide tiêu đề chính bài học"
+        },
+        "WARM_UP_SLIDE": {
+          "layout_index": 1,
+          "layout_name": "SECTION_HEADER",
+          "description": "Slide mở đầu khám phá"
+        },
+        "CONCEPT_SLIDE": {
+          "layout_index": 3,
+          "layout_name": "TITLE_AND_TWO_COLUMNS",
+          "description": "Slide khái niệm 2 cột"
+        },
+        "EXERCISE_SLIDE": {
+          "layout_index": 5,
+          "layout_name": "ONE_COLUMN_TEXT",
+          "description": "Slide bài tập thử thách"
+        },
+        "TEACHER_NOTE_SLIDE": {
+          "layout_index": 4,
+          "layout_name": "TITLE_ONLY",
+          "description": "Slide kịch bản giáo viên"
+        },
+        "SUMMARY_SLIDE": {
+          "layout_index": 7,
+          "layout_name": "SECTION_TITLE_AND_DESCRIPTION",
+          "description": "Slide tóm tắt tổng kết"
+        }
+      }
+    },
+    "modern_blue": {
+      "name": "Mặc Định Công Văn 5512 (Modern Blue)",
+      "file": "template_5512.pptx",
+      "description": "Template khung mặc định chuẩn Công văn 5512.",
+      "aspect_ratio": "16:9",
+      "dimensions": {
+        "width_inches": 13.33,
+        "height_inches": 7.50
+      },
+      "layout_mapping": {
+        "TITLE_SLIDE": {
+          "layout_index": 0,
+          "layout_name": "Title Slide",
+          "description": "Slide tiêu đề bài dạy"
+        },
+        "WARM_UP_SLIDE": {
+          "layout_index": 2,
+          "layout_name": "Section Header",
+          "description": "Slide mở đầu"
+        },
+        "CONCEPT_SLIDE": {
+          "layout_index": 3,
+          "layout_name": "Two Content",
+          "description": "Slide nội dung khái niệm"
+        },
+        "EXERCISE_SLIDE": {
+          "layout_index": 1,
+          "layout_name": "Title and Content",
+          "description": "Slide bài tập"
+        },
+        "TEACHER_NOTE_SLIDE": {
+          "layout_index": 5,
+          "layout_name": "Title Only",
+          "description": "Slide kịch bản giáo viên"
+        },
+        "SUMMARY_SLIDE": {
+          "layout_index": 7,
+          "layout_name": "Content with Caption",
+          "description": "Slide tóm tắt bài học"
+        }
+      }
+    }
+  }
+}

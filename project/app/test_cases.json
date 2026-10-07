@@ -1,0 +1,58 @@
+[
+  {
+    "id": "tc-1",
+    "topic": "Cấp số cộng",
+    "subject": "Toán học",
+    "grade": 11,
+    "description": "Bài học trọng tâm lớp 11 với công thức tổng quát và tính tổng dãy số."
+  },
+  {
+    "id": "tc-2",
+    "topic": "Đạo hàm và ý nghĩa hình học của đạo hàm",
+    "subject": "Toán học",
+    "grade": 11,
+    "description": "Khái niệm đạo hàm, tiếp tuyến đồ thị hàm số và ý nghĩa vật lý."
+  },
+  {
+    "id": "tc-3",
+    "topic": "Khảo sát sự biến thiên và vẽ đồ thị hàm số bậc ba",
+    "subject": "Toán học",
+    "grade": 12,
+    "description": "Bài toán kinh điển lớp 12 có bảng biến thiên và vẽ đồ thị hàm số."
+  },
+  {
+    "id": "tc-4",
+    "topic": "Phương trình bậc hai một ẩn",
+    "subject": "Toán học",
+    "grade": 9,
+    "description": "Công thức nghiệm Delta, định lý Vi-et và ứng dụng thực tế."
+  },
+  {
+    "id": "tc-5",
+    "topic": "Sóng cơ và sự truyền sóng cơ",
+    "subject": "Vật lý",
+    "grade": 12,
+    "description": "Khái niệm sóng cơ, chu kỳ, bước sóng, tốc độ truyền sóng và phương trình sóng."
+  },
+  {
+    "id": "tc-6",
+    "topic": "Định luật bảo toàn cơ năng",
+    "subject": "Vật lý",
+    "grade": 10,
+    "description": "Thế năng, động năng, điều kiện bảo toàn và bài toán vật rơi tự do."
+  },
+  {
+    "id": "tc-7",
+    "topic": "Cấu tạo nguyên tử và bảng tuần hoàn các nguyên tố hóa học",
+    "subject": "Hóa học",
+    "grade": 10,
+    "description": "Hạt proton, neutron, electron và quy luật sắp xếp bảng tuần hoàn."
+  },
+  {
+    "id": "tc-8",
+    "topic": "Thuật toán tìm kiếm nhị phân",
+    "subject": "Tin học",
+    "grade": 10,
+    "description": "Ý tưởng tìm kiếm chia đôi trên danh sách đã sắp xếp, mã giả và độ phức tạp O(log n)."
+  }
+]

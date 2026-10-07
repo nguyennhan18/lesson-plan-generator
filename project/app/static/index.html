@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LessonAI-5512 | Test & Preview Studio</title>
+  
+  <!-- Favicon SVG -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%232563eb'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg>">
+  
+  <!-- KaTeX for beautiful math formulas -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="style.css?v=2.0">
+</head>
+<body>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-wrapper">
+        <div class="brand-logo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>LessonAI-5512 Studio</h1>
+          <p>Hệ thống tự động sinh Giáo án CV 5512 & Slide Bài giảng tích hợp AI</p>
+        </div>
+      </div>
+
+      <div class="header-controls">
+        <div id="serverStatusBadge" class="server-badge" title="Trạng thái kết nối Server FastAPI">
+          <span class="status-dot"></span>
+          <span id="serverStatusText">Đang kiểm tra kết nối...</span>
+        </div>
+
+        <button id="btnOpenSettings" class="btn btn-outline-secondary btn-sm" title="Cấu hình URL API">
+          ⚙️ Cài đặt
+        </button>
+
+        <a href="/docs" target="_blank" class="btn btn-outline-secondary btn-sm" title="Mở Swagger API Docs">
+          📖 API Docs
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Nav Tabs -->
+  <nav class="tabs-navigation">
+    <div class="tabs-container">
+      <button class="tab-btn active" data-tab="studio">
+        <span>🚀</span> Soạn thảo & Kiểm thử
+      </button>
+      <button class="tab-btn" data-tab="plan">
+        <span>📑</span> Giáo án (CV 5512)
+        <span id="badgePlan" class="tab-badge">0</span>
+      </button>
+      <button class="tab-btn" data-tab="slide">
+        <span>🖥️</span> Slide Bài giảng
+        <span id="badgeSlide" class="tab-badge">0</span>
+      </button>
+      <button class="tab-btn" data-tab="json">
+        <span>💻</span> Trình xem / Sửa JSON
+      </button>
+      <button class="tab-btn" data-tab="testsuite">
+        <span>🧪</span> Test Cases & Lịch sử
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="main-content">
+
+    <!-- TAB 1: STUDIO (SOẠN THẢO & KIỂM THỬ) -->
+    <section id="tab-studio" class="tab-panel active">
+      <div class="studio-grid">
+        
+        <!-- Left Column: Input Form -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">
+              <span>🎯</span> Cấu hình bài dạy kiểm thử
+            </h2>
+          </div>
+
+          <form id="generateForm" onsubmit="event.preventDefault();">
+            <div class="form-group">
+              <label class="form-label" for="inputTopic">Tên bài dạy / Chủ đề:</label>
+              <input type="text" id="inputTopic" class="form-input" placeholder="VD: Cấp số cộng, Đạo hàm, Sóng cơ..." value="Cấp số cộng" required>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label" for="inputSubject">Môn học:</label>
+                <select id="inputSubject" class="form-select">
+                  <option value="Toán học" selected>Toán học</option>
+                  <option value="Vật lý">Vật lý</option>
+                  <option value="Hóa học">Hóa học</option>
+                  <option value="Sinh học">Sinh học</option>
+                  <option value="Tin học">Tin học</option>
+                  <option value="Ngữ văn">Ngữ văn</option>
+                  <option value="Lịch sử">Lịch sử</option>
+                  <option value="Địa lý">Địa lý</option>
+                  <option value="Tiếng Anh">Tiếng Anh</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="inputGrade">Khối lớp:</label>
+                <select id="inputGrade" class="form-select">
+                  <option value="6">Lớp 6</option>
+                  <option value="7">Lớp 7</option>
+                  <option value="8">Lớp 8</option>
+                  <option value="9">Lớp 9</option>
+                  <option value="10">Lớp 10</option>
+                  <option value="11" selected>Lớp 11</option>
+                  <option value="12">Lớp 12</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Quick Presets -->
+            <div class="presets-container">
+              <label class="form-label">Chọn nhanh bài test mẫu:</label>
+              <div id="presetChipsList" class="preset-chips-list"></div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-stack">
+              <button type="button" id="btnGenPlan" class="btn btn-primary btn-block">
+                <span>📑</span> Sinh Kế hoạch bài dạy (CV 5512)
+              </button>
+
+              <button type="button" id="btnGenSlide" class="btn btn-secondary btn-block">
+                <span>🎬</span> Sinh Slide bài giảng
+              </button>
+
+              <button type="button" id="btnGenAll" class="btn btn-success btn-block">
+                <span>⚡</span> Sinh Cả Hai (Đồng bộ trọn gói)
+              </button>
+
+              <button type="button" id="btnLoadDemo" class="btn btn-outline-primary btn-block">
+                <span>💡</span> Xem trước dữ liệu mẫu (Demo Sample)
+              </button>
+            </div>
+
+            <!-- Progress / Timer Card -->
+            <div id="progressCard" class="progress-card">
+              <div class="progress-header">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <span class="spinner"></span>
+                  <span style="font-size: 0.85rem; font-weight: 600; color: #1e40af;">Đang gọi AI xử lý...</span>
+                </div>
+                <span id="progressTimer" class="timer-badge">00:00</span>
+              </div>
+              <p id="progressMsg" style="font-size: 0.8rem; color: #475569; margin: 0;"></p>
+            </div>
+          </form>
+        </div>
+
+        <!-- Right Column: System Capabilities & Quick Status -->
+        <div>
+          <!-- Feature Highlights Card -->
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">
+                <span>✨</span> Tính năng hệ thống LessonAI-5512
+              </h2>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem;">
+              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem;">
+                <div style="font-weight: 700; color: #1e3a8a; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.4rem;">
+                  <span>📋</span> Chuẩn Công văn 5512/BGDĐT
+                </div>
+                <p style="font-size: 0.85rem; color: #475569;">
+                  Đảm bảo cấu trúc chuẩn gồm 4 hoạt động (Khởi động, Hình thành kiến thức, Luyện tập, Vận dụng) với đầy đủ 4 bước tổ chức giảng dạy.
+                </p>
+              </div>
+
+              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem;">
+                <div style="font-weight: 700; color: #1e3a8a; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.4rem;">
+                  <span>📐</span> Công thức Toán học Native (OMML)
+                </div>
+                <p style="font-size: 0.85rem; color: #475569;">
+                  Tự động chuyển đổi công thức LaTeX sang định dạng Office MathML (OMML) chuẩn để hiển thị và chỉnh sửa mượt mà trong Microsoft Word & PowerPoint.
+                </p>
+              </div>
+
+              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem;">
+                <div style="font-weight: 700; color: #1e3a8a; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.4rem;">
+                  <span>📊</span> Đồ thị & Hình học Tự động
+                </div>
+                <p style="font-size: 0.85rem; color: #475569;">
+                  Tích hợp Matplotlib vẽ đồ thị hàm số và minh họa hình học trực quan bám sát nội dung bài giảng.
+                </p>
+              </div>
+
+              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem;">
+                <div style="font-weight: 700; color: #1e3a8a; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.4rem;">
+                  <span>🔍</span> Bộ kiểm duyệt (Validator) 5512
+                </div>
+                <p style="font-size: 0.85rem; color: #475569;">
+                  Tự động kiểm tra chất lượng giáo án, phát hiện lỗi thiếu bước hoặc thiếu mục tiêu và tự kích hoạt cơ chế sửa lại (Retry Loop).
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Test Guides -->
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">
+                <span>💡</span> Hướng dẫn kiểm thử nhanh cho Tester / Developer
+              </h2>
+            </div>
+            <ol style="padding-left: 1.25rem; font-size: 0.88rem; color: #334155; line-height: 1.6;">
+              <li><strong>Test không tốn token Gemini:</strong> Bấm nút <code>Xem trước dữ liệu mẫu (Demo Sample)</code> để lập tức nạp bản giáo án và bộ slide mẫu, kiểm tra giao diện và nút xuất file Word / PPTX.</li>
+              <li><strong>Test sinh AI thực tế:</strong> Chọn một bài mẫu (như <em>Cấp số cộng</em>) và bấm <code>Sinh Kế hoạch bài dạy</code> hoặc <code>Sinh Cả Hai</code>. Quá trình xử lý sẽ hiển thị đồng hồ bấm giờ thời gian thực.</li>
+              <li><strong>Test xuất file tải về:</strong> Chuyển sang tab Giáo án hoặc Slide, bấm nút <code>Tải File Word (.docx)</code> hoặc <code>Tải File PowerPoint (.pptx)</code> để kiểm tra định dạng tài liệu thực tế.</li>
+              <li><strong>Test chỉnh sửa JSON tùy ý:</strong> Vào tab <code>Trình xem / Sửa JSON</code>, bạn có thể sửa trực tiếp nội dung và bấm <code>Xuất file</code> để kiểm tra các trường hợp biên (edge cases).</li>
+            </ol>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- TAB 2: GIÁO ÁN (CV 5512) -->
+    <section id="tab-plan" class="tab-panel">
+      <!-- Toolbar -->
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem; background: white; padding: 1rem 1.25rem; border-radius: 10px; border: 1px solid var(--border);">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <h2 style="font-size: 1.15rem; font-weight: 700; color: #0f172a;">Kế hoạch bài dạy (Công văn 5512)</h2>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <button id="btnExportDocx" class="btn btn-primary btn-sm">
+            <span>📥</span> Tải File Word (.docx)
+          </button>
+          <button id="btnGenSlideFromPlan" class="btn btn-success btn-sm">
+            <span>🎬</span> Sinh Slide từ Giáo án này
+          </button>
+        </div>
+      </div>
+
+      <!-- Validation Banner -->
+      <div id="planValidationBanner"></div>
+
+      <!-- Empty State -->
+      <div id="planEmptyState" class="card empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        </svg>
+        <h3>Chưa có dữ liệu Giáo án</h3>
+        <p>Vui lòng nhập chủ đề tại tab "Soạn thảo & Kiểm thử" và bấm sinh giáo án, hoặc bấm nút xem trước dữ liệu mẫu.</p>
+        <button class="btn btn-primary btn-sm" onclick="loadDemoSampleAction()">Nạp dữ liệu mẫu ngay</button>
+      </div>
+
+      <!-- Document Content -->
+      <div id="planViewContainer" class="doc-viewer" style="display: none;">
+        <div class="doc-header">
+          <div id="docTitle" class="doc-title">KẾ HOẠCH BÀI DẠY</div>
+          <div class="doc-meta">
+            <span id="docSubject">Môn học: Toán học</span>
+            <span>•</span>
+            <span id="docGrade">Khối lớp: 11</span>
+          </div>
+        </div>
+
+        <!-- Section I: Goals -->
+        <div class="doc-section">
+          <div class="doc-section-title">I. MỤC TIÊU BÀI DẠY</div>
+          
+          <div class="doc-subsection-title">1. Mục tiêu Kiến thức:</div>
+          <ul id="docKnowledgeGoals" class="doc-list"></ul>
+
+          <div class="doc-subsection-title">2. Mục tiêu Năng lực (Năng lực chung & Năng lực đặc thù):</div>
+          <ul id="docCompetencyGoals" class="doc-list"></ul>
+
+          <div class="doc-subsection-title">3. Mục tiêu Phẩm chất:</div>
+          <ul id="docCharacterGoals" class="doc-list"></ul>
+
+          <div class="doc-subsection-title">4. Mục tiêu Kỹ năng:</div>
+          <ul id="docSkillsGoals" class="doc-list"></ul>
+        </div>
+
+        <!-- Section II: Equipment -->
+        <div class="doc-section">
+          <div class="doc-section-title">II. THIẾT BỊ DẠY HỌC VÀ HỌC LIỆU</div>
+          <ul id="docEquipment" class="doc-list"></ul>
+        </div>
+
+        <!-- Section III: Activities -->
+        <div class="doc-section">
+          <div class="doc-section-title">III. TIẾN TRÌNH DẠY HỌC (4 HOẠT ĐỘNG CHUẨN CV 5512)</div>
+          <div id="docActivitiesContainer"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: SLIDE BÀI GIẢNG -->
+    <section id="tab-slide" class="tab-panel">
+      <!-- Toolbar -->
+      <div id="slideToolbar" class="slide-toolbar" style="display: none;">
+        <div>
+          <h2 id="slideDeckTitle" style="font-size: 1.15rem; font-weight: 700; color: #0f172a;">Slide bài giảng</h2>
+          <div style="font-size: 0.8rem; color: #64748b; margin-top: 0.15rem;">
+            <span id="slideDeckCount">0 slide</span> • <span id="slideDeckTheme">Theme: math_academic</span>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <div style="display: flex; background: #f1f5f9; padding: 0.2rem; border-radius: 6px;">
+            <button id="btnSlideGrid" class="btn btn-primary btn-sm">Lưới (Grid)</button>
+            <button id="btnSlidePresent" class="btn btn-secondary btn-sm">Trình chiếu</button>
+          </div>
+
+          <button id="btnExportPptx" class="btn btn-primary btn-sm">
+            <span>📥</span> Tải File PowerPoint (.pptx)
+          </button>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div id="slideEmptyState" class="card empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+          <line x1="8" y1="21" x2="16" y2="21"></line>
+          <line x1="12" y1="17" x2="12" y2="21"></line>
+        </svg>
+        <h3>Chưa có dữ liệu Slide bài giảng</h3>
+        <p>Vui lòng chọn chủ đề và bấm "Sinh Slide bài giảng" hoặc nạp dữ liệu mẫu.</p>
+        <button class="btn btn-primary btn-sm" onclick="loadDemoSampleAction()">Nạp dữ liệu mẫu ngay</button>
+      </div>
+
+      <!-- Mode 1: Grid View -->
+      <div id="slideGridContainer" class="slide-grid" style="display: none;"></div>
+
+      <!-- Mode 2: Presentation Single-Slide View -->
+      <div id="slidePresentContainer" class="presentation-frame" style="display: none;">
+        <div id="presentationSlideContent" class="presentation-slide"></div>
+        <div class="presentation-nav">
+          <button id="btnPrevSlide" class="btn btn-secondary btn-sm">⏮ Slide trước</button>
+          <span id="presentSlideCounter" style="color: white; font-weight: 700; font-size: 0.9rem;">Slide 1 / 1</span>
+          <button id="btnNextSlide" class="btn btn-primary btn-sm">Slide kế tiếp ⏭</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: JSON EDITOR & VIEWER -->
+    <section id="tab-json" class="tab-panel">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">
+            <span>💻</span> Dữ liệu JSON & Xuất file tùy chỉnh (Custom Exporter)
+          </h2>
+          <div style="display: flex; gap: 0.5rem;">
+            <button id="btnJsonPlan" class="btn btn-secondary btn-sm active">JSON Giáo án</button>
+            <button id="btnJsonDeck" class="btn btn-secondary btn-sm">JSON Slide</button>
+          </div>
+        </div>
+
+        <p style="font-size: 0.85rem; color: #475569; margin-bottom: 0.75rem;">
+          Bạn có thể kiểm tra cấu trúc dữ liệu thô, sao chép JSON, hoặc chỉnh sửa trực tiếp nội dung dưới đây rồi bấm nút xuất file Word / PPTX để test nhanh mà không cần gọi lại AI!
+        </p>
+
+        <div class="json-container">
+          <textarea id="jsonEditor" class="json-textarea" spellcheck="false"></textarea>
+
+          <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+            <button id="btnCopyJson" class="btn btn-secondary btn-sm">
+              <span>📋</span> Sao chép JSON vào Clipboard
+            </button>
+            <div style="display: flex; gap: 0.5rem;">
+              <button id="btnExportCustomDocx" class="btn btn-primary btn-sm">
+                <span>📥</span> Xuất Word (.docx) từ JSON này
+              </button>
+              <button id="btnExportCustomPptx" class="btn btn-success btn-sm">
+                <span>📥</span> Xuất PowerPoint (.pptx) từ JSON này
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: TEST SUITE & HISTORY -->
+    <section id="tab-testsuite" class="tab-panel">
+      <!-- Test Cases Suite -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">
+            <span>🧪</span> Bộ ca kiểm thử mẫu đa dạng (Test Suite Presets)
+          </h2>
+        </div>
+        <p style="font-size: 0.85rem; color: #475569; margin-bottom: 1rem;">
+          Danh sách các bài dạy được chuẩn hóa nhằm đánh giá chất lượng prompt, khả năng trích xuất công thức toán, và bố cục slide.
+        </p>
+
+        <table class="test-cases-table">
+          <thead>
+            <tr>
+              <th>Chủ đề / Tên bài dạy</th>
+              <th>Môn học</th>
+              <th>Khối</th>
+              <th>Mô tả trọng tâm kiểm thử</th>
+              <th>Hành động</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Cấp số cộng</strong></td>
+              <td>Toán học</td>
+              <td>11</td>
+              <td>Công thức tổng quát, dãy số số hạng đầu và công sai $d$</td>
+              <td><button class="btn btn-primary btn-sm" onclick="selectTestCase('Cấp số cộng', 'Toán học', 11)">Nạp bài</button></td>
+            </tr>
+            <tr>
+              <td><strong>Đạo hàm và ý nghĩa hình học</strong></td>
+              <td>Toán học</td>
+              <td>11</td>
+              <td>Ý nghĩa tiếp tuyến đồ thị, công thức đạo hàm cơ bản</td>
+              <td><button class="btn btn-primary btn-sm" onclick="selectTestCase('Đạo hàm và ý nghĩa hình học', 'Toán học', 11)">Nạp bài</button></td>
+            </tr>
+            <tr>
+              <td><strong>Khảo sát và vẽ đồ thị hàm số</strong></td>
+              <td>Toán học</td>
+              <td>12</td>
+              <td>Bảng biến thiên, đồ thị hàm bậc ba $y = ax^3 + bx^2 + cx + d$</td>
+              <td><button class="btn btn-primary btn-sm" onclick="selectTestCase('Khảo sát và vẽ đồ thị hàm số', 'Toán học', 12)">Nạp bài</button></td>
+            </tr>
+            <tr>
+              <td><strong>Phương trình bậc hai một ẩn</strong></td>
+              <td>Toán học</td>
+              <td>9</td>
+              <td>Công thức nghiệm Delta, định lý Vi-et</td>
+              <td><button class="btn btn-primary btn-sm" onclick="selectTestCase('Phương trình bậc hai một ẩn', 'Toán học', 9)">Nạp bài</button></td>
+            </tr>
+            <tr>
+              <td><strong>Sóng cơ và sự truyền sóng cơ</strong></td>
+              <td>Vật lý</td>
+              <td>12</td>
+              <td>Phương trình sóng, bước sóng, chu kỳ, tốc độ truyền sóng</td>
+              <td><button class="btn btn-primary btn-sm" onclick="selectTestCase('Sóng cơ và sự truyền sóng cơ', 'Vật lý', 12)">Nạp bài</button></td>
+            </tr>
+            <tr>
+              <td><strong>Định luật bảo toàn cơ năng</strong></td>
+              <td>Vật lý</td>
+              <td>10</td>
+              <td>Động năng, thế năng trọng trường, bảo toàn năng lượng</td>
+              <td><button class="btn btn-primary btn-sm" onclick="selectTestCase('Định luật bảo toàn cơ năng', 'Vật lý', 10)">Nạp bài</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- History Table -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">
+            <span>⏱️</span> Lịch sử các lần kiểm thử gần đây (Session Storage)
+          </h2>
+        </div>
+        <table class="test-cases-table">
+          <thead>
+            <tr>
+              <th>Chủ đề bài dạy</th>
+              <th>Loại dữ liệu</th>
+              <th>Thời gian</th>
+              <th>Hành động</th>
+            </tr>
+          </thead>
+          <tbody id="historyTableBody">
+            <tr>
+              <td colspan="4" style="text-align: center; color: #94a3b8; padding: 1.5rem;">
+                Chưa có lịch sử kiểm thử nào
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Modal Settings -->
+  <div id="modalSettings" class="modal-overlay">
+    <div class="modal-content">
+      <div class="card-header" style="margin-bottom: 1rem; padding-bottom: 0.5rem;">
+        <h3 class="card-title">⚙️ Cấu hình API Server</h3>
+        <button id="btnCloseSettings" style="background: none; border: none; font-size: 1.2rem; cursor: pointer;">✕</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="apiBaseInput">API Base URL:</label>
+        <input type="text" id="apiBaseInput" class="form-input" placeholder="http://localhost:8000">
+        <p style="font-size: 0.78rem; color: #64748b; margin-top: 0.35rem;">
+          Mặc định là <code>http://localhost:8000</code>. Nếu bạn chạy server trên port khác hoặc qua mạng LAN / Tunnel, hãy nhập URL tương ứng.
+        </p>
+      </div>
+      <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.25rem;">
+        <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('modalSettings').classList.remove('active')">Hủy</button>
+        <button type="button" id="btnSaveSettings" class="btn btn-primary btn-sm">Lưu cấu hình</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Global Script Helper for Test Case Selection -->
+  <script>
+    function selectTestCase(topic, subject, grade) {
+      document.getElementById('inputTopic').value = topic;
+      document.getElementById('inputSubject').value = subject;
+      document.getElementById('inputGrade').value = grade;
+      switchTab('studio');
+      showToast(`Đã chọn bài test: "${topic}"`, 'info');
+    }
+  </script>
+
+  <!-- Application Logic -->
+  <script src="app.js?v=2.0"></script>
+</body>
+</html>

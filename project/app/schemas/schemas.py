@@ -1,13 +1,14 @@
 from typing import List, Optional
 from pydantic import BaseModel, Field
+from .slide_schema import ClassProficiency
 # 4 bước dạy học CV 5512
-class ExecutionSteps(BaseModel): 
+class ExecutionSteps(BaseModel):
     step_1_assign: str = Field(description="Bước 1: Chuyển giao nhiệm vụ (GV giao bài)")
     step_2_excute: str = Field(description="Bước 2: Thực hiện nhiệm vụ (HS Trình bày)")
     step_3_report: str = Field(description="Bước 3: Báo cáo thảo luận (HS Trình bày)")
     step_4_conclusion: str = Field(description="Bước 4: Kết luận nhận đình (GV chốt kiến thức)")
 # Định nghĩa hoạt động giảng dạy
-class LessonActivity(BaseModel): 
+class LessonActivity(BaseModel):
     activity_number: int = Field(description="STT hoạt động (1, 2, 3, hoặc 4)")
     time_minutes: int = Field(description="Thời lượng tính bằng phút (VD: 10)")
     goal: str = Field(description="Nội dung câu hỏi / bài tập giao cho HS")
@@ -29,3 +30,12 @@ class LessonRequest(BaseModel):
     topic: str = Field(description="Tên bài dạy / chủ đề", example="Cấp số cộng")
     subject: str = Field(default="Toán học", description="Tên môn học", example="Toán học")
     grade: int = Field(default=11, description="Khối lớp", example=11)
+    class_proficiency: Optional[ClassProficiency] = Field(
+        default=ClassProficiency.STANDARD,
+        description="Trình độ phân loại học lực của lớp (basic, standard, advanced)"
+    )
+    target_outcome: Optional[str] = Field(
+        default=None,
+        description="Mục tiêu chuẩn đầu ra mong muốn của bài dạy"
+    )
+    plan: Optional[LessonPlanSchema] = Field(default=None, description="Kế hoạch bài dạy đã có để đồng bộ Slide")

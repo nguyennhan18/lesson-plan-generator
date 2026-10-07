@@ -415,8 +415,8 @@ def generate_lesson_plan(topic: str, subject: str, grade: int, max_retries: int 
                     automatic_function_calling = types.AutomaticFunctionCallingConfig(disable=True)
                 ),
             )
-            # code cu : plan = response.parse -> 
-            
+            # code cu : plan = response.parse ->
+
             fixed_json_text = fix_latex_backslashes_in_json(response.text)
             plan = LessonPlanSchema.model_validate_json(fixed_json_text)
         # Kiem duyet qua Validation
@@ -437,24 +437,12 @@ def generate_lesson_plan(topic: str, subject: str, grade: int, max_retries: int 
             if attempt == max_retries:
                 raise e
 
-# SLIDE_SYSTEM_PROMPT = r"""
-# Bạn là một chuyên gia Sư phạm hàng đầu thuộc bộ Giáo dục và Đào tạo Việt Nam.
-# Nhiệm vụ của bạn là soạn Giáo án bài dạy chuẩn theo cấu trúc Công văn 5512/BGDĐT.
-
-# NGUYÊN TẮC BẮT BUỘC:
-# 1. Tiến trình bài dạy phải có đủ 4 hoạt động: Khởi động -> Hình thành kiến thức -> Luyện tập -> Vận dụng.
-# 2. Nội dung phải phù hợp với tâm lý lứa tuổi học sinh theo từng khối lớp.
-# 3. Mọi công thức toán học / khoa học phải được viết dưới dạng LaTeX inline $...$ hoặc \(...\).
-# 4. Phải điền đầy đủ thông tin cho từng trường dữ liệu được yêu cầu.
-# """
 SLIDE_SYSTEM_PROMPT = r"""
-Bạn là chuyên gia thiết kế bài giảng Toán học, chuyên gia Instructional
-Design và kỹ sư AI xây dựng nội dung slide tự động cho PowerPoint.
+Bạn là Chuyên gia Sư phạm hàng đầu về giảng dạy môn Toán cấp THPT (Lớp 10, 11, 12) thuộc Bộ Giáo dục và Đào tạo Việt Nam, chuyên gia Instructional Design và kỹ sư AI thiết kế slide bài giảng điện tử.
 
-Nhiệm vụ của bạn là tạo nội dung slide có cấu trúc rõ ràng, chính xác về
-mặt Toán học, phù hợp với định hướng phát triển phẩm chất và năng lực của
-học sinh theo Chương trình Giáo dục phổ thông 2018 và định hướng Công văn
-5512.
+Nhiệm vụ của bạn là tạo ra nội dung bộ slide bài giảng Toán THPT đạt chuẩn Công văn 5512, chính xác 100% về lập luận Toán học, trực quan, cô đọng và sẵn sàng cho giáo viên trình chiếu.
+
+Nội dung phải đồng thời phù hợp với Chương trình Giáo dục phổ thông 2018, định hướng phát triển phẩm chất và năng lực học sinh, đặc điểm nhận thức của học sinh THPT và khả năng chuyển đổi tự động sang PowerPoint.
 
 Đầu ra phải có thể được hệ thống Python chuyển đổi thành PowerPoint.
 PowerPoint có thể không render được các môi trường LaTeX phức tạp, vì vậy
@@ -497,8 +485,42 @@ I. NGUYÊN TẮC TỔNG QUÁT
    rõ trong trường `assumptions`.
 
 ==================================================
-II. TIẾN TRÌNH SƯ PHẠM THEO ĐỊNH HƯỚNG 5512
+II. TIẾN TRÌNH SƯ PHẠM, THEME VÀ LAYOUT THEO ĐỊNH HƯỚNG 5512
 ==================================================
+
+A. ĐỊNH HƯỚNG THIẾT KẾ CHO HỌC SINH THPT
+
+1. Mỗi slide chỉ tập trung vào một thông điệp hoặc một kiến thức trọng tâm THPT.
+
+2. Nội dung bài giảng phải thể hiện rõ tiến trình tư duy:
+   Khởi động (tình huống) → Khái niệm và công thức → Phương pháp giải →
+   Lỗi sai thường gặp → Đồ thị hoặc ứng dụng thực tế.
+
+3. Lựa chọn `theme` phù hợp nhất với bản chất bài giảng:
+   - `math_academic`: Chủ đạo cho Giải tích, Đại số 11-12 và Hình học THPT;
+     sử dụng template_3.pptx.
+   - `math_infographic`: Dùng khi bài giảng cần sơ đồ tư duy, hệ thống hóa
+     hoặc phân loại dạng bài; sử dụng template_2.pptx.
+   - `math_escape_room`: Dùng khi bài giảng có đố vui, thử thách hoặc hoạt động
+     khám phá mở đầu; sử dụng template_1.pptx.
+
+4. Nếu slide có khảo sát hoặc minh họa đồ thị hàm số (ví dụ $f(x) = x^3 - 3x$),
+   bắt buộc phải khai báo `chart_spec` với `kind: "function_plot"`, biểu thức
+   cần vẽ và miền giá trị phù hợp để hệ thống tự tạo đồ thị bằng Matplotlib.
+   Nếu slide không có đồ thị, đặt `chart_spec` là `null` hoặc khai báo
+   `kind: "none"` theo đúng schema của hệ thống.
+
+B. QUY TẮC CHỈ ĐỊNH BỐ CỤC LAYOUT CHO TỪNG SLIDE
+
+Mỗi slide bắt buộc phải có trường `layout`. Chọn layout phù hợp nhất với thông điệp chính của slide theo thứ tự ưu tiên sau:
+
+- Nếu slide có so sánh hoặc kết hợp công thức với văn bản → `TWO_COLUMN`.
+- Nếu slide có đồ thị hàm số hoặc có `chart_spec` khác `null` → `IMAGE_TEXT`.
+- Nếu slide có công thức định nghĩa cốt lõi trong `main_definition_latex` → `CONCEPT_HIGHLIGHT`.
+- Nếu slide là tiêu đề hoặc phần kết → `TITLE_ONLY`.
+- Nếu không thuộc các trường hợp trên, chọn layout phù hợp nhất trong danh sách layout được hệ thống hỗ trợ; không bỏ trống trường `layout`.
+
+Khi một slide thỏa nhiều điều kiện, ưu tiên nội dung sư phạm quan trọng nhất nhưng phải bảo đảm slide có đồ thị dùng `IMAGE_TEXT`, slide tiêu đề/phần kết dùng `TITLE_ONLY`, và slide định nghĩa cốt lõi dùng `CONCEPT_HIGHLIGHT`.
 
 Phải phân bổ nội dung slide theo tiến trình sư phạm hợp lý. Không được
 chỉ tạo một danh sách slide rời rạc.
@@ -570,14 +592,20 @@ Mỗi bài giảng nên được tổ chức theo các giai đoạn sau:
 
 Các trường bắt buộc trong cấu trúc slide gồm:
 
-- `slide_number`
-- `slide_type`
-- `stage`
+- `slide_index`
+- `type`
+- `layout`
 - `title`
-- `learning_objective`
-- `key_message`
+- `subtitle`
 - `bullet_points`
+- `main_definition_latex`
 - `teacher_note`
+- `image_prompt`
+- `chart_spec`
+
+Nếu hệ thống đích cần dữ liệu sư phạm chi tiết, có thể bổ sung các trường
+`stage`, `learning_objective` và `key_message`; các trường này không được
+thay thế hoặc làm mất các trường bắt buộc ở trên.
 
 Giá trị của `stage` chỉ được thuộc một trong các nhóm sau:
 
@@ -853,11 +881,12 @@ Chỉ trả về JSON hợp lệ theo đúng cấu trúc SlideDeckSchema sau. Kh
   "presentation_title": "Tên bài giảng",
   "subject": "Toán học",
   "grade": 12,
-  "theme": "modern_blue",
+  "theme": "math_academic",
   "slides": [
     {
       "slide_index": 1,
       "type": "TITLE_SLIDE",
+      "layout": "TITLE_ONLY",
       "title": "Tên bài học",
       "subtitle": "Môn Toán học - Lớp 12",
       "bullet_points": [],
@@ -876,6 +905,7 @@ Chỉ trả về JSON hợp lệ theo đúng cấu trúc SlideDeckSchema sau. Kh
     {
       "slide_index": 2,
       "type": "WARM_UP_SLIDE",
+      "layout": "IMAGE_TEXT",
       "title": "Tình huống khởi động",
       "subtitle": null,
       "bullet_points": [
@@ -897,6 +927,7 @@ Chỉ trả về JSON hợp lệ theo đúng cấu trúc SlideDeckSchema sau. Kh
     {
       "slide_index": 3,
       "type": "CONCEPT_SLIDE",
+      "layout": "CONCEPT_HIGHLIGHT",
       "title": "Khái niệm Nguyên hàm",
       "subtitle": "Định nghĩa tổng quát",
       "bullet_points": [
@@ -937,6 +968,15 @@ Trước khi trả về JSON, phải tự kiểm tra toàn bộ nội dung theo 
     SUMMARY_SLIDE.
 
 [ ] Mọi slide đều có `teacher_note`.
+
+[ ] Mọi slide đều có `layout` và layout phù hợp với thông điệp:
+    so sánh/công thức + văn bản → `TWO_COLUMN`;
+    có đồ thị (`chart_spec`) → `IMAGE_TEXT`;
+    định nghĩa cốt lõi → `CONCEPT_HIGHLIGHT`;
+    tiêu đề/phần kết → `TITLE_ONLY`.
+
+[ ] `theme` chỉ là một trong ba giá trị: `math_academic`,
+    `math_infographic`, `math_escape_room`.
 
 [ ] Mọi công thức Toán học trong `bullet_points` đều được bọc bằng `$...$`.
 
@@ -986,48 +1026,46 @@ _FIX_PATTERN = re.compile(r'(?<!\\)\\(?=' + _LATEX_CMDS + r'\b)')
 def fix_latex_backslashes_in_json(raw_text: str) -> str:
     return _FIX_PATTERN.sub(r'\\\\', raw_text)
 
-# def generate_slide_markdown(topic: str, subject: str, grade: int, plan: Optional[LessonPlanSchema] = None) -> str:
-#     """
-#     Sinh Slide bài giảng dạng Marp Markdown từ bài dạy (hoặc bóc tách từ Giáo án 5512 có sẵn).
-#     """
-#     if plan:
-#         plan_json_str = plan.model_dump_json(indent=2)
-#         user_prompt = (
-#             f"Dựa trên Kế hoạch bài dạy (Giáo án) chuẩn 5512 sau:\n{plan_json_str}\n\n"
-#             f"Hãy chuyển đổi thành bộ Slide bài giảng dạng Markdown chuẩn Marp CLI cho bài: '{topic}', Môn {subject}, Lớp {grade}."
-#         )
-#     else:
-#         user_prompt = f"Hãy soạn bộ Slide bài giảng dạng Markdown chuẩn Marp CLI cho bài dạy: '{topic}', Môn {subject}, Lớp {grade}."
+def _call_gemini_with_fallback(contents, config, max_retries=3):
+    import time
+    models = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-2.5-pro"]
+    last_exc = None
+    for model_name in models:
+        for attempt in range(max_retries):
+            try:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=contents,
+                    config=config
+                )
+                return response
+            except Exception as e:
+                last_exc = e
+                err_msg = str(e)
+                if "503" in err_msg or "429" in err_msg or "UNAVAILABLE" in err_msg or "RESOURCE_EXHAUSTED" in err_msg:
+                    print(f"Server bận ({model_name}). Đang chờ 3s (thử {attempt+1}/{max_retries})...")
+                    time.sleep(3)
+                elif "404" in err_msg or "NOT_FOUND" in err_msg:
+                    print(f"Model {model_name} không khả dụng, chuyển model tiếp theo...")
+                    break
+                else:
+                    break
+    if last_exc:
+        raise last_exc
 
-#     try:
-#         response = client.models.generate_content(
-#             model="gemini-3.8-flash",
-#             contents=user_prompt,
-#             config=types.GenerateContentConfig(
-#                 system_instruction=SLIDE_SYSTEM_PROMPT,
-#                 temperature=0.7,
-#             ),
-#         )
-#         return response.text
-#     except Exception as e:
-#         print(f"Lỗi API khi sinh Slide: {e}")
-#         raise e
 def generate_lesson_plan(topic: str, subject: str, grade: int, max_retries: int = 2) -> tuple[LessonPlanSchema, ValidationResult]:
     user_prompt = f"Hãy soạn giáo án Công văn 5512 cho bài dạy: '{topic}', Môn {subject}, Lớp {grade}."
     current_prompt = user_prompt
     for attempt in range(max_retries + 1):
         try:
-            response = client.models.generate_content(
-                model="gemini-3.8-flash",
-                contents=current_prompt,
-                config=types.GenerateContentConfig(
-                    system_instruction=SYSTEM_PROMPT,
-                    response_mime_type="application/json",
-                    response_schema=LessonPlanSchema,
-                    temperature=0.7,
-                    automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True)
-                ),
+            config = types.GenerateContentConfig(
+                system_instruction=SYSTEM_PROMPT,
+                response_mime_type="application/json",
+                response_schema=LessonPlanSchema,
+                temperature=0.7,
+                automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True)
             )
+            response = _call_gemini_with_fallback(current_prompt, config)
             fixed_json_text = fix_latex_backslashes_in_json(response.text)
             plan = LessonPlanSchema.model_validate_json(fixed_json_text)
             val_result = validate_5512_lesson_plan(plan)
@@ -1047,37 +1085,27 @@ def generate_lesson_plan(topic: str, subject: str, grade: int, max_retries: int 
                 raise e
 
 
-
-def generate_slide_deck(topic: str, subject: str, grade: int, plan: Optional[LessonPlanSchema] = None, max_retries: int = 3) -> SlideDeckSchema:
+def generate_slide_deck(topic: str, subject: str, grade: int, plan: Optional[LessonPlanSchema] = None) -> SlideDeckSchema:
     if plan:
         plan_json_str = plan.model_dump_json(indent=2)
         user_prompt = f"Dựa trên Kế hoạch bài dạy chuẩn 5512 sau:\n{plan_json_str}\n\nHãy soạn cấu trúc Slide bài giảng JSON cho bài dạy: '{topic}', Môn {subject}, Lớp {grade}."
     else:
         user_prompt = f"Hãy soạn cấu trúc Slide bài giảng JSON cho bài dạy: '{topic}', Môn {subject}, Lớp {grade}."
 
-    import time
-    for attempt in range(max_retries):
-        try:
-            response = client.models.generate_content(
-                model="gemini-3.8-flash",
-                contents=user_prompt,
-                config=types.GenerateContentConfig(
-                    system_instruction=SLIDE_SYSTEM_PROMPT, # Dùng prompt chuẩn JSON
-                    response_mime_type="application/json",
-                    response_schema=SlideDeckSchema,
-                    temperature=0.7,
-                    automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True)
-                ),
-            )
-            fixed_json_text = fix_latex_backslashes_in_json(response.text)
-            return SlideDeckSchema.model_validate_json(fixed_json_text)
-        except Exception as e:
-            if attempt < max_retries - 1 and ("503" in str(e) or "429" in str(e) or "UNAVAILABLE" in str(e) or "RESOURCE_EXHAUSTED" in str(e)):
-                print(f"Lỗi Server quá tải tạm thời ({e}). Đang chờ 3s để thử lại ({attempt + 1}/{max_retries})...")
-                time.sleep(3)
-            else:
-                print(f"Lỗi API khi sinh SlideDeck: {e}")
-                raise e
+    try:
+        config = types.GenerateContentConfig(
+            system_instruction=SLIDE_SYSTEM_PROMPT,
+            response_mime_type="application/json",
+            response_schema=SlideDeckSchema,
+            temperature=0.7,
+            automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True)
+        )
+        response = _call_gemini_with_fallback(user_prompt, config)
+        fixed_json_text = fix_latex_backslashes_in_json(response.text)
+        return SlideDeckSchema.model_validate_json(fixed_json_text)
+    except Exception as e:
+        print(f"Lỗi API khi sinh SlideDeck: {e}")
+        raise e
 
 def export_slide_to_pptx(data, pptx_path: str):
     """Xuất Slide PowerPoint Native 100% qua python-pptx Hybrid"""
@@ -1091,62 +1119,61 @@ def get_next_test_filepath(file_type: str) -> Path:
     """
     ext = "docx" if file_type in ["word", "docx"] else "pptx"
     folder_name = "word" if ext == "docx" else "pptx"
-    
+
     # 1. Định vị thư mục lưu trữ: test/pptx/ hoặc test/word/
     base_dir = Path(__file__).resolve().parent.parent.parent / "test" / folder_name
     base_dir.mkdir(parents=True, exist_ok=True)  # Tự động tạo thư mục nếu chưa tồn tại
-    
+
     # 2. Quét các file hiện có để tìm index lớn nhất
     index = 1
     while (base_dir / f"test_{index}.{ext}").exists():
         index += 1
-        
+
     return base_dir / f"test_{index}.{ext}"
 if __name__ == "__main__":
-    print("Generating lesson plan ")
+    import argparse
+    parser = argparse.ArgumentParser(description="Sinh Kế hoạch bài dạy (5512) và Slide bài giảng bằng Gemini AI")
+    parser.add_argument("--topic", type=str, help="Tên chủ đề / bài dạy (VD: Cấp số cộng, Đạo hàm...)")
+    parser.add_argument("--subject", type=str, default="Toán học", help="Tên môn học (mặc định: Toán học)")
+    parser.add_argument("--grade", type=int, default=12, help="Khối lớp (mặc định: 12)")
+    args = parser.parse_args()
+
+    topic = args.topic
+    if not topic:
+        try:
+            topic = input("📌 Nhập tên bài dạy / chủ đề cần sinh (VD: Cấp số cộng, Đạo hàm, Tích phân...): ").strip()
+        except Exception:
+            topic = ""
+        if not topic:
+            topic = "Cấp số cộng"
+
+    subject = args.subject
+    grade = args.grade
+
+    print(f"\n Đang tiến hành tạo Giáo án & Slide cho bài: '{topic}', Môn {subject}, Lớp {grade}...")
+
     plan, val_result = generate_lesson_plan(
-        topic="Nguyên hàm",
-        subject="Toán học",
-        grade=12
+        topic=topic,
+        subject=subject,
+        grade=grade
     )
     docx_path = get_next_test_filepath("word")
     docx_stream = export_lesson_plan_to_docx(plan)
     with open(docx_path, "wb") as f:
         f.write(docx_stream.getbuffer())
-    print(f"Đã xuất ra file Word: {docx_path}")
+    print(f"✅ Đã xuất ra file Word: {docx_path}")
 
     # Xuất Slide dùng chính plan vừa sinh ra
     print("\n🚀 Đang sinh Slide bài giảng JSON từ AI...")
     try:
         slide_deck = generate_slide_deck(
-            topic="Nguyên hàm",
-            subject="Toán học",
-            grade=12,
+            topic=topic,
+            subject=subject,
+            grade=grade,
             plan=plan  # Truyền plan vào để thông tin ăn khớp 100%
         )
-        
-        # Xuất file PPTX tự tăng index trong test/pptx/
         pptx_path = get_next_test_filepath("pptx")
         export_slide_to_pptx(slide_deck, str(pptx_path))
-        print(f"Đã xuất thành công file PowerPoint: {pptx_path}")
+        print(f"🎉 Đã xuất thành công file PowerPoint: {pptx_path}")
     except Exception as e:
-        print(f"Lỗi khi xuất PowerPoint: {e}")
-    # print(plan.model_dump_json(indent = 2))
-    # docx_stream = export_lesson_plan_to_docx(plan)
-    # with open("GA_test_5512.docx", "wb") as f:
-    #     f.write(docx_stream.getbuffer())
-    # print("Đã xuất ra file word")
-
-    # # Slides Native PowerPoint 100% bằng python-pptx Hybrid
-    # print("\n🚀 Đang sinh Slide bài giảng JSON từ AI...")
-    # try:
-    #     slide_deck = generate_slide_deck(
-    #         topic="Nguyên hàm",
-    #         subject="Toán học",
-    #         grade=12
-    #     )
-    #     print("Exporting slide to Native PowerPoint Hybrid (slide_test.pptx)...")
-    #     export_slide_to_pptx(slide_deck, "slide_test.pptx")
-    #     print("✅ Đã xuất thành công file slide PowerPoint Native Hybrid: slide_test.pptx")
-    # except Exception as e:
-    #     print(f"⚠️ Lỗi khi xuất PowerPoint: {e}")
+        print(f"⚠️ Lỗi khi xuất PowerPoint: {e}")
