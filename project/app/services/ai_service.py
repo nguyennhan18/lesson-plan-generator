@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 from schemas.schemas import LessonPlanSchema
-from schemas.slide_schema import SlideDeckSchema
+from schemas.slide_schema import SlideDeckSchema, ClassProficiency
 from services.validation import validate_5512_lesson_plan, ValidationResult
 from exporters.docx_exporter import export_lesson_plan_to_docx
 from exporters.slide_exporter import export_slide_deck_to_pptx_file
@@ -514,13 +514,14 @@ B. QUY TẮC CHỈ ĐỊNH BỐ CỤC LAYOUT CHO TỪNG SLIDE
 
 Mỗi slide bắt buộc phải có trường `layout`. Chọn layout phù hợp nhất với thông điệp chính của slide theo thứ tự ưu tiên sau:
 
+- Nếu slide là câu hỏi trắc nghiệm kiểm tra nhanh kiến thức → bắt buộc layout là `QUIZ_OPTION` (và phải có đủ 4 phương án trong `quiz_options`).
 - Nếu slide có so sánh hoặc kết hợp công thức với văn bản → `TWO_COLUMN`.
 - Nếu slide có đồ thị hàm số hoặc có `chart_spec` khác `null` → `IMAGE_TEXT`.
 - Nếu slide có công thức định nghĩa cốt lõi trong `main_definition_latex` → `CONCEPT_HIGHLIGHT`.
 - Nếu slide là tiêu đề hoặc phần kết → `TITLE_ONLY`.
 - Nếu không thuộc các trường hợp trên, chọn layout phù hợp nhất trong danh sách layout được hệ thống hỗ trợ; không bỏ trống trường `layout`.
 
-Khi một slide thỏa nhiều điều kiện, ưu tiên nội dung sư phạm quan trọng nhất nhưng phải bảo đảm slide có đồ thị dùng `IMAGE_TEXT`, slide tiêu đề/phần kết dùng `TITLE_ONLY`, và slide định nghĩa cốt lõi dùng `CONCEPT_HIGHLIGHT`.
+Khi một slide thỏa nhiều điều kiện, ưu tiên nội dung sư phạm quan trọng nhất nhưng phải bảo đảm slide có đồ thị dùng `IMAGE_TEXT`, slide tiêu đề/phần kết dùng `TITLE_ONLY`, slide định nghĩa cốt lõi dùng `CONCEPT_HIGHLIGHT`, và câu hỏi trắc nghiệm dùng `QUIZ_OPTION`.
 
 Phải phân bổ nội dung slide theo tiến trình sư phạm hợp lý. Không được
 chỉ tạo một danh sách slide rời rạc.
@@ -948,9 +949,75 @@ Chỉ trả về JSON hợp lệ theo đúng cấu trúc SlideDeckSchema sau. Kh
     }
   ]
 }
+=================================================
+IX. QUY TẮC PHÂN HÓA HỌC LỰC THEO TRÌNH ĐỘ
+=================================================
+Trong bài giảng sẽ chứa 1 vài câu hỏi quizz giúp học sinh dễ hiểu về bài hơn.
+Tuy nhiên cần phân hóa học lực theo trình độ dựa trên dữ liệu sau đây:
+Basic (Lớp cơ bản / yếu) :
+- TẬp trung vào bản chất trực quan, định nghĩa nền tảng, công thức gốc
+- Chia nhỏ các bước giải toán, tránh biến đổi gộp hoặc cổng kền
+- Đưa ra ví dụ mẫu mức độ Nhận biệt - Thông hiểu
+- Lời thoại của teacher_note tập trung gợi mở hơn, nhắc lại kiến thúc cũ giúp học sinh dễ tiếp cận và hiểu bài hơn
 
+Standard (Lớp chuẩn / khá):
+- Theo sát chuẩn kiến thức kỹ năng SGK GDPT 2018.
+- Cân bằng lý thuyết và bài tập rèn luyện dạng điển hình (Mức độ thông hiểu và vận dụng).
+
+Advanced (Lớp nâng cao / Giỏi):
+- Lướt nhanh định nghĩa cơ bản, tập trung vào bản chất toán học mở rộng, điều kiện biên, các trường hợp ngoại lệ.
+- Đưa vào bài tập mức độ vận dụng cao, tư duy đa chiều hoặc liên hệ thực tế.
+- Lời thoại teacher_note sắc sảo, gợi mở suy luận sâu, khuyến khích học sinh tự tìm tòi.
 ==================================================
-IX. KIỂM TRA BẮT BUỘC TRƯỚC KHI TRẢ KẾT QUẢ
+X. QUY TẮC SLIDE CÂU HỎI TRẮC NGHIỆM
+==================================================
+
+- Mỗi bài giảng bắt buộc phải có từ 1 đến 2 slide mang layout: "QUIZ_OPTION" trong phần luyện tập / đánh giá.
+- Nếu slide mang layout: "QUIZ_OPTION", TUYỆT ĐỐI KHÔNG ĐƯỢC để trống mảng quiz_options.
+- Mỗi slide QUIZ_OPTION bắt buộc phải chứa đủ 4 phương án A, B, C, D trong mảng quiz_options.
+- Phải có đúng 1 đáp án đúng (is_correct: true, distractor_rationale: null).
+- Ba phương án còn lại bắt buộc is_correct: false và bắt buộc có distractor_rationale chỉ rõ lỗi sai Toán học (sai công thức, thiếu điều kiện, quên đổi dấu, tính nhầm sai).
+- Nếu slide là bài tập tự luận hoặc không có đủ 4 phương án trắc nghiệm, TUYỆT ĐỐI KHÔNG DÙNG layout "QUIZ_OPTION", hãy dùng "SINGLE_COLUMN" hoặc "TWO_COLUMN".
+- Mẫu JSON slide QUIZ_OPTION:
+{
+  "slide_index": 4,
+  "type": "EXERCISE_SLIDE",
+  "layout": "QUIZ_OPTION",
+  "title": "Kiểm tra nhanh: Đạo hàm",
+  "subtitle": "Chọn khẳng định đúng",
+  "bullet_points": ["Tính đạo hàm của hàm số: $y = x^3 - 3x + 2$"],
+  "class_proficiency": "standard",
+  "target_outcome": "Học sinh tính đúng đạo hàm của hàm đa thức bậc ba.",
+  "quiz_options": [
+    {
+      "label": "A",
+      "text": "$y' = 3x^2 - 3$",
+      "is_correct": true,
+      "distractor_rationale": null
+    },
+    {
+      "label": "B",
+      "text": "$y' = 3x^2 + 3$",
+      "is_correct": false,
+      "distractor_rationale": "Sai dấu: nhầm đạo hàm của $-3x$ thành $+3$."
+    },
+    {
+      "label": "C",
+      "text": "$y' = x^2 - 3$",
+      "is_correct": false,
+      "distractor_rationale": "Quên nhân hệ số số mũ $n=3$ khi hạ bậc $(x^3)'$."
+    },
+    {
+      "label": "D",
+      "text": "$y' = 3x^2 - 3x$",
+      "is_correct": false,
+      "distractor_rationale": "Sai quy tắc đạo hàm hàm bậc nhất: đạo hàm của $ax$ là $a$, không giữ lại biến $x$."
+    }
+  ],
+  "teacher_note": "GV cho học sinh 60 giây suy nghĩ, gọi 1 HS giải thích lý do các phương án sai."
+}
+==================================================
+XI. KIỂM TRA BẮT BUỘC TRƯỚC KHI TRẢ KẾT QUẢ
 ==================================================
 
 Trước khi trả về JSON, phải tự kiểm tra toàn bộ nội dung theo danh sách sau:
@@ -970,10 +1037,13 @@ Trước khi trả về JSON, phải tự kiểm tra toàn bộ nội dung theo 
 [ ] Mọi slide đều có `teacher_note`.
 
 [ ] Mọi slide đều có `layout` và layout phù hợp với thông điệp:
+    câu hỏi trắc nghiệm → `QUIZ_OPTION` (bắt buộc có mảng `quiz_options` đủ 4 lựa chọn A-D);
     so sánh/công thức + văn bản → `TWO_COLUMN`;
     có đồ thị (`chart_spec`) → `IMAGE_TEXT`;
     định nghĩa cốt lõi → `CONCEPT_HIGHLIGHT`;
     tiêu đề/phần kết → `TITLE_ONLY`.
+
+[ ] Slide nào có layout `QUIZ_OPTION` thì bắt buộc `quiz_options` phải có đủ 4 phương án (1 đúng, 3 sai kèm `distractor_rationale`). Không bao giờ để rỗng.
 
 [ ] `theme` chỉ là một trong ba giá trị: `math_academic`,
     `math_infographic`, `math_escape_room`.
@@ -1085,13 +1155,22 @@ def generate_lesson_plan(topic: str, subject: str, grade: int, max_retries: int 
                 raise e
 
 
-def generate_slide_deck(topic: str, subject: str, grade: int, plan: Optional[LessonPlanSchema] = None) -> SlideDeckSchema:
+def generate_slide_deck(topic: str, subject: str, grade: int,class_proficiency: Optional[ClassProficiency] = ClassProficiency.STANDARD,target_outcome: Optional[str] = None ,plan: Optional[LessonPlanSchema] = None) -> SlideDeckSchema:
+    proficiency_str = class_proficiency.value if hasattr(class_proficiency, "value") else str(class_proficiency or "standard")
+    target_str = f"\nMục tiêu chuẩn đầu ra cần đạt: {target_outcome}" if target_outcome else ""
+
     if plan:
         plan_json_str = plan.model_dump_json(indent=2)
-        user_prompt = f"Dựa trên Kế hoạch bài dạy chuẩn 5512 sau:\n{plan_json_str}\n\nHãy soạn cấu trúc Slide bài giảng JSON cho bài dạy: '{topic}', Môn {subject}, Lớp {grade}."
+        user_prompt = (
+            f"Dựa trên Kế hoạch bài dạy chuẩn 5512 sau:\n{plan_json_str}\n\n"
+            f"Hãy soạn cấu trúc Slide bài giảng JSON cho bài dạy: '{topic}', Môn {subject}, Lớp {grade}.\n"
+            f"Trình độ học lực lớp mục tiêu: '{proficiency_str}'.{target_str}"
+        )
     else:
-        user_prompt = f"Hãy soạn cấu trúc Slide bài giảng JSON cho bài dạy: '{topic}', Môn {subject}, Lớp {grade}."
-
+        user_prompt = (
+            f"Hãy soạn cấu trúc Slide bài giảng JSON cho bài dạy: '{topic}', Môn {subject}, Lớp {grade}.\n"
+            f"Trình độ học lực lớp mục tiêu: '{proficiency_str}'.{target_str}"
+        )
     try:
         config = types.GenerateContentConfig(
             system_instruction=SLIDE_SYSTEM_PROMPT,
@@ -1102,7 +1181,41 @@ def generate_slide_deck(topic: str, subject: str, grade: int, plan: Optional[Les
         )
         response = _call_gemini_with_fallback(user_prompt, config)
         fixed_json_text = fix_latex_backslashes_in_json(response.text)
-        return SlideDeckSchema.model_validate_json(fixed_json_text)
+        try:
+            deck_dict = json.loads(fixed_json_text)
+            if isinstance(deck_dict, dict) and "slides" in deck_dict and isinstance(deck_dict["slides"], list):
+                for s in deck_dict["slides"]:
+                    if not isinstance(s, dict):
+                        continue
+                    quiz_opts = s.get("quiz_options") or []
+                    is_quiz = s.get("layout") == "QUIZ_OPTION"
+
+                    if is_quiz and not quiz_opts:
+                        # Auto-heal: Hạ cấp layout về SINGLE_COLUMN nếu AI không sinh quiz_options
+                        s["layout"] = "SINGLE_COLUMN"
+                        s["quiz_options"] = []
+                    elif quiz_opts:
+                        # Auto-heal: Chuẩn hóa tính hợp lệ của quiz_options (1 đúng, distractors có rationale)
+                        correct_count = sum(1 for opt in quiz_opts if isinstance(opt, dict) and opt.get("is_correct") is True)
+                        if correct_count != 1:
+                            if correct_count == 0 and len(quiz_opts) > 0:
+                                quiz_opts[0]["is_correct"] = True
+                            elif correct_count > 1:
+                                first_correct = True
+                                for opt in quiz_opts:
+                                    if isinstance(opt, dict) and opt.get("is_correct") is True:
+                                        if first_correct:
+                                            first_correct = False
+                                        else:
+                                            opt["is_correct"] = False
+                        for opt in quiz_opts:
+                            if isinstance(opt, dict) and not opt.get("is_correct"):
+                                if not opt.get("distractor_rationale") or not str(opt.get("distractor_rationale")).strip():
+                                    lbl = opt.get("label", "này")
+                                    opt["distractor_rationale"] = f"Phương án {lbl} chưa chính xác theo quy tắc tính toán hoặc kiến thức bài học."
+            return SlideDeckSchema.model_validate(deck_dict)
+        except Exception:
+            return SlideDeckSchema.model_validate_json(fixed_json_text)
     except Exception as e:
         print(f"Lỗi API khi sinh SlideDeck: {e}")
         raise e

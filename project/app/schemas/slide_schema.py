@@ -56,7 +56,9 @@ class QuizOptionDetail(BaseModel):
     is_correct: bool = Field(default=False, description="Đáp án đúng (True) hay sai (False)")
     distractor_rationale: Optional[str] = Field(
         default=None,
-        description="Giải thích bẫy tâm lý / nguyên nhân học sinh chọn sai phương án này"
+        description="Giải thích vì sao phương án này SAI về mặt Toán học: chỉ ra cụ thể "
+        "công thức, bước biến đổi, điều kiện hoặc phép tính bị sai và nêu kết quả/cách làm đúng. "
+        "Không suy đoán tâm lý hay thái độ của học sinh."
     )
 
 class ClassProficiency(str, Enum):
