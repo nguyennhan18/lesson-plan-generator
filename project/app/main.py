@@ -1,8 +1,9 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, APIRouter, UploadFile, File
 from fastapi.responses import Response, HTMLResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from urllib.parse import quote
+
 
 import sys
 import os
@@ -11,6 +12,9 @@ import base64
 os.environ["MPLCONFIGDIR"] = "/tmp/matplotlib_cache"
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
+from parsers.pptx_parser import parse_pptx
+from parsers.docx_parser import parse_docx
+from parsers.common import ParsedDocumentResponse
 from schemas.schemas import LessonPlanSchema, LessonRequest
 from schemas.slide_schema import SlideDeckSchema
 from services.ai_service import generate_lesson_plan, generate_slide_deck
@@ -24,6 +28,11 @@ app = FastAPI(
     version="0.1.0"
 )
 
+ingest_router = APIRouter(
+    prefix="/api/v1/ingest",
+    tags=["Ingest"]
+)
+
 # Cấu hình CORS để giao diện Web dễ dàng gọi API
 app.add_middleware(
     CORSMiddleware,
@@ -32,6 +41,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(ingest_router)
 
 # Mount thư mục static cho giao diện Web
 static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
@@ -227,6 +237,47 @@ def render_chart_endpoint(spec: dict):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Lỗi vẽ đồ thị: {str(e)}")
 
+@ingest_router.post("/parse-document", response_model = ParsedDocumentResponse)
+async def parse_document_endpoint(
+    file: UploadFile = File(..., description="File giáo án (.docx) or slide (.pptx) cần bóc tách")
+):
+
+    filename = file.filename or ""
+    ext = os.path.splitext(filename)[1].lower()
+
+    if ext not in (".pptx", ".docx"):
+        raise HTTPException(
+            status_code = 400,
+            detail = f"định dạng '{ext}' không được hỗ trợ. Chỉ chấp nhận file .pptx or docx"
+        )
+
+    try:
+        content = await file.read()
+        if not content:
+            raise HTTPException(
+                status_code = 400,
+                detail = "File tải lên rỗng"
+            )
+        if ext == ".pptx":
+            parsed_result = parse_pptx(content)
+        elif ext == ".docx":
+            parsed_result = parse_docx(content)
+
+        return {
+            "filename" : filename,
+            **parsed_result,
+
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code = 500,
+            detail = f"Loiox khi phân tích file '{filename}' : {str(e)}"
+        )
+    finally:
+        await file.close()
+app.include_router(ingest_router)
 if __name__ == "__main__":
     import uvicorn
     app_dir = os.path.dirname(os.path.abspath(__file__))
