@@ -123,7 +123,7 @@ def export_docx_endpoint(plan: LessonPlanSchema):
         docx_stream = export_lesson_plan_to_docx(plan)
         raw_filename = f"Giao_An_{plan.lesson_title}.docx".replace(" ", "_")
         safe_filename = quote(raw_filename)
-        
+
         return Response(
             content=docx_stream.getvalue(),
             media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -143,7 +143,7 @@ def export_slide_endpoint(deck: SlideDeckSchema):
         pptx_stream = export_slide_deck_to_pptx(deck)
         raw_filename = f"Slide_{deck.presentation_title}.pptx".replace(" ", "_")
         safe_filename = quote(raw_filename)
-        
+
         return Response(
             content=pptx_stream.getvalue(),
             media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
@@ -199,7 +199,9 @@ def generate_slide_endpoint(req: LessonRequest):
             topic=req.topic,
             subject=req.subject,
             grade=req.grade,
-            plan=req.plan
+            plan=req.plan,
+            class_proficiency= req.class_proficiency,
+            target_outcome= req.target_outcome
         )
         deck_dict = slide_deck.model_dump()
         return enrich_slide_deck_with_renders(deck_dict)

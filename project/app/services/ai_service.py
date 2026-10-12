@@ -1043,7 +1043,15 @@ Trước khi trả về JSON, phải tự kiểm tra toàn bộ nội dung theo 
     định nghĩa cốt lõi → `CONCEPT_HIGHLIGHT`;
     tiêu đề/phần kết → `TITLE_ONLY`.
 
-[ ] Slide nào có layout `QUIZ_OPTION` thì bắt buộc `quiz_options` phải có đủ 4 phương án (1 đúng, 3 sai kèm `distractor_rationale`). Không bao giờ để rỗng.
+[ ] SỐ LƯỢNG QUIZ: Toàn bộ bài giảng PHẢI có tối thiểu 1 slide mang `layout = "QUIZ_OPTION"`
+    (bài giảng từ 8 slide trở lên: tối thiểu 2 slide `layout = "QUIZ_OPTION"`).
+    Đếm lại số slide có `layout = "QUIZ_OPTION"` trước khi xuất kết quả.
+    Nếu = 0 → BẮT BUỘC bổ sung rồi mới được trả về.
+
+[ ] CHẤT LƯỢNG QUIZ: Mỗi slide có `layout = "QUIZ_OPTION"` bắt buộc phải có mảng `quiz_options`
+    đủ 4 phương án (A, B, C, D), trong đó có đúng 1 đáp án đúng (`is_correct: true`, `distractor_rationale: null`)
+    và 3 đáp án sai (`is_correct: false`, bắt buộc có `distractor_rationale` chỉ rõ lỗi sai Toán học).
+    Không bao giờ để `quiz_options` rỗng.
 
 [ ] `theme` chỉ là một trong ba giá trị: `math_academic`,
     `math_infographic`, `math_escape_room`.
