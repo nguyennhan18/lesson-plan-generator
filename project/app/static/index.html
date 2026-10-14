@@ -1,775 +1,982 @@
 <!DOCTYPE html>
-<html class="dark h-full" lang="vi">
+<html lang="vi" class="h-full">
 <head>
-  <meta charset="utf-8"/>
-  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-  <title>Quantum Studio - Nền Tảng Giảng Dạy Toán &amp; Hình Học Không Gian 3D</title>
-  
-  <!-- Tailwind CSS CDN with forms and container-queries -->
-  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-  
-  <!-- Tailwind Configuration -->
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            studio: {
-              950: '#070a13',
-              900: '#0b0f19',
-              850: '#111726',
-              800: '#161e2e',
-              750: '#1b2438',
-              700: '#222f46',
-              600: '#324463',
-              accent: '#38bdf8',
-              neon: '#818cf8',
-              emerald: '#34d399',
-            }
-          },
-          fontFamily: {
-            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-            mono: ['JetBrains Mono', 'Fira Code', 'monospace']
-          }
-        }
-      }
-    }
-  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quantum Studio - Nền Tảng Giảng Dạy Toán & Hình Học Không Gian 3D (CV 5512)</title>
 
   <!-- Google Fonts: Inter & JetBrains Mono -->
-  <link href="https://fonts.googleapis.com" rel="preconnect"/>
-  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-  <!-- KaTeX for crisp LaTeX formulas -->
+  <!-- KaTeX for beautiful math equations -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
 
-  <!-- Custom Style Tag: Base & Scrollbars -->
-  <style data-purpose="custom-scrollbars">
-    ::-webkit-scrollbar {
-      width: 5px;
-      height: 5px;
-    }
-    ::-webkit-scrollbar-track {
-      background: rgba(11, 15, 25, 0.5);
-    }
-    ::-webkit-scrollbar-thumb {
-      background: rgba(56, 189, 248, 0.2);
-      border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: rgba(56, 189, 248, 0.45);
-    }
-  </style>
-
-  <!-- Custom Style Tag: Grid & Canvas Visuals -->
-  <style data-purpose="canvas-effects">
-    .canvas-grid-bg {
-      background-image: 
-        radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.08) 0%, transparent 60%),
-        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-      background-size: 100% 100%, 32px 32px, 32px 32px;
-    }
-    .neon-glow-cyan {
-      box-shadow: 0 0 15px -3px rgba(56, 189, 248, 0.35);
-    }
-    .neon-glow-btn {
-      box-shadow: 0 0 20px -2px rgba(99, 102, 241, 0.45);
-    }
-    .slide-item-transition {
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .active-slide-ring {
-      border-color: rgba(56, 189, 248, 0.9) !important;
-      background-color: rgba(22, 30, 46, 0.95) !important;
-      box-shadow: 0 0 15px -3px rgba(56, 189, 248, 0.3);
-    }
-  </style>
+  <!-- Custom Presentation Stylesheet -->
+  <link rel="stylesheet" href="style.css?v=7.0">
 </head>
-<body class="bg-studio-950 text-slate-200 font-sans antialiased h-screen overflow-hidden flex flex-col select-none">
+<body class="presentation-body">
 
-<!-- BEGIN: MainHeader -->
-<!-- Wireframe: Vùng Logo/Add Text bên trái và Thanh công cụ dài ở giữa sang phải -->
-<header class="h-14 border-b border-white/10 bg-studio-900/90 backdrop-blur-md px-3.5 flex items-center justify-between gap-3 shrink-0 z-30">
-  <!-- Branding & Course Meta ('Add text' / Logo Zone) -->
-  <div class="flex items-center gap-3 shrink-0" data-purpose="branding-container">
-    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 via-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-cyan-500/20 border border-white/20">
-      <!-- Cube 3D Icon -->
-      <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewbox="0 0 24 24">
-        <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-      </svg>
-    </div>
-    <div class="flex flex-col">
-      <div class="flex items-center gap-2">
-        <span class="font-bold text-sm tracking-wide text-white uppercase font-mono">QUANTUM STUDIO</span>
-        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping mr-1"></span>TRỰC TIẾP
-        </span>
+  <!-- ================= TOP MAIN HEADER & SCREEN NAVIGATION ================= -->
+  <header class="presentation-top-bar">
+    <div class="brand-group">
+      <div class="brand-cube-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+          <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+          <line x1="12" y1="22.08" x2="12" y2="12"></line>
+        </svg>
       </div>
-      <p id="courseSubtitle" class="text-[11px] text-slate-400 truncate max-w-[210px] font-medium">Toán Học Không Gian Oxyz &amp; Giải Tích</p>
-    </div>
-  </div>
-
-  <!-- Thanh công cụ (Top Toolbar matching Wireframe Box) -->
-  <div class="flex-1 max-w-4xl bg-studio-850/80 border border-white/10 rounded-xl px-2.5 py-1.5 flex items-center justify-between shadow-inner" data-purpose="main-toolbar">
-    <!-- Group: Drawing & Interaction Tools -->
-    <div class="flex items-center gap-1">
-      <button id="toolSelect" class="tool-btn-draw p-1.5 rounded-lg bg-studio-700/60 text-cyan-400 hover:bg-studio-700 border border-cyan-500/30 transition-colors" title="Con trỏ chọn (V)">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M3 3l7 18 3-7 7-3L3 3z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
-      </button>
-      <button id="toolPen" class="tool-btn-draw p-1.5 rounded-lg hover:bg-studio-750 text-slate-300 hover:text-white transition-colors" title="Bút vẽ / Marker (P)">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
-      </button>
-      <button id="toolLaser" class="tool-btn-draw p-1.5 rounded-lg hover:bg-studio-750 text-rose-400 transition-colors flex items-center gap-1" title="Con trỏ Laser (L)">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><circle cx="12" cy="12" fill="currentColor" r="3"></circle><path d="M12 2v2m0 16v2M2 12h2m16 0h2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
-      </button>
-      <div class="h-4 w-px bg-white/15 mx-1"></div>
-      <!-- Color Palettes -->
-      <div class="flex items-center gap-1.5 px-1">
-        <span class="color-dot w-3.5 h-3.5 rounded-full bg-cyan-400 ring-2 ring-cyan-400/40 cursor-pointer transition-transform hover:scale-125" data-color="cyan"></span>
-        <span class="color-dot w-3.5 h-3.5 rounded-full bg-amber-400 opacity-60 hover:opacity-100 cursor-pointer transition-transform hover:scale-125" data-color="amber"></span>
-        <span class="color-dot w-3.5 h-3.5 rounded-full bg-rose-400 opacity-60 hover:opacity-100 cursor-pointer transition-transform hover:scale-125" data-color="rose"></span>
-        <span class="color-dot w-3.5 h-3.5 rounded-full bg-emerald-400 opacity-60 hover:opacity-100 cursor-pointer transition-transform hover:scale-125" data-color="emerald"></span>
+      <div>
+        <h1 class="brand-heading">QUANTUM STUDIO &bull; TOÁN 3D</h1>
+        <p class="brand-sub">Chuẩn CV 5512 &bull; Trợ Giảng AI</p>
       </div>
     </div>
 
-    <!-- Group: Geometry & Math Formulas -->
-    <div class="flex items-center gap-1">
-      <div class="h-4 w-px bg-white/15 mx-1"></div>
-      <button id="btnToggleLatexBox" class="px-2 py-1 rounded-lg bg-studio-750/70 hover:bg-studio-700 text-xs font-mono font-medium text-cyan-300 border border-cyan-500/20 flex items-center gap-1.5">
-        <span>fx(x)</span>
-        <span class="text-[10px] text-slate-400">LaTeX</span>
+    <!-- Central Multi-Screen Navigation Tabs -->
+    <nav class="studio-screen-nav" aria-label="Bộ chuyển màn hình">
+      <button class="nav-tab-btn active" id="tabPresentation" onclick="switchScreen('presentation')" title="Sân khấu Trình chiếu bài giảng 16:9 kèm Chat & Công cụ 3D">
+        <span class="tab-icon">🎬</span> Trình Chiếu Giảng Dạy
       </button>
-      <button id="btnToggle3DModel" class="px-2 py-1 rounded-lg hover:bg-studio-750 text-xs text-slate-300 flex items-center gap-1">
-        <svg class="w-3.5 h-3.5 text-indigo-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
-        <span>Khối 3D</span>
+      <button class="nav-tab-btn" id="tabLessonPlan" onclick="switchScreen('lesson-plan')" title="Soạn Kế hoạch bài dạy chuẩn Công văn 5512 & Nhập bảng điểm">
+        <span class="tab-icon">📝</span> Soạn Giáo Án 5512
       </button>
-      <button id="btnToggleGridLines" class="px-2 py-1 rounded-lg hover:bg-studio-750 text-xs text-slate-300 flex items-center gap-1">
-        <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
-        <span>Lưới Oxyz</span>
+      <button class="nav-tab-btn" id="tabSlideEditor" onclick="switchScreen('slide-editor')" title="Xưởng Biên tập nội dung Slide, KaTeX & Đồ thị">
+        <span class="tab-icon">🛠️</span> Xưởng Biên Tập Slide
       </button>
-    </div>
-
-    <!-- Group: Stream Utilities & Timer -->
-    <div class="flex items-center gap-2">
-      <div class="h-4 w-px bg-white/15 mx-1"></div>
-      <div class="flex items-center gap-1 px-2 py-0.5 rounded bg-black/40 font-mono text-xs text-amber-300 border border-amber-500/20">
-        <svg class="w-3 h-3 text-amber-400 animate-pulse" fill="none" stroke="currentColor" viewbox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="2"></circle><path d="M12 6v6l4 2" stroke-linecap="round" stroke-width="2"></path></svg>
-        <span id="sessionTimerText">45:20</span>
-      </div>
-      <button class="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20" title="Microphone">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 02-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+      <button class="nav-tab-btn" id="tabAnalytics" onclick="switchScreen('analytics')" title="Trung tâm Phân tích Điểm số & Phân hóa học sinh">
+        <span class="tab-icon">📊</span> Phân Tích Lớp Học
       </button>
-      <button id="btnSnapshotCanvas" class="p-1.5 rounded-lg hover:bg-studio-750 text-slate-300 hover:text-white" title="Chụp ảnh bảng">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><circle cx="12" cy="13" r="3" stroke-width="2"></circle></svg>
-      </button>
-    </div>
-  </div>
-
-  <!-- Instructor Info & Global Action -->
-  <div class="flex items-center gap-2.5 shrink-0" data-purpose="user-status-widget">
-    <!-- Nút mở Studio Soạn Bài & Sinh AI -->
-    <button id="btnOpenAIDrawer" class="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white text-xs font-semibold shadow-md flex items-center gap-1.5 transition-all" title="Soạn bài & sinh giáo án CV 5512 qua AI">
-      <span>🤖</span>
-      <span class="hidden xl:inline">Soạn bài AI</span>
-    </button>
-
-    <div class="flex items-center gap-2 bg-studio-850 px-2.5 py-1 rounded-xl border border-white/10">
-      <div class="relative">
-        <div class="w-7 h-7 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-center font-bold text-xs text-white">
-          GS
-        </div>
-        <span class="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-studio-900"></span>
-      </div>
-      <div class="text-left hidden lg:block">
-        <p class="text-xs font-semibold text-white leading-tight">TS. Nguyễn Văn A</p>
-        <p class="text-[10px] text-slate-400">Giảng viên Chủ nhiệm</p>
-      </div>
-    </div>
-    
-    <button id="btnOpenSettingsModal" class="p-2 rounded-xl bg-studio-850 hover:bg-studio-750 border border-white/10 text-slate-300" title="Cài đặt hệ thống">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><circle cx="12" cy="12" r="3" stroke-width="2"></circle></svg>
-    </button>
-  </div>
-</header>
-<!-- END: MainHeader -->
-
-<!-- BEGIN: ApplicationBody (4-Column Layout as Wireframe) -->
-<div class="flex-1 flex overflow-hidden p-2 gap-2">
-
-  <!-- COLUMN 1: Wireframe 'DS Chức năng' (Feature Rail / Sidebar) -->
-  <aside class="w-56 bg-studio-900 border border-white/10 rounded-xl flex flex-col shrink-0 overflow-hidden" data-purpose="feature-sidebar">
-    <div class="p-3 border-b border-white/10 flex items-center justify-between">
-      <span class="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-        <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M4 6h16M4 12h8m-8 6h16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
-        DS Chức Năng
-      </span>
-      <span class="text-[10px] px-1.5 py-0.5 rounded bg-studio-800 text-slate-400">8 mục</span>
-    </div>
-
-    <!-- Feature Menu Items List -->
-    <nav class="flex-1 p-2 space-y-1 overflow-y-auto" data-purpose="nav-feature-list">
-      <!-- Active Nav -->
-      <a id="navLecture" class="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-cyan-500/10 text-cyan-300 font-medium text-xs border border-cyan-500/30 cursor-pointer" href="#">
-        <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
-        <span>Bài giảng trực quan</span>
-      </a>
-
-      <a id="navAiDrawer" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-300 hover:bg-studio-800 hover:text-white transition-colors text-xs cursor-pointer" href="#">
-        <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
-        <span>Soạn bài AI (CV 5512)</span>
-      </a>
-
-      <a id="navQuizBank" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-300 hover:bg-studio-800 hover:text-white transition-colors text-xs cursor-pointer" href="#">
-        <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
-        <span>Ngân hàng Quiz &amp; Đề</span>
-      </a>
-
-      <a id="navSim3D" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-300 hover:bg-studio-800 hover:text-white transition-colors text-xs cursor-pointer" href="#">
-        <svg class="w-4 h-4 text-purple-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
-        <span>Mô phỏng 3D Động</span>
-      </a>
-
-      <a id="navWhiteboard" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-300 hover:bg-studio-800 hover:text-white transition-colors text-xs cursor-pointer" href="#">
-        <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
-        <span>Bảng viết vô cực</span>
-      </a>
-
-      <a id="navStudents" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-300 hover:bg-studio-800 hover:text-white transition-colors text-xs cursor-pointer" href="#">
-        <svg class="w-4 h-4 text-pink-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
-        <span>Học viên tham gia (42)</span>
-      </a>
-
-      <a id="navAnalytics" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-300 hover:bg-studio-800 hover:text-white transition-colors text-xs cursor-pointer" href="#">
-        <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
-        <span>Thống kê hiểu bài</span>
-      </a>
-
-      <a id="navDocsExport" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-300 hover:bg-studio-800 hover:text-white transition-colors text-xs cursor-pointer" href="#">
-        <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
-        <span>Tài liệu đính kèm</span>
-      </a>
-
-      <a id="navSettings" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-slate-300 hover:bg-studio-800 hover:text-white transition-colors text-xs cursor-pointer" href="#">
-        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><circle cx="12" cy="12" r="3" stroke-width="2"></circle></svg>
-        <span>Cấu hình phòng học</span>
-      </a>
     </nav>
 
-    <!-- Bottom Status Pill in Column 1 -->
-    <div class="p-2.5 border-t border-white/10 bg-studio-950/60">
-      <div class="flex items-center justify-between text-[11px] text-slate-400 mb-1">
-        <span>Băng thông tín hiệu</span>
-        <span class="text-emerald-400 font-mono">1080p / 60fps</span>
+    <!-- Right Controls: Timer, Quick Tools, Fullscreen -->
+    <div class="top-controls-group">
+      <div class="timer-pill" title="Thời gian tiết dạy">
+        <span class="pulse-icon">&bull;</span>
+        <span id="sessionTimerText">45:20</span>
       </div>
-      <div class="w-full h-1.5 bg-studio-800 rounded-full overflow-hidden">
-        <div class="h-full bg-gradient-to-r from-cyan-400 to-emerald-400 w-11/12"></div>
-      </div>
-    </div>
-  </aside>
 
-  <!-- COLUMN 2: Wireframe 'Danh sách slide' (Slide Thumbnail Column) -->
-  <aside class="w-60 bg-studio-900 border border-white/10 rounded-xl flex flex-col shrink-0 overflow-hidden" data-purpose="slide-list-column">
-    <div class="p-3 border-b border-white/10 flex items-center justify-between">
-      <div class="flex items-center gap-1.5">
-        <span class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Danh Sách Slide</span>
-        <span id="slideCountBadge" class="px-1.5 py-0.2 bg-studio-800 text-[10px] text-slate-400 rounded-full">5</span>
-      </div>
-      <button id="btnReverseSlides" class="text-slate-400 hover:text-white p-1" title="Sắp xếp slide">
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+      <!-- Quick Toggle for Left Chat Dock -->
+      <button id="btnToggleChatCopilot" class="btn-top-action btn-copilot" onclick="toggleLeftChatDock()" title="Bật/Tắt Ô Chat Trợ Giảng AI (Phím C)">
+        <span class="copilot-robot-icon">🤖</span> Trợ giảng AI
+        <span class="copilot-live-dot"></span>
+      </button>
+
+      <!-- Quick Toggle for Right 3D/Tools Dock -->
+      <button id="btnToggle3DTools" class="btn-top-action" onclick="toggleRightToolsDock()" title="Bật/Tắt Thanh Công Cụ 3D & Biểu Đồ (Phím T)">
+        <span>🧊</span> Công cụ 3D / Đồ thị
+      </button>
+
+      <!-- Fullscreen Presentation Button -->
+      <button id="btnToggleFullscreen" class="btn-top-action btn-highlight" title="Trình chiếu toàn màn hình (Phím F hoặc F5)">
+        <span>⛶</span> Toàn màn hình
       </button>
     </div>
+  </header>
 
-    <!-- Slide Thumbnails Container -->
-    <div id="slidesScrollContainer" class="flex-1 p-2 space-y-2.5 overflow-y-auto" data-purpose="slides-scroll-container">
-      <!-- Slide 1 (ACTIVE) -->
-      <div class="slide-card-item active-slide-ring group relative rounded-lg border-2 border-cyan-400/80 bg-studio-800/90 p-2 shadow-lg shadow-cyan-950/50 cursor-pointer slide-item-transition" data-slide-index="0">
-        <div class="flex items-center justify-between text-[11px] mb-1.5 font-medium">
-          <span class="text-cyan-300 flex items-center gap-1">
-            <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
-            Slide 01 (Đang dạy)
-          </span>
-          <span class="text-[10px] text-slate-400 font-mono">12:30</span>
-        </div>
-        <div class="w-full h-20 rounded bg-studio-950 border border-white/10 relative overflow-hidden flex items-center justify-center canvas-grid-bg">
-          <svg class="w-10 h-10 text-cyan-400/80 animate-spin" fill="none" stroke="currentColor" style="animation-duration: 20s;" viewbox="0 0 100 100">
-            <circle cx="50" cy="50" r="30" stroke-dasharray="4 2" stroke-width="2"></circle>
-            <ellipse cx="50" cy="50" rx="30" ry="10" stroke-width="1.5"></ellipse>
-            <ellipse cx="50" cy="50" rx="10" ry="30" stroke-width="1.5"></ellipse>
-          </svg>
-          <span class="absolute bottom-1 right-1 text-[9px] px-1 bg-black/60 rounded text-cyan-200 font-mono">3D Oxyz</span>
-        </div>
-        <p class="text-[11px] text-slate-200 mt-1.5 font-semibold line-clamp-1">Mặt cầu &amp; Hình nón Oxyz</p>
-      </div>
+  <!-- ================= SCREENS CONTAINER ================= -->
+  <div class="studio-screens-container">
 
-      <!-- Slide 2 -->
-      <div class="slide-card-item group rounded-lg border border-white/10 hover:border-slate-500 bg-studio-850/60 p-2 cursor-pointer transition-all slide-item-transition" data-slide-index="1">
-        <div class="flex items-center justify-between text-[11px] mb-1.5">
-          <span class="text-slate-400">Slide 02</span>
-          <span class="text-[10px] text-slate-500 font-mono">08:15</span>
-        </div>
-        <div class="w-full h-16 rounded bg-studio-950/80 border border-white/5 flex items-center justify-center p-2">
-          <p class="text-[10px] font-mono text-indigo-300">max/min f(x, y, z)</p>
-        </div>
-        <p class="text-[11px] text-slate-400 group-hover:text-slate-200 mt-1 line-clamp-1">Cực trị hình học không gian</p>
-      </div>
+    <!-- ====================================================================
+         MÀN HÌNH 1: SÂN KHẤU TRÌNH CHIẾU GIẢNG DẠY (PRESENTATION COCKPIT)
+         Có đầy đủ: Ô Chatbox cho GV (Trái) + Slide 16:9 (Giữa) + Thanh Công Cụ 3D/Đồ Thị (Phải)
+         ==================================================================== -->
+    <section id="screenPresentation" class="studio-screen active">
+      <div class="pres-screen-layout">
 
-      <!-- Slide 3 (With Quiz Badge) -->
-      <div class="slide-card-item group rounded-lg border border-indigo-500/30 bg-studio-850/60 p-2 cursor-pointer transition-all hover:border-indigo-400/60 slide-item-transition" data-slide-index="2">
-        <div class="flex items-center justify-between text-[11px] mb-1.5">
-          <span class="text-indigo-300 flex items-center gap-1">
-            <span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
-            Slide 03 [Quiz]
-          </span>
-          <span class="text-[9px] px-1 bg-indigo-500/20 text-indigo-300 rounded border border-indigo-500/30">Mini-Test</span>
-        </div>
-        <div class="w-full h-16 rounded bg-studio-950/80 border border-white/5 flex flex-col justify-center items-center p-2 text-center">
-          <span class="text-[10px] text-slate-300">Tọa độ tâm I &amp; Bán kính R</span>
-          <span class="text-[9px] text-emerald-400 mt-0.5">4 Lựa chọn A-B-C-D</span>
-        </div>
-        <p class="text-[11px] text-slate-400 group-hover:text-slate-200 mt-1 line-clamp-1">Câu hỏi tương tác trực tiếp</p>
-      </div>
-
-      <!-- Slide 4 -->
-      <div class="slide-card-item group rounded-lg border border-white/10 hover:border-slate-500 bg-studio-850/60 p-2 cursor-pointer transition-all slide-item-transition" data-slide-index="3">
-        <div class="flex items-center justify-between text-[11px] mb-1.5">
-          <span class="text-slate-400">Slide 04</span>
-          <span class="text-[10px] text-slate-500 font-mono">15:00</span>
-        </div>
-        <div class="w-full h-16 rounded bg-studio-950/80 border border-white/5 flex items-center justify-center">
-          <span class="text-[10px] text-slate-400 font-mono">Paraboloid z=x²+y²</span>
-        </div>
-        <p class="text-[11px] text-slate-400 group-hover:text-slate-200 mt-1 line-clamp-1">Mặt bậc hai tham số đa chiều</p>
-      </div>
-    </div>
-
-    <!-- Add Slide Button -->
-    <div class="p-2 border-t border-white/10 bg-studio-950/40">
-      <button id="btnAddNewSlide" class="w-full py-2 rounded-lg bg-studio-800 hover:bg-studio-750 text-slate-200 hover:text-white border border-white/10 text-xs font-medium flex items-center justify-center gap-1.5 transition-all">
-        <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
-        <span>Thêm Trang Slide Mới</span>
-      </button>
-    </div>
-  </aside>
-
-  <!-- COLUMN 3: Wireframe 'Slide giảng dạy' (Center Teaching Canvas / Interactive 3D Stage) -->
-  <main class="flex-1 bg-studio-900 border border-white/10 rounded-xl relative flex flex-col overflow-hidden shadow-2xl" data-purpose="teaching-canvas-stage">
-    
-    <!-- Canvas Top Floating Control Bar -->
-    <div class="absolute top-3 inset-x-4 flex items-center justify-between pointer-events-none z-20">
-      <!-- Status Pill -->
-      <div class="pointer-events-auto flex items-center gap-2 bg-studio-950/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/15 text-xs shadow-lg">
-        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-        <span class="text-slate-300">Chế độ giảng bài:</span>
-        <span class="text-cyan-400 font-medium">Tương tác mô hình 3D thực thời</span>
-      </div>
-      
-      <!-- Canvas Action Toolbar (Zoom, Reset, Grid) -->
-      <div class="pointer-events-auto flex items-center gap-1 bg-studio-950/85 backdrop-blur-md p-1 rounded-xl border border-white/15 shadow-xl">
-        <button id="btnZoomOut" class="p-1.5 rounded-lg hover:bg-studio-800 text-slate-300 hover:text-white transition-colors" title="Thu nhỏ">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M20 12H4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
-        </button>
-        <span id="zoomPercentDisplay" class="text-[11px] font-mono px-1.5 text-slate-300">100%</span>
-        <button id="btnZoomIn" class="p-1.5 rounded-lg hover:bg-studio-800 text-slate-300 hover:text-white transition-colors" title="Phóng to">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
-        </button>
-        <div class="h-3 w-px bg-white/20 mx-1"></div>
-        <button id="btnResetAngle" class="px-2 py-1 rounded-lg hover:bg-studio-800 text-xs text-slate-300 flex items-center gap-1 transition-colors" title="Đặt lại góc nhìn">
-          <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
-          <span>Reset Góc</span>
-        </button>
-        <button id="btnToggle3DViewMode" class="px-2 py-1 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-xs font-mono transition-colors" title="Chuyển chế độ 2D / 3D">
-          3D View
-        </button>
-      </div>
-    </div>
-
-    <!-- Main Visual Interactive Viewport (High-tech 3D Math Model Simulation) -->
-    <div id="canvasViewport" class="flex-1 w-full h-full relative canvas-grid-bg flex items-center justify-center overflow-hidden cursor-grab active:cursor-grabbing" data-purpose="3d-coordinate-simulator">
-      
-      <!-- Live Formula Floating Callout Box -->
-      <div id="formulaCalloutBox" class="absolute top-16 left-6 z-10 bg-studio-950/85 backdrop-blur-md p-3.5 rounded-xl border border-cyan-500/30 max-w-sm shadow-2xl transition-all">
-        <div class="flex items-center justify-between text-xs text-cyan-400 mb-1">
-          <span class="font-bold flex items-center gap-1.5">
-            <span class="w-2 h-2 rounded bg-cyan-400"></span>
-            <span id="formulaCardHeader">Phương trình Chính tắc Mặt Cầu (S)</span>
-          </span>
-          <span id="formulaCardId" class="text-[10px] text-slate-400 font-mono">ID: EQ-302</span>
-        </div>
-        <div id="formulaLatexContainer" class="p-2 rounded bg-studio-900/90 border border-white/5 font-mono text-sm text-amber-300 tracking-wide text-center">
-          (x - a)² + (y - b)² + (z - c)² = R²
-        </div>
-        <div class="mt-2 grid grid-cols-2 gap-2 text-[11px] text-slate-300 font-mono">
-          <div class="bg-studio-900/60 px-2 py-1 rounded border border-white/5">Tâm I: <span id="calloutCenter" class="text-cyan-300 font-bold">(1; 2; -3)</span></div>
-          <div class="bg-studio-900/60 px-2 py-1 rounded border border-white/5">Bán kính R: <span id="calloutRadius" class="text-emerald-400 font-bold">4.5 m</span></div>
-        </div>
-      </div>
-
-      <!-- Interactive 3D Vector Geometry Canvas Rendering Representation (High fidelity SVG) -->
-      <div id="svg3DWrap" class="relative w-full max-w-xl aspect-square flex items-center justify-center transition-transform duration-75">
-        <svg id="svg3DScene" class="w-full h-full" viewbox="-200 -200 400 400">
-          <!-- Grid Circle Perspective Base -->
-          <ellipse id="svgShadowEllipse" cx="0" cy="50" fill="rgba(56, 189, 248, 0.03)" rx="140" ry="50" stroke="rgba(56, 189, 248, 0.25)" stroke-dasharray="6 3" stroke-width="1.5"></ellipse>
-          <ellipse cx="0" cy="50" fill="none" rx="90" ry="32" stroke="rgba(129, 140, 248, 0.15)" stroke-width="1"></ellipse>
-          
-          <!-- Axis Z (Upwards) -->
-          <line stroke="#38bdf8" stroke-width="2" x1="0" x2="0" y1="50" y2="-150"></line>
-          <polygon fill="#38bdf8" points="0,-160 -4,-148 4,-148"></polygon>
-          <text fill="#38bdf8" font-family="JetBrains Mono" font-size="12" font-weight="bold" x="8" y="-145">+Z</text>
-          
-          <!-- Axis X (Diagonal down-left) -->
-          <line stroke="#818cf8" stroke-width="2" x1="0" x2="-140" y1="50" y2="120"></line>
-          <polygon fill="#818cf8" points="-147,124 -135,121 -140,111"></polygon>
-          <text fill="#818cf8" font-family="JetBrains Mono" font-size="12" font-weight="bold" x="-155" y="135">+X</text>
-          
-          <!-- Axis Y (Diagonal right) -->
-          <line stroke="#34d399" stroke-width="2" x1="0" x2="160" y1="50" y2="100"></line>
-          <polygon fill="#34d399" points="168,103 -156,96 -159,106"></polygon>
-          <text fill="#34d399" font-family="JetBrains Mono" font-size="12" font-weight="bold" x="170" y="112">+Y</text>
-          
-          <!-- Center Origin O -->
-          <circle cx="0" cy="50" fill="#ffffff" r="3.5"></circle>
-          <text fill="#cbd5e1" font-size="12" font-weight="bold" x="-14" y="55">O</text>
-          
-          <!-- 3D Sphere Geometry Wireframe Overlay -->
-          <circle id="svgSphereCircle" cx="20" cy="-20" fill="url(#sphereGradient)" r="95" stroke="rgba(56, 189, 248, 0.6)" stroke-width="1.5"></circle>
-          <!-- Equator ellipse -->
-          <ellipse id="svgEquatorEllipse" cx="20" cy="-20" fill="none" rx="95" ry="32" stroke="#38bdf8" stroke-dasharray="4 2" stroke-width="1.5"></ellipse>
-          <!-- Meridian ellipse -->
-          <ellipse id="svgMeridianEllipse" cx="20" cy="-20" fill="none" rx="36" ry="95" stroke="rgba(129, 140, 248, 0.7)" stroke-width="1.5"></ellipse>
-          
-          <!-- Center of Sphere I(a,b,c) -->
-          <circle id="svgCenterDot" cx="20" cy="-20" fill="#f59e0b" r="5"></circle>
-          <text id="svgCenterText" fill="#fbbf24" font-family="JetBrains Mono" font-size="12" font-weight="bold" x="30" y="-22">Tâm I (1, 2, -3)</text>
-          <line stroke="#fbbf24" stroke-dasharray="3 3" stroke-width="1.5" x1="0" x2="20" y1="50" y2="-20"></line>
-          
-          <!-- Radius Vector R to Point M on surface -->
-          <line id="svgRadiusLine" stroke="#ec4899" stroke-width="2.5" x1="20" x2="95" y1="-20" y2="-65"></line>
-          <circle id="svgPointM" cx="95" cy="-65" fill="#ec4899" r="4.5"></circle>
-          <text id="svgTextM" fill="#f472b6" font-family="JetBrains Mono" font-size="11" font-weight="bold" x="102" y="-68">M(x,y,z)</text>
-          <text id="svgLabelR" fill="#f472b6" font-size="12" font-weight="bold" x="50" y="-50">R = 4.5</text>
-          
-          <!-- Tangent Plane Projection (Mặt phẳng tiếp diện) -->
-          <g id="svgTangentPlaneGroup">
-            <polygon fill="rgba(244, 114, 182, 0.12)" points="50,-115 150,-85 130,-25 30,-55" stroke="rgba(244, 114, 182, 0.6)" stroke-width="1.5"></polygon>
-            <text fill="#f472b6" font-family="JetBrains Mono" font-size="10" x="140" y="-88">(α) Tiếp diện</text>
-          </g>
-
-          <!-- Gradient Definition -->
-          <defs>
-            <radialgradient cx="35%" cy="30%" id="sphereGradient" r="70%">
-              <stop offset="0%" stop-color="rgba(56, 189, 248, 0.28)"></stop>
-              <stop offset="60%" stop-color="rgba(30, 58, 138, 0.18)"></stop>
-              <stop offset="100%" stop-color="rgba(15, 23, 42, 0.6)"></stop>
-            </radialgradient>
-          </defs>
-        </svg>
-
-        <!-- Floating Interactive Node Chips -->
-        <div class="absolute bottom-6 right-8 bg-studio-950/80 backdrop-blur border border-white/10 rounded-lg p-2.5 text-xs text-slate-300 space-y-1 shadow-lg">
-          <div class="flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
-            <span id="labelRotationZ">Trục quay: Z-Normal (Alpha: 35°)</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full bg-pink-400"></span>
-            <span>Giao điểm tiếp xúc: Điểm M (Duy nhất)</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Canvas Bottom Quick Annotation Drawer -->
-    <div class="h-12 border-t border-white/10 bg-studio-950/70 backdrop-blur px-4 flex items-center justify-between z-20">
-      <div class="flex items-center gap-2 text-xs text-slate-400">
-        <span class="text-cyan-400 font-medium">Bút chú thích nhanh:</span>
-        <button class="px-2 py-1 rounded bg-studio-800 hover:bg-studio-700 text-slate-200 text-xs transition-colors">Vẽ Vector</button>
-        <button class="px-2 py-1 rounded bg-studio-800 hover:bg-studio-700 text-slate-200 text-xs transition-colors">Đo Góc</button>
-        <button class="px-2 py-1 rounded bg-studio-800 hover:bg-studio-700 text-slate-200 text-xs transition-colors">Cắt mặt phẳng</button>
-      </div>
-      <div class="flex items-center gap-3">
-        <button id="btnUndoAction" class="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
-          Undo (Ctrl+Z)
-        </button>
-        <button id="btnClearCanvas" class="text-xs text-rose-400/90 hover:text-rose-300 flex items-center gap-1 transition-colors">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
-          Xóa nét vẽ
-        </button>
-      </div>
-    </div>
-  </main>
-
-  <!-- COLUMN 4: Right Sidebar Divided into 3 Vertical Boxes (+ Presentation Button at Bottom) -->
-  <aside class="w-80 flex flex-col gap-2 shrink-0 overflow-hidden" data-purpose="right-split-sidebar">
-    
-    <!-- BOX 1 (Top): Wireframe 'Đáp án Quiz nếu có' (Quiz / Live Polls) -->
-    <section class="h-[32%] bg-studio-900 border border-white/10 rounded-xl flex flex-col overflow-hidden" data-purpose="quiz-answer-card">
-      <div class="p-2.5 border-b border-white/10 bg-studio-850/60 flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full bg-indigo-400"></span>
-          <h2 class="text-xs font-semibold text-slate-200 uppercase tracking-wide">Đáp Án Quiz (Bình Chọn Live)</h2>
-        </div>
-        <span id="quizVotesBadge" class="text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded font-mono">38 Đã nộp</span>
-      </div>
-
-      <div class="flex-1 p-2.5 overflow-y-auto space-y-2 text-xs">
-        <p id="quizQuestionTitle" class="text-slate-300 font-medium text-[11px] leading-snug">
-          <span class="text-cyan-400 font-semibold font-mono">Câu 03:</span> Bán kính mặt cầu ngoại tiếp khối chóp S.ABC với SA ⊥ đáy có công thức:
-        </p>
-        
-        <!-- Quiz Options with Vote Percentages -->
-        <div class="space-y-1.5 font-mono text-[11px]">
-          <!-- Option A (Correct) -->
-          <div id="btnOptA" class="quiz-option-item p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/40 relative overflow-hidden cursor-pointer hover:brightness-110 transition-all" onclick="castQuizVote('A')">
-            <div class="flex items-center justify-between relative z-10">
-              <span class="font-semibold text-emerald-300">A. R = √(R_đáy² + h²/4) [ĐÚNG]</span>
-              <span id="pctA" class="font-bold text-emerald-400">68%</span>
+        <!-- 1.1. CỘT TRÁI: Ô CHATBOX DÀNH CHO GIÁO VIÊN (TEACHER CHATBOX DOCK) -->
+        <aside id="presLeftChatDock" class="pres-side-panel pres-chat-dock">
+          <div class="chat-drawer-header">
+            <div class="chat-header-info">
+              <div class="chat-avatar-badge">
+                <span>🤖</span>
+                <span class="chat-online-dot"></span>
+              </div>
+              <div>
+                <h3 class="chat-drawer-title">Trợ Giảng AI Co-pilot</h3>
+                <p class="chat-drawer-subtitle">
+                  Đang hỗ trợ &bull; Slide <span id="chatSlideNumBadge">1</span>/5
+                </p>
+              </div>
             </div>
-            <div id="barA" class="absolute inset-y-0 left-0 bg-emerald-500/20 transition-all duration-500" style="width: 68%;"></div>
-          </div>
-          
-          <!-- Option B -->
-          <div id="btnOptB" class="quiz-option-item p-1.5 rounded-lg bg-studio-800/80 border border-white/5 relative overflow-hidden cursor-pointer hover:border-white/20 transition-all" onclick="castQuizVote('B')">
-            <div class="flex items-center justify-between relative z-10 text-slate-300">
-              <span>B. R = √(R_đáy² + h²)</span>
-              <span id="pctB" class="text-slate-400 font-mono">18%</span>
+            <div class="chat-header-actions">
+              <button id="btnResetChatSession" class="btn-chat-icon-action" title="Làm mới phiên chat">🗑️</button>
+              <button class="btn-chat-icon-action" onclick="toggleLeftChatDock(false)" title="Thu gọn khung chat [◀]">◀</button>
             </div>
-            <div id="barB" class="absolute inset-y-0 left-0 bg-white/5 transition-all duration-500" style="width: 18%;"></div>
           </div>
-          
-          <!-- Option C -->
-          <div id="btnOptC" class="quiz-option-item p-1.5 rounded-lg bg-studio-800/80 border border-white/5 relative overflow-hidden cursor-pointer hover:border-white/20 transition-all" onclick="castQuizVote('C')">
-            <div class="flex items-center justify-between relative z-10 text-slate-300">
-              <span>C. R = R_đáy + h/2</span>
-              <span id="pctC" class="text-slate-400 font-mono">10%</span>
-            </div>
-            <div id="barC" class="absolute inset-y-0 left-0 bg-white/5 transition-all duration-500" style="width: 10%;"></div>
-          </div>
-          
-          <!-- Option D -->
-          <div id="btnOptD" class="quiz-option-item p-1.5 rounded-lg bg-studio-800/80 border border-white/5 relative overflow-hidden cursor-pointer hover:border-white/20 transition-all" onclick="castQuizVote('D')">
-            <div class="flex items-center justify-between relative z-10 text-slate-300">
-              <span>D. R = 2R_đáy + h</span>
-              <span id="pctD" class="text-slate-400 font-mono">4%</span>
-            </div>
-            <div id="barD" class="absolute inset-y-0 left-0 bg-white/5 transition-all duration-500" style="width: 4%;"></div>
-          </div>
-        </div>
-      </div>
 
-      <!-- Quiz Footer Controls -->
-      <div class="px-2.5 py-1.5 bg-studio-950/60 border-t border-white/10 flex items-center justify-between text-[11px]">
-        <label class="flex items-center gap-1.5 cursor-pointer text-slate-300">
-          <input checked="" class="w-3.5 h-3.5 rounded bg-studio-800 border-white/20 text-cyan-500 focus:ring-0" type="checkbox"/>
-          <span>Hiện kết quả cho lớp</span>
-        </label>
-        <button id="btnLockPoll" class="px-2 py-0.5 rounded bg-studio-800 hover:bg-studio-700 text-slate-300 text-[10px] transition-colors">Khóa bình chọn</button>
+          <!-- Quick Suggestion Prompts -->
+          <div class="chat-quick-suggestions">
+            <button class="quick-chip" onclick="handleQuickChipClick('Giải thích lại slide 2 đơn giản hơn')">
+              💡 Giải thích slide 2 đơn giản hơn
+            </button>
+            <button class="quick-chip" onclick="handleQuickChipClick('Gợi ý câu hỏi gợi mở cho học sinh về slide này')">
+              ❓ Câu hỏi gợi mở
+            </button>
+            <button class="quick-chip" onclick="handleQuickChipClick('Thêm 1 câu hỏi trắc nghiệm củng cố nhanh')">
+              📝 Thêm quiz trắc nghiệm
+            </button>
+            <button class="quick-chip" onclick="handleQuickChipClick('Làm sao để học sinh dễ nhớ công thức này?')">
+              🧠 Mẹo nhớ công thức
+            </button>
+          </div>
+
+          <!-- Chat Messages Stream -->
+          <div id="chatMessagesStream" class="chat-messages-container">
+            <div class="chat-msg-row ai-msg-row">
+              <div class="chat-msg-avatar">🤖</div>
+              <div class="chat-msg-bubble ai-bubble">
+                <div class="msg-author">Trợ giảng AI Co-pilot</div>
+                <div class="msg-content">
+                  Chào Thầy/Cô! Em đang theo dõi bài giảng tại <strong>Slide 1</strong>.<br><br>
+                  Thầy/Cô có thể nhắn cho em bất kỳ lúc nào để:
+                  <ul class="chat-welcome-list">
+                    <li><em>"Giải thích lại slide 2 đơn giản hơn"</em></li>
+                    <li><em>"Gợi ý câu hỏi tương tác cho học sinh"</em></li>
+                    <li><em>"Thêm bài tập trắc nghiệm củng cố nhanh"</em></li>
+                  </ul>
+                </div>
+                <div class="msg-timestamp" id="initialAiTimestamp">08:00</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Typing Indicator -->
+          <div id="chatTypingIndicator" class="chat-typing-row hidden">
+            <div class="chat-msg-avatar">🤖</div>
+            <div class="chat-typing-bubble">
+              <div class="typing-dots">
+                <span></span><span></span><span></span>
+              </div>
+              <span class="typing-text">Trợ giảng AI đang suy nghĩ...</span>
+            </div>
+          </div>
+
+          <!-- Chat Input Form -->
+          <form id="chatFormInput" class="chat-input-wrapper" onsubmit="event.preventDefault(); submitChatMessage();">
+            <div class="chat-input-bar">
+              <input 
+                type="text" 
+                id="chatInputText" 
+                class="chat-input-field" 
+                placeholder="Nhắn cho trợ giảng (VD: Giải thích slide 2 đơn giản hơn)..." 
+                autocomplete="off"
+              />
+              <button type="submit" id="btnSendChatMessage" class="btn-chat-send" title="Gửi tin nhắn (Enter)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+              </button>
+            </div>
+            <div class="chat-input-hints">
+              <span>Nhấn <strong>Enter</strong> để gửi &bull; Hỗ trợ công thức KaTeX $...$</span>
+            </div>
+          </form>
+        </aside>
+
+        <!-- 1.2. KHU VỰC TRUNG TÂM: SÂN KHẤU TRÌNH CHIẾU SLIDE 16:9 CINEMA -->
+        <div class="pres-center-stage">
+          <!-- Helper bar for collapsed panel toggles -->
+          <div class="pres-center-helper-bar">
+            <div>
+              <button id="btnExpandLeftChat" class="dock-pill-btn hidden" onclick="toggleLeftChatDock(true)">
+                <span>💬</span> Hiện Chat Co-pilot
+              </button>
+            </div>
+            <div class="stage-info-text">
+              <span>Sân khấu Trình chiếu 16:9 &bull; Tương tác 3D Trực quan &bull; Live Quiz Poll</span>
+            </div>
+            <div>
+              <button id="btnExpandRightTools" class="dock-pill-btn hidden" onclick="toggleRightToolsDock(true)">
+                Hiện Công Cụ 3D / Đồ Thị <span>⚙️</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Main 16:9 Viewport -->
+          <main class="slide-stage-viewport">
+            <div id="slideCinemaCanvas" class="slide-cinema-frame">
+
+              <!-- SLIDE 1: KHỞI ĐỘNG & ĐẶT VẤN ĐỀ -->
+              <section class="slide-page active" id="slidePage_0">
+                <div class="slide-header">
+                  <span class="slide-badge badge-blue">HOẠT ĐỘNG 1: KHỞI ĐỘNG &amp; ĐẶT VẤN ĐỀ</span>
+                  <h2 class="slide-title">Hình Lập Phương $ABCD.A'B'C'D'$ &bull; Khối Đa Diện Đều</h2>
+                </div>
+                <div class="slide-content-split">
+                  <div class="slide-content-left">
+                    <div class="content-box">
+                      <h3 class="box-title text-cyan">🎯 Giả thiết bài toán:</h3>
+                      <p class="box-text">
+                        Cho hình lập phương $ABCD.A'B'C'D'$ có độ dài tất cả các cạnh bằng <strong>$a$</strong>.
+                      </p>
+                      <ul class="slide-list">
+                        <li>Đáy dưới $ABCD$ và đáy trên $A'B'C'D'$ là hai hình vuông bằng nhau.</li>
+                        <li>Các cạnh bên $AA', BB', CC', DD'$ vuông góc với hai mặt phẳng đáy.</li>
+                        <li>Hình lập phương có <strong>8 đỉnh</strong>, <strong>12 cạnh</strong> bằng nhau và <strong>6 mặt</strong> là hình vuông.</li>
+                      </ul>
+                    </div>
+                    <div class="content-box box-accent">
+                      <h3 class="box-title text-amber">❓ Câu hỏi trọng tâm bài giảng:</h3>
+                      <p class="box-text">
+                        Làm thế nào để tính <strong>đường chéo $AC'$</strong>, xác định <strong>khoảng cách từ $A$ đến $B'D'$</strong> và dựng <strong>thiết diện mặt phẳng $(A'BD)$</strong>?
+                      </p>
+                    </div>
+                  </div>
+                  <div class="slide-content-right">
+                    <div class="slide-3d-wrapper">
+                      <canvas id="canvas3D_0" class="canvas-3d"></canvas>
+                      <div class="canvas-overlay-hint">
+                        <span>🖱️ Kéo chuột xoay 360&deg; &bull; Cuộn chuột phóng to/nhỏ</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- SLIDE 2: ĐƯỜNG CHÉO HÌNH LẬP PHƯƠNG -->
+              <section class="slide-page" id="slidePage_1">
+                <div class="slide-header">
+                  <span class="slide-badge badge-cyan">HOẠT ĐỘNG 2: HÌNH THÀNH KIẾN THỨC (PHẦN 1)</span>
+                  <h2 class="slide-title">1. Đường Chéo $AC'$ &amp; Góc Giữa Đường Thẳng Với Mặt Phẳng</h2>
+                </div>
+                <div class="slide-content-split">
+                  <div class="slide-content-left">
+                    <div class="content-box">
+                      <h3 class="box-title text-cyan">📐 Chứng minh &amp; Công thức:</h3>
+                      <div class="step-line">
+                        <span class="step-num">1</span>
+                        <span>Trong mặt phẳng đáy $(ABCD)$: $AC = \sqrt{AB^2 + BC^2} = a\sqrt{2}$.</span>
+                      </div>
+                      <div class="step-line">
+                        <span class="step-num">2</span>
+                        <span>Vì $CC' \perp (ABCD)$ nên tam giác $ACC'$ vuông tại $C$.</span>
+                      </div>
+                      <div class="step-line">
+                        <span class="step-num">3</span>
+                        <span>Áp dụng định lý Pytago trong $\triangle ACC'$:</span>
+                      </div>
+                      <div class="formula-highlight">
+                        $$AC' = \sqrt{AC^2 + CC'^2} = \sqrt{(a\sqrt{2})^2 + a^2} = \mathbf{a\sqrt{3}}$$
+                      </div>
+                    </div>
+                    <div class="content-box">
+                      <h3 class="box-title text-emerald">💡 Góc giữa $AC'$ và đáy $(ABCD)$:</h3>
+                      <p class="box-text">
+                        Góc giữa $AC'$ và $(ABCD)$ chính là góc $\widehat{C'AC}$ với:
+                        $$\tan \widehat{C'AC} = \frac{CC'}{AC} = \frac{a}{a\sqrt{2}} = \frac{1}{\sqrt{2}} \implies \widehat{C'AC} \approx 35^\circ 16'$$
+                      </p>
+                    </div>
+                  </div>
+                  <div class="slide-content-right">
+                    <div class="slide-3d-wrapper">
+                      <canvas id="canvas3D_1" class="canvas-3d"></canvas>
+                      <div class="badge-status-3d">
+                        <span class="dot-amber"></span>
+                        <span>Đang dựng: Đường chéo $AC'$ (vàng) &amp; Đoạn $AC$ (xanh)</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- SLIDE 3: KHOẢNG CÁCH & ĐƯỜNG VUÔNG GÓC -->
+              <section class="slide-page" id="slidePage_2">
+                <div class="slide-header">
+                  <span class="slide-badge badge-rose">HOẠT ĐỘNG 2: HÌNH THÀNH KIẾN THỨC (PHẦN 2)</span>
+                  <h2 class="slide-title">2. Dựng Đường Vuông Góc $AH \perp B'D'$ &amp; Tính Khoảng Cách</h2>
+                </div>
+                <div class="slide-content-split">
+                  <div class="slide-content-left">
+                    <div class="content-box">
+                      <h3 class="box-title text-rose">🎯 Bài toán khoảng cách $d(A, B'D')$:</h3>
+                      <p class="box-text">
+                        Xét tam giác $AB'D'$. Nhận xét về độ dài các cạnh:
+                      </p>
+                      <ul class="slide-list">
+                        <li>$AB' = \sqrt{a^2 + a^2} = a\sqrt{2}$ (đường chéo mặt $ABB'A'$)</li>
+                        <li>$AD' = \sqrt{a^2 + a^2} = a\sqrt{2}$ (đường chéo mặt $ADD'A'$)</li>
+                        <li>$B'D' = \sqrt{a^2 + a^2} = a\sqrt{2}$ (đường chéo mặt đáy trên)</li>
+                      </ul>
+                      <div class="formula-highlight text-rose">
+                        $$\implies \triangle AB'D'\text{ là tam giác ĐỀU cạnh } a\sqrt{2}!$$
+                      </div>
+                    </div>
+                    <div class="content-box">
+                      <h3 class="box-title text-amber">📐 Hạ đường cao $AH \perp B'D'$:</h3>
+                      <p class="box-text">
+                        Với $H$ là trung điểm cạnh $B'D'$, đường cao tam giác đều bằng:
+                        $$AH = (a\sqrt{2}) \cdot \frac{\sqrt{3}}{2} = \mathbf{a\sqrt{\frac{2}{3}} = \frac{a\sqrt{6}}{3}}$$
+                      </p>
+                    </div>
+                  </div>
+                  <div class="slide-content-right">
+                    <div class="slide-3d-wrapper">
+                      <canvas id="canvas3D_2" class="canvas-3d"></canvas>
+                      <div class="badge-status-3d">
+                        <span class="dot-rose"></span>
+                        <span>Đang dựng: Đoạn vuông góc $AH \perp B'D'$ kèm ký hiệu $\llcorner$</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- SLIDE 4: THIẾT DIỆN MẶT PHẲNG (A'BD) -->
+              <section class="slide-page" id="slidePage_3">
+                <div class="slide-header">
+                  <span class="slide-badge badge-emerald">HOẠT ĐỘNG 3: LUYỆN TẬP &amp; MỞ RỘNG</span>
+                  <h2 class="slide-title">3. Xác Định Thiết Diện Cắt Bởi Mặt Phẳng $(A'BD)$</h2>
+                </div>
+                <div class="slide-content-split">
+                  <div class="slide-content-left">
+                    <div class="content-box">
+                      <h3 class="box-title text-emerald">▱ Thiết diện là hình gì?</h3>
+                      <p class="box-text">
+                        Mặt phẳng $(A'BD)$ đi qua 3 đỉnh $A', B, D$ của hình lập phương.
+                      </p>
+                      <ul class="slide-list">
+                        <li>Giao tuyến với mặt $(ABB'A')$ là đoạn $A'B = a\sqrt{2}$.</li>
+                        <li>Giao tuyến với mặt phẳng đáy $(ABCD)$ là đoạn $BD = a\sqrt{2}$.</li>
+                        <li>Giao tuyến với mặt $(ADD'A')$ là đoạn $A'D = a\sqrt{2}$.</li>
+                      </ul>
+                      <div class="formula-highlight text-emerald">
+                        $$\text{Thiết diện chính là }\mathbf{\text{Tam giác đều } A'BD}\text{ cạnh } a\sqrt{2}$$
+                      </div>
+                    </div>
+                    <div class="content-box">
+                      <h3 class="box-title text-cyan">📐 Diện tích thiết diện:</h3>
+                      <p class="box-text">
+                        Áp dụng công thức diện tích tam giác đều cạnh $x$:
+                        $$S_{A'BD} = \frac{(a\sqrt{2})^2 \sqrt{3}}{4} = \frac{2a^2\sqrt{3}}{4} = \mathbf{\frac{a^2\sqrt{3}}{2}}$$
+                      </p>
+                    </div>
+                  </div>
+                  <div class="slide-content-right">
+                    <div class="slide-3d-wrapper">
+                      <canvas id="canvas3D_3" class="canvas-3d"></canvas>
+                      <div class="badge-status-3d">
+                        <span class="dot-cyan"></span>
+                        <span>Đang tô màu: Mặt phẳng thiết diện $(A'BD)$ (cyan trong suốt)</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- SLIDE 5: QUIZ BÌNH CHỌN TRỰC TIẾP TRÊN BÀI GIẢNG -->
+              <section class="slide-page" id="slidePage_4">
+                <div class="slide-header">
+                  <span class="slide-badge badge-amber">HOẠT ĐỘNG 4: VẬN DỤNG &amp; QUIZ TRỰC TIẾP</span>
+                  <h2 class="slide-title">4. Bài Tập Vận Dụng &bull; Khảo Sát Nhanh Cả Lớp (Live Poll)</h2>
+                </div>
+                <div class="slide-quiz-layout">
+                  <div class="quiz-prompt-card">
+                    <div class="quiz-question-heading">
+                      <span class="q-tag">CÂU HỎI TRẮC NGHIỆM</span>
+                      <span id="pollVotersCount" class="q-stat">42 Học sinh đã nộp</span>
+                    </div>
+                    <p class="quiz-question-body">
+                      Trong hình lập phương $ABCD.A'B'C'D'$, góc giữa hai đường thẳng <strong>$AC$</strong> và <strong>$A'D$</strong> bằng bao nhiêu độ?
+                    </p>
+                  </div>
+
+                  <div class="quiz-grid-options">
+                    <div class="quiz-card-option" id="quizCard_A" onclick="voteQuizOption('A')">
+                      <div class="option-header">
+                        <span class="opt-label">A. 60&deg;</span>
+                        <span class="opt-tag-correct">[ĐÁP ÁN ĐÚNG]</span>
+                        <span class="opt-pct" id="pct_A">74%</span>
+                      </div>
+                      <div class="opt-bar-track">
+                        <div class="opt-bar-fill bar-emerald" id="bar_A" style="width: 74%;"></div>
+                      </div>
+                    </div>
+
+                    <div class="quiz-card-option" id="quizCard_B" onclick="voteQuizOption('B')">
+                      <div class="option-header">
+                        <span class="opt-label">B. 90&deg;</span>
+                        <span class="opt-pct" id="pct_B">14%</span>
+                      </div>
+                      <div class="opt-bar-track">
+                        <div class="opt-bar-fill bar-muted" id="bar_B" style="width: 14%;"></div>
+                      </div>
+                    </div>
+
+                    <div class="quiz-card-option" id="quizCard_C" onclick="voteQuizOption('C')">
+                      <div class="option-header">
+                        <span class="opt-label">C. 45&deg;</span>
+                        <span class="opt-pct" id="pct_C">8%</span>
+                      </div>
+                      <div class="opt-bar-track">
+                        <div class="opt-bar-fill bar-muted" id="bar_C" style="width: 8%;"></div>
+                      </div>
+                    </div>
+
+                    <div class="quiz-card-option" id="quizCard_D" onclick="voteQuizOption('D')">
+                      <div class="option-header">
+                        <span class="opt-label">D. 120&deg;</span>
+                        <span class="opt-pct" id="pct_D">4%</span>
+                      </div>
+                      <div class="opt-bar-track">
+                        <div class="opt-bar-fill bar-muted" id="bar_D" style="width: 4%;"></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="quiz-solution-box">
+                    <div class="solution-header" onclick="toggleSolutionBox()">
+                      <span>💡 Hướng dẫn giải chi tiết (Bấm để hiện/ẩn):</span>
+                      <span id="solutionToggleIcon">▼</span>
+                    </div>
+                    <div id="solutionBodyContent" class="solution-body">
+                      <p>
+                        &bull; Vì $ABCD$ và $A'B'C'D'$ là hình vuông nên $AC \parallel A'C'$.<br>
+                        &bull; Do đó: Góc giữa $AC$ và $A'D$ chính bằng <strong>góc giữa $A'C'$ và $A'D$</strong>, tức là góc $\widehat{C'A'D}$.<br>
+                        &bull; Xét tam giác $A'C'D$: Ta có $A'C' = a\sqrt{2}$, $A'D = a\sqrt{2}$, $C'D = a\sqrt{2}$.<br>
+                        &bull; Suy ra tam giác $A'C'D$ là <strong>tam giác đều</strong> $\implies \widehat{C'A'D} = \mathbf{60^\circ}$. Chọn đáp án <strong>A</strong>.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+            </div>
+          </main>
+
+          <!-- Bottom Presentation Control Dock -->
+          <footer class="presentation-dock" id="presentationDock">
+            <div class="dock-thumbnails-group">
+              <button class="thumb-pill active" onclick="goToSlide(0)">1. Khởi động</button>
+              <button class="thumb-pill" onclick="goToSlide(1)">2. Đường chéo AC'</button>
+              <button class="thumb-pill" onclick="goToSlide(2)">3. Vuông góc AH</button>
+              <button class="thumb-pill" onclick="goToSlide(3)">4. Thiết diện (A'BD)</button>
+              <button class="thumb-pill" onclick="goToSlide(4)">5. Quiz vận dụng</button>
+            </div>
+
+            <div class="dock-navigator-group">
+              <button id="btnPrevSlide" class="btn-dock-nav" title="Slide trước (Phím ←)">
+                <span>◀</span> Trước
+              </button>
+
+              <div class="slide-counter-badge">
+                <span id="currentSlideDisplayNum">1</span> / <span id="totalSlidesNum">5</span>
+              </div>
+
+              <button id="btnNextSlide" class="btn-dock-nav" title="Slide kế tiếp (Phím →)">
+                Sau <span>▶</span>
+              </button>
+            </div>
+
+            <div class="dock-quick-actions">
+              <span class="dock-hint">Phím tắt: <code>←</code> <code>→</code> <code>C (Chat)</code> <code>T (Công cụ)</code> <code>F5 (Full)</code></span>
+            </div>
+          </footer>
+        </div>
+
+        <!-- 1.3. CỘT PHẢI: THANH CÔNG CỤ CHỈNH SỬA BIỂU ĐỒ & HÌNH HỌC 3D (TOOLS DOCK) -->
+        <aside id="presRightToolsDock" class="pres-side-panel pres-tools-dock">
+          <div class="chat-drawer-header">
+            <div class="chat-header-info">
+              <div class="chat-avatar-badge" style="background: rgba(56, 189, 248, 0.2);">
+                <span>⚙️</span>
+              </div>
+              <div>
+                <h3 class="chat-drawer-title">Công Cụ Giảng Dạy</h3>
+                <p class="chat-drawer-subtitle">3D &bull; Biểu Đồ &bull; Tương Tác</p>
+              </div>
+            </div>
+            <button class="btn-chat-icon-action" onclick="toggleRightToolsDock(false)" title="Thu gọn bảng công cụ [▶]">▶</button>
+          </div>
+
+          <!-- Sub-tabs: 3D Geometry vs 2D Function Plot -->
+          <div class="tools-tab-bar">
+            <button id="btnSubtab3D" class="tools-tab-btn active" onclick="switchToolsSubtab('3d')">
+              🧊 Hình Học 3D
+            </button>
+            <button id="btnSubtabGraph" class="tools-tab-btn" onclick="switchToolsSubtab('graph')">
+              📈 Đồ Thị Hàm Số
+            </button>
+          </div>
+
+          <!-- TAB 1: HÌNH HỌC KHÔNG GIAN 3D -->
+          <div id="toolContent3D" class="tools-tab-content active">
+            <div class="form-row">
+              <label class="form-label">Khối đa diện:</label>
+              <select id="selPolyhedronType" class="form-select">
+                <option value="cube" selected>Hình Lập Phương (ABCD.A'B'C'D')</option>
+                <option value="pyramid_square">Hình Chóp S.ABCD (SA ⊥ Đáy)</option>
+                <option value="pyramid_triangle">Hình Chóp Tam Giác (S.ABC)</option>
+                <option value="prism_triangle">Lăng Trụ Đứng (ABC.A'B'C')</option>
+              </select>
+            </div>
+
+            <div class="form-row">
+              <div class="slider-header">
+                <span class="form-label">Kích thước cạnh $a$:</span>
+                <span id="dispEdgeVal" class="slider-value">4.0 cm</span>
+              </div>
+              <input id="rngEdgeLength" type="range" min="2" max="6" step="0.5" value="4" class="custom-slider">
+            </div>
+
+            <div class="form-row">
+              <label class="form-label">Góc nhìn chuẩn SGK:</label>
+              <div class="btn-grid-presets">
+                <button class="btn-preset" onclick="applyCameraPreset('iso')">Góc Chuẩn SGK</button>
+                <button class="btn-preset" onclick="applyCameraPreset('top')">Nhìn Từ Đỉnh</button>
+                <button class="btn-preset" onclick="applyCameraPreset('front')">Nhìn Trực Diện</button>
+              </div>
+            </div>
+
+            <div class="form-row space-y-2">
+              <label class="checkbox-label">
+                <input id="chkShowHiddenLines" type="checkbox" checked>
+                <span>Hiện nét đứt (khuất)</span>
+              </label>
+              <label class="checkbox-label">
+                <input id="chkShowVertexLabels" type="checkbox" checked>
+                <span>Hiện tên các đỉnh (A, B, C...)</span>
+              </label>
+              <label class="checkbox-label">
+                <input id="chkShowAxesOxyz" type="checkbox">
+                <span>Hiện trục tọa độ Oxyz</span>
+              </label>
+            </div>
+
+            <div class="form-row" style="margin-top: 0.5rem;">
+              <label class="form-label">Thao tác hình học nhanh:</label>
+              <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+                <button class="btn-quick-geom" onclick="quickSelectGeom('diagonal')">
+                  <span>📐</span> Kẻ đường chéo $AC' = a\sqrt{3}$
+                </button>
+                <button class="btn-quick-geom" onclick="quickSelectGeom('altitude')">
+                  <span>📏</span> Hạ vuông góc $AH \perp B'D'$
+                </button>
+                <button class="btn-quick-geom" onclick="quickSelectGeom('cross_section')">
+                  <span>▱</span> Cắt mặt phẳng thiết diện $(A'BD)$
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 2: ĐỒ THỊ & BIỂU ĐỒ TOÁN HỌC (2D FUNCTION PLOTTER) -->
+          <div id="toolContentGraph" class="tools-tab-content">
+            <div class="form-row">
+              <label class="form-label">Hàm số mẫu phổ biến:</label>
+              <select id="selPresetFunction" class="studio-select" onchange="applyPresetFunction(this.value)">
+                <option value="x**3 - 3*x" selected>Bậc ba: y = x³ - 3x</option>
+                <option value="x**2 - 4">Bậc hai: y = x² - 4</option>
+                <option value="2*x">Bậc nhất: y = 2x</option>
+                <option value="sin(x)">Lượng giác: y = sin(x)</option>
+                <option value="1/x">Phân thức: y = 1/x</option>
+              </select>
+            </div>
+
+            <div class="form-row">
+              <label class="form-label">Biểu thức hàm số $f(x)$:</label>
+              <input id="inputMathFunction" class="studio-input" value="x**3 - 3*x" placeholder="VD: x**3 - 3*x">
+            </div>
+
+            <div class="form-row" style="display: flex; gap: 0.5rem; flex-direction: row;">
+              <div style="flex: 1;">
+                <label class="form-label">$x_{min}$:</label>
+                <input id="numXMin" type="number" class="studio-input" value="-4" style="padding: 0.3rem 0.5rem;">
+              </div>
+              <div style="flex: 1;">
+                <label class="form-label">$x_{max}$:</label>
+                <input id="numXMax" type="number" class="studio-input" value="4" style="padding: 0.3rem 0.5rem;">
+              </div>
+            </div>
+
+            <!-- Canvas vẽ đồ thị 2D trực tiếp -->
+            <div class="plot-canvas-wrap">
+              <canvas id="canvasFunctionPlot" width="310" height="180"></canvas>
+            </div>
+
+            <button class="btn-primary-studio" style="width: 100%;" onclick="plot2DFunction()">
+              🎨 Vẽ Đồ Thị Tức Thì
+            </button>
+          </div>
+        </aside>
+
       </div>
     </section>
 
-    <!-- BOX 2 (Middle): Wireframe 'Lời giải chi tiết' (Step-by-step Solution) -->
-    <section class="h-[31%] bg-studio-900 border border-white/10 rounded-xl flex flex-col overflow-hidden" data-purpose="step-solution-card">
-      <div class="p-2.5 border-b border-white/10 bg-studio-850/60 flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
-          <h2 class="text-xs font-semibold text-slate-200 uppercase tracking-wide">Lời Giải Chi Tiết</h2>
+    <!-- ====================================================================
+         MÀN HÌNH 2: SOẠN KẾ HOẠCH BÀI DẠY CHUẨN CV 5512 (LESSON PLAN STUDIO)
+         ==================================================================== -->
+    <section id="screenLessonPlan" class="studio-screen">
+      <div class="studio-screen-view">
+        <div class="studio-screen-header">
+          <div>
+            <h2 class="studio-screen-title"><span>📝</span> Soạn Kế Hoạch Bài Dạy Chuẩn Công Văn 5512</h2>
+            <p class="studio-screen-desc">Khởi tạo bài dạy tự động với cấu trúc 4 hoạt động & Phân loại học lực học sinh</p>
+          </div>
+          <div style="display: flex; gap: 0.6rem;">
+            <button class="btn-action-green" onclick="exportCurrentLessonPlanDocx()">
+              📥 Xuất File Word (.docx)
+            </button>
+          </div>
         </div>
-        <button id="btnCopySteps" class="text-slate-400 hover:text-white p-1" title="Sao chép lời giải">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
-        </button>
-      </div>
 
-      <div class="flex-1 p-2.5 overflow-y-auto space-y-2 text-xs" data-purpose="solution-steps">
-        <div id="solutionStepsBox" class="space-y-1.5 text-[11px] leading-relaxed text-slate-300">
-          <div class="p-1.5 rounded bg-studio-850/80 border-l-2 border-cyan-400">
-            <span class="text-cyan-300 font-semibold">Bước 1:</span> Xác định tâm đường tròn ngoại tiếp đa giác đáy <span class="font-mono text-amber-300">ΔABC → điểm H</span>.
+        <div class="studio-grid-2col">
+          <!-- Cột Trái: Form Thiết Lập & Nhập Liệu -->
+          <div class="studio-card">
+            <h3 class="studio-card-title">⚙️ Thiết Lập Bài Dạy & Hồ Sơ Lớp</h3>
+            
+            <div class="form-row">
+              <label class="form-label">Tên bài dạy / Chủ đề:</label>
+              <input id="lpTopicInput" class="studio-input" value="Hình lập phương & Quan hệ vuông góc trong không gian">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+              <div class="form-row">
+                <label class="form-label">Môn học:</label>
+                <select id="lpSubjectSelect" class="studio-select">
+                  <option value="Toán học" selected>Toán học</option>
+                  <option value="Vật lý">Vật lý</option>
+                  <option value="Hóa học">Hóa học</option>
+                </select>
+              </div>
+              <div class="form-row">
+                <label class="form-label">Khối lớp:</label>
+                <select id="lpGradeSelect" class="studio-select">
+                  <option value="11" selected>Lớp 11</option>
+                  <option value="12">Lớp 12</option>
+                  <option value="10">Lớp 10</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <label class="form-label">Trình độ phân hóa học lực lớp:</label>
+              <div style="display: flex; gap: 0.4rem;">
+                <button type="button" class="quick-chip active" id="btnProfStandard" onclick="setProficiencyLevel('standard')">Chuẩn (Standard)</button>
+                <button type="button" class="quick-chip" id="btnProfBasic" onclick="setProficiencyLevel('basic')">Cơ bản (Basic)</button>
+                <button type="button" class="quick-chip" id="btnProfAdvanced" onclick="setProficiencyLevel('advanced')">Nâng cao (Advanced)</button>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <label class="form-label">Mục tiêu chuẩn đầu ra cần đạt:</label>
+              <textarea id="lpTargetOutcome" class="studio-textarea" rows="3">Học sinh xác định được góc giữa đường thẳng và mặt phẳng, tính được độ dài đường chéo hình lập phương và dựng được thiết diện mặt phẳng.</textarea>
+            </div>
+
+            <!-- Dropzones Tải Lên -->
+            <div class="form-row">
+              <label class="form-label">Tải lên Bảng điểm Excel / CSV (Tự động xếp hạng lớp):</label>
+              <div class="dropzone-box" onclick="triggerFileUpload('fileGradeSheet')">
+                <div class="dropzone-icon">📊</div>
+                <div class="dropzone-title">Kéo thả bảng điểm (.xlsx, .csv) vào đây</div>
+                <div class="dropzone-hint">Hệ thống tự động phân loại trình độ lớp qua Z-Score & T-Score</div>
+                <input type="file" id="fileGradeSheet" accept=".xlsx,.csv" style="display:none;" onchange="handleGradeSheetUploaded(this)">
+              </div>
+            </div>
+
+            <button class="btn-primary-studio" onclick="generateLessonPlanAction()">
+              🚀 Sinh Kế Hoạch Bài Dạy 5512 Bằng AI
+            </button>
           </div>
-          <div class="p-1.5 rounded bg-studio-850/80 border-l-2 border-indigo-400">
-            <span class="text-indigo-300 font-semibold">Bước 2:</span> Dựng trục d qua H vuông góc với mặt phẳng (ABC). Dựng mặt phẳng trung trực của cạnh bên SA.
-          </div>
-          <div class="p-1.5 rounded bg-studio-850/80 border-l-2 border-emerald-400 font-mono text-emerald-300">
-            <span class="text-emerald-400 font-sans font-semibold">Bước 3:</span> Giao điểm chính là tâm mặt cầu I. Khi đó: <br/>
-            <strong class="text-white">R = √(R_đáy² + (SA/2)²) = a√3</strong>
+
+          <!-- Cột Phải: Xem Trước Kế Hoạch 5512 -->
+          <div class="studio-card">
+            <h3 class="studio-card-title">📖 Kế Hoạch Bài Dạy Đã Kiểm Duyệt (CV 5512)</h3>
+            <div id="lpPreviewContent" style="display: flex; flex-direction: column; gap: 1rem; font-size: 0.82rem; line-height: 1.6;">
+              <div style="background: rgba(56, 189, 248, 0.08); padding: 0.85rem; border-radius: 8px; border-left: 3px solid var(--cyan);">
+                <strong style="color: #fff; font-size: 0.95rem;">BÀI DẠY: HÌNH LẬP PHƯƠNG & QUAN HỆ VUÔNG GÓC</strong><br>
+                <span style="color: var(--text-muted);">Môn: Toán học | Khối 11 | Thời lượng: 1 tiết (45 phút) | Trình độ: Chuẩn (Standard)</span>
+              </div>
+
+              <div>
+                <strong style="color: var(--cyan);">I. MỤC TIÊU BÀI DẠY</strong>
+                <ul style="margin: 0.3rem 0 0 1.2rem; color: #cbd5e1;">
+                  <li><strong>Kiến thức:</strong> Hiểu định nghĩa hình lập phương đều, công thức đường chéo $AC' = a\sqrt{3}$, khoảng cách từ 1 điểm đến đường thẳng.</li>
+                  <li><strong>Năng lực:</strong> Phát triển tư duy hình học không gian 3D, năng lực mô hình hóa toán học.</li>
+                  <li><strong>Phẩm chất:</strong> Cẩn thận, chính xác trong tính toán định lượng.</li>
+                </ul>
+              </div>
+
+              <div>
+                <strong style="color: var(--amber);">II. TIẾN TRÌNH 4 HOẠT ĐỘNG DẠY HỌC</strong>
+                <div style="display: flex; flex-direction: column; gap: 0.7rem; margin-top: 0.4rem;">
+                  <div style="background: rgba(255,255,255,0.03); padding: 0.7rem; border-radius: 6px;">
+                    <strong>Hoạt động 1: Mở đầu / Khởi động (7 phút)</strong><br>
+                    <span style="color: var(--text-sub);">GV chiếu mô hình 3D hình lập phương, đặt vấn đề tính đường chéo không gian trong đời sống.</span>
+                  </div>
+                  <div style="background: rgba(255,255,255,0.03); padding: 0.7rem; border-radius: 6px;">
+                    <strong>Hoạt động 2: Hình thành kiến thức mới (18 phút)</strong><br>
+                    <span style="color: var(--text-sub);">Chứng minh 2 bước Pytago: $AC = a\sqrt{2} \implies AC' = a\sqrt{3}$; Dựng đường cao tam giác đều $AH \perp B'D'$.</span>
+                  </div>
+                  <div style="background: rgba(255,255,255,0.03); padding: 0.7rem; border-radius: 6px;">
+                    <strong>Hoạt động 3: Luyện tập (12 phút)</strong><br>
+                    <span style="color: var(--text-sub);">Xác định thiết diện cắt bởi mặt phẳng $(A'BD)$ là tam giác đều và tính diện tích $S = \frac{a^2\sqrt{3}}{2}$.</span>
+                  </div>
+                  <div style="background: rgba(255,255,255,0.03); padding: 0.7rem; border-radius: 6px;">
+                    <strong>Hoạt động 4: Vận dụng & Live Quiz (8 phút)</strong><br>
+                    <span style="color: var(--text-sub);">Học sinh làm trắc nghiệm trực tiếp: Tính góc giữa hai đường thẳng chéo nhau $AC$ và $A'D$.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- BOX 3 (Bottom): Wireframe 'Bảng điều chỉnh thông số đồ thị toán học, hình học không gian theo giảng viên' -->
-    <section class="flex-1 bg-studio-900 border border-white/10 rounded-xl flex flex-col overflow-hidden" data-purpose="geometry-parameters-control">
-      <div class="p-2.5 border-b border-white/10 bg-studio-850/60 flex items-center justify-between">
-        <div class="flex items-center gap-1.5">
-          <span class="w-2 h-2 rounded-full bg-amber-400"></span>
-          <h2 class="text-xs font-semibold text-slate-200 uppercase tracking-wide truncate">Điều Chỉnh Thông Số Đồ Thị (3D)</h2>
-        </div>
-        <span class="text-[10px] text-cyan-400 font-mono">Live Sync</span>
-      </div>
-
-      <!-- Instructor Parametric Controls -->
-      <div class="flex-1 p-2.5 overflow-y-auto space-y-2.5 text-xs" data-purpose="parameter-sliders">
-        <!-- Slider 1: Bán kính R -->
-        <div class="space-y-1">
-          <div class="flex justify-between text-[11px]">
-            <span class="text-slate-300">Bán kính R (m):</span>
-            <span class="font-mono text-cyan-400 font-bold" id="val-radius">4.50</span>
+    <!-- ====================================================================
+         MÀN HÌNH 3: XƯỞNG BIÊN TẬP SLIDE & ĐỒ THỊ (SLIDE DECK EDITOR)
+         ==================================================================== -->
+    <section id="screenSlideEditor" class="studio-screen">
+      <div class="studio-screen-view">
+        <div class="studio-screen-header">
+          <div>
+            <h2 class="studio-screen-title"><span>🛠️</span> Xưởng Biên Tập Slide & Đồ Thị Toán Học</h2>
+            <p class="studio-screen-desc">Biên tập chi tiết từng slide bài giảng, công thức KaTeX & Đồ thị hàm số</p>
           </div>
-          <input id="sliderRadius" class="w-full h-1.5 bg-studio-800 rounded-lg appearance-none cursor-pointer accent-cyan-400" max="10" min="1" step="0.1" type="range" value="4.5"/>
-        </div>
-
-        <!-- Slider 2: Góc quay Alpha -->
-        <div class="space-y-1">
-          <div class="flex justify-between text-[11px]">
-            <span class="text-slate-300">Góc xoay Alpha (Trục Z):</span>
-            <span class="font-mono text-indigo-400 font-bold" id="val-alpha">35°</span>
+          <div style="display: flex; gap: 0.6rem;">
+            <button class="btn-action-amber" onclick="exportSlideDeckPptx()">
+              📥 Xuất File PowerPoint (.pptx)
+            </button>
           </div>
-          <input id="sliderAlpha" class="w-full h-1.5 bg-studio-800 rounded-lg appearance-none cursor-pointer accent-indigo-400" max="360" min="0" step="1" type="range" value="35"/>
         </div>
 
-        <!-- Slider 3: Độ nghiêng Beta -->
-        <div class="space-y-1">
-          <div class="flex justify-between text-[11px]">
-            <span class="text-slate-300">Góc nghiêng Beta:</span>
-            <span class="font-mono text-pink-400 font-bold" id="val-beta">-15°</span>
+        <div class="slide-editor-grid">
+          <!-- Cột 1: Danh Sách Slide Thumbnails -->
+          <div class="studio-card" style="padding: 0.85rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+              <span class="studio-card-title" style="border: none; margin: 0; padding: 0;">📑 Các Slide</span>
+              <button class="dock-pill-btn" onclick="addNewSlideEditor()">+ Thêm Slide</button>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem; overflow-y: auto;">
+              <div class="slide-thumb-card active" onclick="loadSlideIntoEditor(0)">
+                <strong style="color: #fff; font-size: 0.75rem;">Slide 1: Khởi động</strong>
+                <span style="color: var(--text-muted); font-size: 0.68rem;">Hình lập phương ABCD.A'B'C'D'</span>
+              </div>
+              <div class="slide-thumb-card" onclick="loadSlideIntoEditor(1)">
+                <strong style="color: #fff; font-size: 0.75rem;">Slide 2: Khái niệm</strong>
+                <span style="color: var(--text-muted); font-size: 0.68rem;">Đường chéo AC' = a√3</span>
+              </div>
+              <div class="slide-thumb-card" onclick="loadSlideIntoEditor(2)">
+                <strong style="color: #fff; font-size: 0.75rem;">Slide 3: Khoảng cách</strong>
+                <span style="color: var(--text-muted); font-size: 0.68rem;">Đoạn vuông góc AH ⊥ B'D'</span>
+              </div>
+              <div class="slide-thumb-card" onclick="loadSlideIntoEditor(3)">
+                <strong style="color: #fff; font-size: 0.75rem;">Slide 4: Thiết diện</strong>
+                <span style="color: var(--text-muted); font-size: 0.68rem;">Mặt phẳng (A'BD)</span>
+              </div>
+              <div class="slide-thumb-card" onclick="loadSlideIntoEditor(4)">
+                <strong style="color: #fff; font-size: 0.75rem;">Slide 5: Live Quiz</strong>
+                <span style="color: var(--text-muted); font-size: 0.68rem;">Góc giữa AC và A'D</span>
+              </div>
+            </div>
           </div>
-          <input id="sliderBeta" class="w-full h-1.5 bg-studio-800 rounded-lg appearance-none cursor-pointer accent-pink-400" max="90" min="-90" step="1" type="range" value="-15"/>
-        </div>
 
-        <!-- Toggles for 3D elements -->
-        <div class="pt-1 border-t border-white/10 space-y-1.5 text-[11px]">
-          <label class="flex items-center justify-between cursor-pointer">
-            <span class="text-slate-300">Hiện mặt phẳng tiếp diện (α)</span>
-            <input id="chkShowPlane" checked="" class="w-3.5 h-3.5 rounded bg-studio-800 border-white/20 text-cyan-500 focus:ring-0" type="checkbox"/>
-          </label>
-          <label class="flex items-center justify-between cursor-pointer">
-            <span class="text-slate-300">Đổ bóng khối không gian</span>
-            <input id="chkShowShadow" checked="" class="w-3.5 h-3.5 rounded bg-studio-800 border-white/20 text-indigo-500 focus:ring-0" type="checkbox"/>
-          </label>
-        </div>
-      </div>
+          <!-- Cột 2: Trình Soạn Thảo Chi Tiết Slide -->
+          <div class="studio-card">
+            <h3 class="studio-card-title">✏️ Nội Dung Trình Chiếu Slide</h3>
+            <div class="form-row">
+              <label class="form-label">Tiêu đề slide:</label>
+              <input id="editSlideTitle" class="studio-input" value="1. Đường Chéo AC' & Góc Giữa Đường Thẳng Với Mặt Phẳng">
+            </div>
+            <div class="form-row">
+              <label class="form-label">Bố cục layout:</label>
+              <select id="editSlideLayout" class="studio-select">
+                <option value="TWO_COLUMN" selected>2 Cột (Nội dung lý thuyết + Mô hình 3D bên phải)</option>
+                <option value="QUIZ_OPTION">Quiz Trắc Nghiệm 4 Phương Án</option>
+                <option value="SINGLE_COLUMN">1 Cột Toàn Chiều Ngang</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Danh sách ý gạch đầu dòng (hỗ trợ KaTeX $...$):</label>
+              <textarea id="editSlideBullets" class="studio-textarea" rows="4">Trong mặt phẳng đáy $(ABCD)$: $AC = \sqrt{AB^2 + BC^2} = a\sqrt{2}$.
+Vì $CC' \perp (ABCD)$ nên tam giác $ACC'$ vuông tại $C$.
+Áp dụng định lý Pytago trong $\triangle ACC'$: $AC' = a\sqrt{3}$.</textarea>
+            </div>
+            <div class="form-row">
+              <label class="form-label">Công thức Toán LaTeX trọng tâm:</label>
+              <input id="editSlideLatex" class="studio-input" value="AC' = \sqrt{(a\sqrt{2})^2 + a^2} = a\sqrt{3}">
+            </div>
+            <div class="form-row">
+              <label class="form-label">Kịch bản lời thoại dành riêng cho Giáo viên (Teacher Note):</label>
+              <textarea id="editSlideTeacherNote" class="studio-textarea" rows="2">Nhắc nhở học sinh áp dụng quy tắc 2 bước Pytago. Không nhầm lẫn giữa đường chéo mặt sàn (a√2) và đường chéo không gian (a√3).</textarea>
+            </div>
+            <button class="btn-primary-studio" onclick="saveSlideEditsAction()">
+              💾 Lưu Thay Đổi Vào Slide
+            </button>
+          </div>
 
-      <!-- Wireframe Bottom Right: 'Nút trình chiếu' (Presentation Launch Button) -->
-      <div class="p-2 border-t border-white/10 bg-studio-950/80 shrink-0" data-purpose="presentation-action-button">
-        <button id="btnLaunchPresentation" class="w-full py-2.5 px-3 rounded-lg bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 text-white font-semibold text-xs tracking-wide shadow-lg neon-glow-btn hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
-          <!-- Presentation Screen Icon -->
-          <svg class="w-4 h-4 text-cyan-200" fill="none" stroke="currentColor" viewbox="0 0 24 24">
-            <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-          </svg>
-          <span class="uppercase">Nút Trình Chiếu (F5)</span>
-        </button>
+          <!-- Cột 3: Tùy Chỉnh Quiz & Đồ Thị -->
+          <div class="studio-card">
+            <h3 class="studio-card-title">🎯 Cấu Hình Quiz & Đồ Thị</h3>
+            <div class="form-row">
+              <label class="form-label">Câu hỏi trắc nghiệm:</label>
+              <input id="editQuizQuestion" class="studio-input" value="Góc giữa AC và A'D bằng bao nhiêu?">
+            </div>
+            <div class="form-row">
+              <label class="form-label">Phương án A (Đáp án đúng):</label>
+              <input class="studio-input" value="A. 60° (Đúng: Tam giác A'C'D đều)" style="border-color: rgba(16, 185, 129, 0.4);">
+            </div>
+            <div class="form-row">
+              <label class="form-label">Phương án B (Nhiễu):</label>
+              <input class="studio-input" value="B. 90°">
+            </div>
+            <div class="form-row">
+              <label class="form-label">Phương án C (Nhiễu):</label>
+              <input class="studio-input" value="C. 45°">
+            </div>
+            <div class="form-row">
+              <label class="form-label">Phương án D (Nhiễu):</label>
+              <input class="studio-input" value="D. 120°">
+            </div>
+            <div class="form-row">
+              <label class="form-label">Giải thích lỗi sai Toán học:</label>
+              <textarea class="studio-textarea" rows="2">HS nhầm góc giữa 2 đường thẳng là góc tù (> 90°). Góc giữa 2 đường thẳng luôn <= 90°.</textarea>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
-  </aside>
-</div>
-<!-- END: ApplicationBody -->
+    <!-- ====================================================================
+         MÀN HÌNH 4: TRUNG TÂM PHÂN TÍCH LỚP HỌC & BẢNG ĐIỂM (ANALYTICS)
+         ==================================================================== -->
+    <section id="screenAnalytics" class="studio-screen">
+      <div class="studio-screen-view">
+        <div class="studio-screen-header">
+          <div>
+            <h2 class="studio-screen-title"><span>📊</span> Trung Tâm Phân Tích Lớp Học & Bảng Điểm</h2>
+            <p class="studio-screen-desc">Thống kê điểm số chuẩn hóa, Z-Score, T-Score & Đề xuất phương án phân hóa bài dạy</p>
+          </div>
+        </div>
 
-<!-- ================= AI GENERATOR DRAWER & EXPORTER ================= -->
-<div id="aiStudioDrawerModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-end">
-  <div class="w-[520px] max-w-full h-full bg-studio-900 border-l border-white/10 flex flex-col shadow-2xl p-4 overflow-y-auto">
-    <div class="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
-      <div class="flex items-center gap-2">
-        <span class="text-xl">🤖</span>
-        <div>
-          <h2 class="text-sm font-bold text-white uppercase">Studio Soạn Bài & Sinh Giáo Án AI</h2>
-          <p class="text-[11px] text-slate-400">Tự động tạo Giáo án 5512 &amp; Slide Bài giảng Oxyz</p>
+        <!-- 4 KPI Cards -->
+        <div class="analytics-kpi-grid">
+          <div class="kpi-card">
+            <span class="kpi-label">Sĩ Số Học Sinh</span>
+            <span class="kpi-val" id="kpiStudentCount">42</span>
+            <span class="kpi-sub">Đã nộp đủ bài khảo sát</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Điểm Trung Bình (μ)</span>
+            <span class="kpi-val" id="kpiMeanScore" style="color: var(--cyan);">7.42</span>
+            <span class="kpi-sub">Phổ điểm khá tốt</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Độ Lệch Chuẩn (σ)</span>
+            <span class="kpi-val" id="kpiStdDev" style="color: var(--amber);">1.38</span>
+            <span class="kpi-sub">Độ phân hóa vừa phải</span>
+          </div>
+          <div class="kpi-card">
+            <span class="kpi-label">Xếp Loại Trình Độ Lớp</span>
+            <span class="kpi-val" style="color: var(--emerald); font-size: 1.3rem;">CHUẨN (STANDARD)</span>
+            <span class="kpi-sub">68% Đạt chuẩn trở lên</span>
+          </div>
+        </div>
+
+        <!-- Split Grid: 3 Nhóm Học Lực + Bảng Chi Tiết -->
+        <div class="studio-grid-2col">
+          <div class="studio-card">
+            <h3 class="studio-card-title">👥 Khuyến Nghị Phân Hóa Sư Phạm (CV 5512)</h3>
+            <div style="display: flex; flex-direction: column; gap: 0.85rem; font-size: 0.8rem;">
+              <div style="background: rgba(244, 63, 94, 0.1); border-left: 3px solid var(--rose); padding: 0.75rem; border-radius: 6px;">
+                <strong style="color: var(--rose);">Nhóm Cần Phụ Đạo (Điểm &lt; 5.0) &bull; 4 Học sinh (9.5%)</strong>
+                <p style="color: var(--text-sub); margin-top: 0.2rem;">
+                  Đề xuất: Dùng mô hình 3D xoay góc SGK chuẩn để học sinh nhìn thấy rõ hình chiếu vuông góc, cho bài tập tính đường chéo mặt đáy $AC = a\sqrt{2}$.
+                </p>
+              </div>
+
+              <div style="background: rgba(56, 189, 248, 0.1); border-left: 3px solid var(--cyan); padding: 0.75rem; border-radius: 6px;">
+                <strong style="color: var(--cyan);">Nhóm Đạt Chuẩn (Điểm 5.0 - 8.0) &bull; 26 Học sinh (61.9%)</strong>
+                <p style="color: var(--text-sub); margin-top: 0.2rem;">
+                  Đề xuất: Cho học sinh luyện tập tính khoảng cách đường vuông góc $AH \perp B'D'$ và làm câu hỏi trắc nghiệm củng cố.
+                </p>
+              </div>
+
+              <div style="background: rgba(16, 185, 129, 0.1); border-left: 3px solid var(--emerald); padding: 0.75rem; border-radius: 6px;">
+                <strong style="color: var(--emerald);">Nhóm Nâng Cao (Điểm &gt; 8.0) &bull; 12 Học sinh (28.6%)</strong>
+                <p style="color: var(--text-sub); margin-top: 0.2rem;">
+                  Đề xuất: Yêu cầu dựng thiết diện mặt phẳng tổng quát qua trục đối xứng, chứng minh tính vuông góc giữa $AC'$ và $(A'BD)$.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="studio-card">
+            <h3 class="studio-card-title">📋 Bảng Điểm & Chỉ Số Chuẩn Hóa Z-Score / T-Score</h3>
+            <div style="overflow-x: auto;">
+              <table class="studio-table">
+                <thead>
+                  <tr>
+                    <th>STT</th>
+                    <th>Họ và Tên</th>
+                    <th>Điểm Gốc</th>
+                    <th>Z-Score</th>
+                    <th>T-Score</th>
+                    <th>Thứ Hạng %</th>
+                    <th>Nhóm Đề Xuất</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>1</td>
+                    <td>Nguyễn Văn An</td>
+                    <td><strong>9.5</strong></td>
+                    <td style="color: var(--emerald);">+1.51</td>
+                    <td>65.1</td>
+                    <td>94%</td>
+                    <td><span style="color: var(--emerald); font-weight:600;">Nâng cao</span></td>
+                  </tr>
+                  <tr>
+                    <td>2</td>
+                    <td>Trần Thị Bích</td>
+                    <td><strong>8.5</strong></td>
+                    <td style="color: var(--emerald);">+0.78</td>
+                    <td>57.8</td>
+                    <td>78%</td>
+                    <td><span style="color: var(--emerald); font-weight:600;">Nâng cao</span></td>
+                  </tr>
+                  <tr>
+                    <td>3</td>
+                    <td>Lê Hoàng Cường</td>
+                    <td><strong>7.5</strong></td>
+                    <td style="color: var(--cyan);">+0.06</td>
+                    <td>50.6</td>
+                    <td>52%</td>
+                    <td><span style="color: var(--cyan); font-weight:600;">Đạt chuẩn</span></td>
+                  </tr>
+                  <tr>
+                    <td>4</td>
+                    <td>Phạm Minh Đức</td>
+                    <td><strong>6.0</strong></td>
+                    <td style="color: var(--text-sub);">-1.03</td>
+                    <td>39.7</td>
+                    <td>15%</td>
+                    <td><span style="color: var(--cyan); font-weight:600;">Đạt chuẩn</span></td>
+                  </tr>
+                  <tr>
+                    <td>5</td>
+                    <td>Hoàng Khánh Linh</td>
+                    <td><strong>4.0</strong></td>
+                    <td style="color: var(--rose);">-2.48</td>
+                    <td>25.2</td>
+                    <td>3%</td>
+                    <td><span style="color: var(--rose); font-weight:600;">Cần phụ đạo</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
-      <button id="btnCloseAIDrawerModal" class="text-slate-400 hover:text-white text-lg p-1">✕</button>
-    </div>
+    </section>
 
-    <!-- Form -->
-    <div class="space-y-3.5 text-xs">
-      <div>
-        <label class="block text-slate-300 font-medium mb-1">Chủ đề bài dạy:</label>
-        <input id="drawerTopic" type="text" class="w-full bg-studio-950 border border-white/15 rounded-lg px-3 py-2 text-white text-xs focus:border-cyan-400 focus:outline-none" value="Mặt cầu trong không gian Oxyz"/>
-      </div>
-
-      <div class="grid grid-cols-2 gap-2.5">
-        <div>
-          <label class="block text-slate-300 font-medium mb-1">Môn học:</label>
-          <select id="drawerSubject" class="w-full bg-studio-950 border border-white/15 rounded-lg px-2.5 py-1.5 text-white text-xs focus:border-cyan-400 focus:outline-none">
-            <option value="Toán học" selected>Toán học</option>
-            <option value="Vật lý">Vật lý</option>
-            <option value="Hóa học">Hóa học</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-slate-300 font-medium mb-1">Khối lớp:</label>
-          <select id="drawerGrade" class="w-full bg-studio-950 border border-white/15 rounded-lg px-2.5 py-1.5 text-white text-xs focus:border-cyan-400 focus:outline-none">
-            <option value="10">Lớp 10</option>
-            <option value="11">Lớp 11</option>
-            <option value="12" selected>Lớp 12</option>
-          </select>
-        </div>
-      </div>
-
-      <div>
-        <label class="block text-slate-400 mb-1">Chủ đề gợi ý:</label>
-        <div class="flex flex-wrap gap-1.5" id="drawerQuickChips">
-          <button class="px-2 py-0.5 rounded bg-studio-800 hover:bg-studio-700 text-slate-300 text-[11px]" onclick="setDrawerTopic('Mặt cầu trong không gian Oxyz')">Mặt cầu Oxyz</button>
-          <button class="px-2 py-0.5 rounded bg-studio-800 hover:bg-studio-700 text-slate-300 text-[11px]" onclick="setDrawerTopic('Cấp số cộng')">Cấp số cộng</button>
-          <button class="px-2 py-0.5 rounded bg-studio-800 hover:bg-studio-700 text-slate-300 text-[11px]" onclick="setDrawerTopic('Khảo sát và vẽ đồ thị hàm số')">Đồ thị hàm số</button>
-        </div>
-      </div>
-
-      <!-- Action Buttons -->
-      <div class="grid grid-cols-2 gap-2 pt-2">
-        <button id="btnGenLessonPlan" class="py-2 px-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold flex items-center justify-center gap-1.5 shadow">
-          <span>📑</span> Sinh Giáo án 5512
-        </button>
-        <button id="btnGenSlideDeck" class="py-2 px-3 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-semibold flex items-center justify-center gap-1.5 shadow">
-          <span>🎬</span> Sinh Slide Bài giảng
-        </button>
-        <button id="btnLoadDemoOxyz" class="col-span-2 py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold flex items-center justify-center gap-1.5 shadow">
-          <span>⚡</span> Nạp Dữ Liệu Mẫu (Demo Oxyz)
-        </button>
-      </div>
-
-      <!-- Export Buttons -->
-      <div class="pt-3 border-t border-white/10 space-y-2">
-        <h3 class="font-bold text-slate-300 uppercase tracking-wider text-[11px]">Xuất file tải về</h3>
-        <button id="btnExportDocx" class="w-full py-2 px-3 rounded-lg bg-studio-800 hover:bg-studio-750 text-slate-200 border border-white/10 flex items-center justify-center gap-1.5">
-          <span>📄</span> Tải File Word (.docx chuẩn CV 5512)
-        </button>
-        <button id="btnExportPptx" class="w-full py-2 px-3 rounded-lg bg-studio-800 hover:bg-studio-750 text-cyan-300 border border-cyan-500/30 flex items-center justify-center gap-1.5">
-          <span>📊</span> Tải File PowerPoint (.pptx 16:9)
-        </button>
-      </div>
-
-      <!-- Lesson Plan Preview -->
-      <div class="pt-2 border-t border-white/10">
-        <h3 class="font-bold text-slate-300 text-[11px] mb-1">Xem trước nội dung giáo án:</h3>
-        <div id="drawerPlanPreview" class="p-2.5 rounded-lg bg-studio-950 border border-white/10 max-h-48 overflow-y-auto text-slate-400 text-[11px] leading-relaxed">
-          Chưa có giáo án. Vui lòng bấm "Sinh Giáo án 5512" hoặc "Nạp Dữ Liệu Mẫu".
-        </div>
-      </div>
-    </div>
   </div>
-</div>
 
-<!-- Settings Modal -->
-<div id="settingsBackdrop" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-center justify-center">
-  <div class="w-96 bg-studio-900 border border-white/15 rounded-xl p-4 shadow-2xl">
-    <div class="flex items-center justify-between pb-2 border-b border-white/10 mb-3">
-      <h3 class="text-sm font-bold text-white">⚙️ Cài Đặt Kết Nối Server</h3>
-      <button id="btnCloseSettingsModal" class="text-slate-400 hover:text-white">✕</button>
-    </div>
-    <div class="space-y-3 text-xs">
-      <div>
-        <label class="block text-slate-300 mb-1">Địa chỉ API Server FastAPI:</label>
-        <input id="inputServerUrl" type="text" class="w-full bg-studio-950 border border-white/15 rounded px-2.5 py-1.5 text-white" value="http://localhost:8000"/>
-      </div>
-      <p class="text-[11px] text-slate-400">Mặc định chạy tại port 8000: <code>uvicorn app.main:app --port 8000</code></p>
-      <button id="btnSaveServerUrl" class="w-full py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-semibold">Lưu cài đặt</button>
-    </div>
-  </div>
-</div>
-
-<!-- Application JavaScript Logic -->
-<script src="app.js?v=4.0"></script>
+  <!-- Application Logic -->
+  <script src="app.js?v=7.0"></script>
 </body>
 </html>
