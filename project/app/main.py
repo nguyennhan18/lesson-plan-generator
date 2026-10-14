@@ -1,27 +1,35 @@
+import os
+import sys
+
+# Ensure project/app directory is in sys.path regardless of execution working directory
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir not in sys.path:
+    sys.path.insert(0, current_dir)
+
+os.environ["MPLCONFIGDIR"] = "/tmp/matplotlib_cache"
+
+import json
+import base64
+from urllib.parse import quote
+
 from fastapi import FastAPI, HTTPException, APIRouter, UploadFile, File, status
 from fastapi.responses import Response, HTMLResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from urllib.parse import quote
 
-import sys
-import os
-import json
-import base64
-os.environ["MPLCONFIGDIR"] = "/tmp/matplotlib_cache"
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-from services.grade_classifier import classify_grade_sheet
-
-from parsers.pptx_parser import parse_pptx
-from parsers.docx_parser import parse_docx
-from parsers.common import ParsedDocumentResponse
+from schemas.chat_schema import ChatInteractRequest, ChatInteractResponse, ApplyPatchRequest, ApplyPatchResponse
 from schemas.schemas import LessonPlanSchema, LessonRequest
 from schemas.slide_schema import SlideDeckSchema
 from services.ai_service import generate_lesson_plan, generate_slide_deck
+from services.chat_service import handle_copilot_chat, session_manager, apply_slide_patch
+from services.grade_classifier import classify_grade_sheet
+from parsers.pptx_parser import parse_pptx
+from parsers.docx_parser import parse_docx
+from parsers.common import ParsedDocumentResponse
 from exporters.docx_exporter import export_lesson_plan_to_docx
 from exporters.slide_exporter import export_slide_deck_to_pptx, render_latex_to_bytes
 from exporters.graph_generator import generate_math_plot, is_plottable
+
 
 app = FastAPI(
     title="LessonAI-5512",
@@ -42,7 +50,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.include_router(ingest_router)
 
 # Mount thư mục static cho giao diện Web
 static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
@@ -238,7 +245,84 @@ def render_chart_endpoint(spec: dict):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Lỗi vẽ đồ thị: {str(e)}")
 
+# ================= CHAT CO-PILOT ENDPOINTS  =================
+chat_router = APIRouter(
+    prefix="/api/v1/chat",
+    tags=["Chat Co-pilot"]
+)
+@chat_router.post("/interact", response_model=ChatInteractResponse)
+def chat_interact_endpoint(req: ChatInteractRequest):
+    """
+    Task 6.1: Nhận tương tác hội thoại từ giáo viên, chuyển tới Trợ giảng AI
+    phân tích ngữ cảnh slide hiện tại và trả về phản hồi kèm gợi ý.
+    """
+    try:
+        response = handle_copilot_chat(
+            session_id=req.session_id,
+            user_message=req.user_message,
+            current_slide_index=req.current_slide_index,
+            slide_deck=req.slide_deck,
+            subject=req.subject or "Toán học",
+            grade=req.grade or 11,
+            class_proficiency=req.class_proficiency or "standard"
+        )
+        return response
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Lỗi khi tương tác với Trợ giảng AI: {str(e)}"
+        )
+
+@chat_router.get("/history/{session_id}")
+def get_chat_history_endpoint(session_id: str):
+    """Lấy danh sách các tin nhắn trong phiên hội thoại hiện tại"""
+    return {
+        "session_id": session_id,
+        "history": session_manager.get_history(session_id)
+    }
+
+@chat_router.delete("/session/{session_id}")
+def clear_chat_session_endpoint(session_id: str):
+    """Xóa lịch sử phiên hội thoại để bắt đầu phiên mới"""
+    success = session_manager.clear_session(session_id)
+    return {
+        "session_id": session_id,
+        "cleared": success
+    }
+@chat_router.post("/apply-patch", response_model=ApplyPatchResponse)
+def apply_patch_endpoint(req: ApplyPatchRequest):
+    """
+    Task 7.1: Nhận yêu cầu áp dụng bản vá đề xuất và trả về dữ liệu slide đã cập nhật.
+
+    Lý do thiết kế (Why):
+    - Đóng vai trò là API kiểm định và đồng bộ trạng thái giữa Front-end và Backend.
+    - Cho phép kiểm thử tự động toàn diện luồng Live Patching bằng TestClient.
+    """
+    try:
+        updated_deck = apply_slide_patch(
+            slide_deck=req.slide_deck,
+            patch=req.patch
+        )
+        target_idx = req.patch.target_slide_index
+        updated_slide = updated_deck["slides"][target_idx]
+
+        return ApplyPatchResponse(
+            success=True,
+            target_slide_index=target_idx,
+            updated_slide=updated_slide,
+            slide_deck=updated_deck,
+            message=f"Đã áp dụng thành công bản vá cho Slide {target_idx + 1}"
+        )
+    except IndexError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi khi hợp nhất bản vá slide: {str(e)}")
+app.include_router(chat_router)
+#================= INGEST ENDPOINTS  =================
 @ingest_router.post("/parse-document", response_model = ParsedDocumentResponse)
+
 async def parse_document_endpoint(
     file: UploadFile = File(..., description="File giáo án (.docx) or slide (.pptx) cần bóc tách")
 ):
