@@ -18,11 +18,20 @@ from exporters.slide_exporter import export_slide_deck_to_pptx_file
 import subprocess
 
 load_dotenv()
+for env_path in [
+    os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "project", ".env"),
+    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"),
+    os.path.join(os.getcwd(), "project", ".env"),
+    os.path.join(os.getcwd(), ".env")
+]:
+    if os.path.exists(env_path):
+        load_dotenv(env_path)
+        if os.getenv("GEMINI_API_KEY"):
+            break
 
 api_key = os.getenv("GEMINI_API_KEY")
-if not api_key:
-    raise ValueError("Chua cau hinh API trong file .env")
-client = genai.Client(api_key = api_key)
+client = genai.Client(api_key=api_key) if api_key else None
+
 SYSTEM_PROMPT = r"""
 # VAI TRÒ VÀ MỤC TIÊU
 
