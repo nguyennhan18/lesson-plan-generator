@@ -203,9 +203,9 @@ Nếu bạn có bất kỳ câu hỏi nào, muốn trao đổi hợp tác, phả
 
 <div align="center">
 
-### **Nguyễn Nhân**
-📧 **Email:** [nhan18112005@gmail.com](mailto:nhan18112005@gmail.com)  
-🐙 **GitHub:** [https://github.com/NguyenNhan18](https://github.com/NguyenNhan18)  
+### **Nguyen Van Nhan**
+📧 **Email:** [nhan18112005@gmail.com](mailto:nhan18112005@gmail.com)
+🐙 **GitHub:** [https://github.com/NguyenNhan18](https://github.com/NguyenNhan18)
 📂 **Project Repository:** [https://github.com/NguyenNhan18/Lesson-Plan-Generator](https://github.com/NguyenNhan18/Lesson-Plan-Generator)
 
 </div>
