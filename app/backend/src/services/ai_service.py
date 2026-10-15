@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 # Thêm đường dẫn thư mục gốc app vào sys.path để import chuẩn package
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from services.llm_gateway import llm_gateway
 
 from dotenv import load_dotenv
 from google import genai
@@ -261,6 +262,11 @@ Nêu cách đánh giá phù hợp, chẳng hạn:
   - Kết luận;
   - Đơn vị và điều kiện của đáp án.
 - Không sử dụng ký hiệu LaTeX sai cú pháp hoặc trộn lẫn công thức LaTeX với văn bản gây khó đọc.
+- ĐẶC BIỆT VỚI ĐẠI SỐ, HÀM SỐ & PHƯƠNG TRÌNH BẬC HAI ($ax^2 + bx + c = 0$):
+  + Hoạt động 1 (Khởi động): BẮT BUỘC khởi đầu bằng bài toán thực tiễn sinh động (quỹ đạo ném bóng rổ Parabol $h(t) = -0.5t^2 + 2t + 2.5$, vòm cầu Parabol, vòi phun nước). Tuyệt đối không mở đầu bằng công thức khô cứng.
+  + Hoạt động 2 (Hình thành kiến thức): BẮT BUỘC gắn liền phương trình bậc hai với Đồ thị Parabol $y = ax^2 + bx + c$ và bản chất hình học của Biệt thức Delta: Số nghiệm chính là số giao điểm của Parabol với trục hoành Ox ($\Delta > 0$: 2 giao điểm, $\Delta = 0$: tiếp xúc tại đỉnh, $\Delta < 0$: không cắt). TUYỆT ĐỐI KHÔNG mô tả hình học không gian (khối đa diện, hình lập phương) cho chủ đề Đại số!
+  + Hoạt động 3 (Luyện tập): Xây dựng 4 bước giải chuẩn mực, phân tích sâu bẫy sai lầm dấu $-b$ và $(-b)^2$, ứng dụng định lý Vi-ét nhẩm nghiệm.
+  + Hoạt động 4 (Vận dụng): Mô hình hóa bài toán thực tiễn về thời gian chạm đất hoặc nhịp cầu vòm.
 
 ## 2. Môn Ngữ văn và các môn khoa học xã hội
 
@@ -484,6 +490,34 @@ Mỗi slide bắt buộc phải có trường `layout`. Chọn layout phù hợp
 - Nếu slide có công thức định nghĩa cốt lõi trong `main_definition_latex` → `CONCEPT_HIGHLIGHT`.
 - Nếu slide là tiêu đề hoặc phần kết → `TITLE_ONLY`.
 - Nếu không thuộc các trường hợp trên, chọn layout phù hợp nhất trong danh sách layout được hệ thống hỗ trợ; không bỏ trống trường `layout`.
+
+C. QUY TẮC ĐẶC BIỆT CHO ĐẠI SỐ, HÀM SỐ & PHƯƠNG TRÌNH BẬC HAI (CHỐNG LỖI HÌNH HỌC SAI BẢN CHẤT):
+
+1. TUYỆT ĐỐI KHÔNG BIỂU DIỄN HÌNH HỌC KHÔNG GIAN CHO ĐẠI SỐ / HÀM SỐ:
+   - Đối với các chủ đề Đại số, Giải tích, Phương trình bậc hai ($ax^2 + bx + c = 0$), Khảo sát hàm số, Lượng giác, Cấp số cộng:
+     TUYỆT ĐỐI KHÔNG mô tả hình học không gian (khối đa diện, hình lập phương, hình chóp, lăng trụ, nón, trụ, cầu)!
+   - BẮT BUỘC gắn liền phương trình bậc hai với ĐỒ THỊ PARABOL 2D trong `chart_spec`:
+     + `kind`: "function_plot"
+     + `expression`: Chuỗi hàm số theo cú pháp Python/Sympy chuẩn (VD: "x**2 - 4", "-0.5*x**2 + 2*x + 2.5", "x**2 - 2*x - 3").
+     + `chart_title`: Tiêu đề đồ thị nêu rõ nghiệm hoặc ý nghĩa (VD: "Đồ thị Parabol y = x² - 4 cắt Ox tại x = ±2").
+     + `pedagogical_purpose`: Nêu rõ: "Minh họa 2 nghiệm phân biệt của phương trình chính là 2 giao điểm của Parabol với trục hoành Ox".
+
+2. CHIỀU SÂU SƯ PHẠM VÀ BẢN CHẤT TOÁN HỌC CỦA BIỆT THỨC DELTA:
+   - Bài giảng phải làm rõ: Số nghiệm của phương trình $ax^2 + bx + c = 0$ chính là số giao điểm của Parabol $y = ax^2 + bx + c$ với trục hoành $y = 0$:
+     + $\Delta > 0$: Parabol cắt Ox tại 2 điểm phân biệt $\implies$ Phương trình có 2 nghiệm phân biệt $x_{1,2} = \frac{-b \pm \sqrt{\Delta}}{2a}$.
+     + $\Delta = 0$: Đỉnh Parabol tiếp xúc Ox tại $x = -\frac{b}{2a} \implies$ Nghiệm kép.
+     + $\Delta < 0$: Parabol không cắt Ox (nằm hoàn toàn về một phía) $\implies$ Vô nghiệm thực.
+
+3. TÌNH HUỐNG KHỞI ĐỘNG (WARM-UP) SINH ĐỘNG, GẮN LIỀN THỰC TIỄN (CHỐNG CỨNG NHẮC, NHÀM CHÁN):
+   - CẤM mở đầu bài dạy bằng cách ném ra ngay định nghĩa $ax^2 + bx + c = 0$ khô khan!
+   - BẮT BUỘC mở đầu bằng Tình huống thực tiễn hấp dẫn (Storytelling Hook):
+     + Quỹ đạo ném 3 điểm trong bóng rổ của Stephen Curry theo đường cong parabol $h(t) = -0.5t^2 + 2t + 2.5$. Khi bóng chạm rổ/chạm đất ($h(t) = 0$), ta có bài toán phương trình bậc hai!
+     + Hoặc nhịp vòm cầu Cổng Vàng (Golden Gate Bridge) có dạng Parabol, vòi phun nước tại quảng trường.
+     + Từ đó dẫn dắt tự nhiên: "Làm thế nào tính được tầm xa và thời gian bóng bay? Đó là bài toán tìm nghiệm phương trình bậc hai!"
+
+4. CHUẨN HÓA CÔNG THỨC TOÁN KaTeX 100%:
+   - Trong `bullet_points`, `quiz_options`, `teacher_note`: Mọi công thức Toán BẮT BUỘC bọc trong cặp `$ ... $` (VD: `$ax^2 + bx + c = 0$`, `$\Delta = b^2 - 4ac$`, `$x_{1,2} = \frac{-b \pm \sqrt{\Delta}}{2a}$`).
+   - `main_definition_latex`: Chuỗi LaTeX thuần (không bọc `$`), VD: "\\Delta = b^2 - 4ac \\quad | \\quad x_{1,2} = \\frac{-b \\pm \\sqrt{\\Delta}}{2a}".
 
 Khi một slide thỏa nhiều điều kiện, ưu tiên nội dung sư phạm quan trọng nhất nhưng phải bảo đảm slide có đồ thị dùng `IMAGE_TEXT`, slide tiêu đề/phần kết dùng `TITLE_ONLY`, slide định nghĩa cốt lõi dùng `CONCEPT_HIGHLIGHT`, và câu hỏi trắc nghiệm dùng `QUIZ_OPTION`.
 
@@ -1068,67 +1102,68 @@ _FIX_PATTERN = re.compile(r'(?<!\\)\\(?=' + _LATEX_CMDS + r'\b)')
 def fix_latex_backslashes_in_json(raw_text: str) -> str:
     return _FIX_PATTERN.sub(r'\\\\', raw_text)
 
-def _call_gemini_with_fallback(contents, config, max_retries=3):
-    import time
-    models = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-2.5-pro"]
-    last_exc = None
-    for model_name in models:
-        for attempt in range(max_retries):
-            try:
-                response = client.models.generate_content(
-                    model=model_name,
-                    contents=contents,
-                    config=config
-                )
-                return response
-            except Exception as e:
-                last_exc = e
-                err_msg = str(e)
-                if "503" in err_msg or "429" in err_msg or "UNAVAILABLE" in err_msg or "RESOURCE_EXHAUSTED" in err_msg:
-                    print(f"Server bận ({model_name}). Đang chờ 3s (thử {attempt+1}/{max_retries})...")
-                    time.sleep(3)
-                elif "404" in err_msg or "NOT_FOUND" in err_msg:
-                    print(f"Model {model_name} không khả dụng, chuyển model tiếp theo...")
-                    break
-                else:
-                    break
-    if last_exc:
-        raise last_exc
-
+# Toàn bộ việc sinh nội dung được định tuyến và bảo vệ bởi llm_gateway
 def generate_lesson_plan(topic: str, subject: str, grade: int, max_retries: int = 2) -> tuple[LessonPlanSchema, ValidationResult]:
+    """
+    Soạn giáo án Công văn 5512 định tuyến qua LLM Gateway có Graceful Fallback.
+    Bảo đảm không bao giờ ném lỗi 500 nếu đã từng sinh được bản giáo án hợp lệ.
+    """
     user_prompt = f"Hãy soạn giáo án Công văn 5512 cho bài dạy: '{topic}', Môn {subject}, Lớp {grade}."
     current_prompt = user_prompt
+
+    last_successful_plan: Optional[LessonPlanSchema] = None
+    last_validation_result: Optional[ValidationResult] = None
+
     for attempt in range(max_retries + 1):
         try:
-            config = types.GenerateContentConfig(
-                system_instruction=SYSTEM_PROMPT,
-                response_mime_type="application/json",
+            # Gọi qua Gateway có Auto-Fallback & Exponential Backoff
+            plan = llm_gateway.generate_structured(
+                prompt=current_prompt,
+                system_prompt=SYSTEM_PROMPT,
                 response_schema=LessonPlanSchema,
-                temperature=0.7,
-                automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True)
+                task_type="lesson_plan"
             )
-            response = _call_gemini_with_fallback(current_prompt, config)
-            fixed_json_text = fix_latex_backslashes_in_json(response.text)
-            plan = LessonPlanSchema.model_validate_json(fixed_json_text)
             val_result = validate_5512_lesson_plan(plan)
 
-            if not val_result.is_valid or attempt == max_retries:
-                if val_result.is_valid:
-                    print("Kiểm duyệt thành công")
-                else:
-                    print(f"Phát hiện lỗi {attempt + 1} lần thử: {val_result.errors}")
+            # Lưu lại bản kế hoạch thành công gần nhất vào bộ đệm
+            last_successful_plan = plan
+            last_validation_result = val_result
+
+            if val_result.is_valid or attempt == max_retries:
                 return plan, val_result
 
             error_feedback = "\n".join(val_result.errors)
-            print(f"Phát hiện lỗi 5512. Đang sửa lại...\n{error_feedback}\n")
-            current_prompt = f"{user_prompt}\nLưu ý lỗi trước:\n{error_feedback}\nHãy sửa lại theo quy định 5512."
+            print(f"[AI Service] Phát hiện lỗi 5512. Đang sửa lại lần {attempt + 1}...\n{error_feedback}\n")
+            current_prompt = f"{user_prompt}\nLưu ý các lỗi trước:\n{error_feedback}\nHãy khắc phục triệt để theo chuẩn 5512."
         except Exception as e:
+            err_msg = str(e)
+            print(f"[AI Service] ⚠️ Lần thử {attempt + 1} gặp lỗi: {err_msg[:120]}")
+
+            # GRACEFUL FALLBACK: Nếu đã từng có bản giáo án thành công ở lần thử trước,
+            # hoàn trả ngay bản kế hoạch đó kèm cảnh báo, KHÔNG BAO GIỜ ném lỗi 500!
+            if last_successful_plan is not None:
+                print("[AI Service] 🛡️ Kích hoạt Graceful Fallback: Trả về bản giáo án gần nhất đã kiểm duyệt!")
+                res = last_validation_result or ValidationResult(is_valid=True, errors=[], warnings=[])
+                res.warnings.append("Hệ thống đã tự động bảo toàn bản kế hoạch thành công gần nhất do mạng/quota gián đoạn.")
+                return last_successful_plan, res
+
             if attempt == max_retries:
                 raise e
 
+    if last_successful_plan is not None:
+        res = last_validation_result or ValidationResult(is_valid=True, errors=[], warnings=[])
+        return last_successful_plan, res
 
-def generate_slide_deck(topic: str, subject: str, grade: int,class_proficiency: Optional[ClassProficiency] = ClassProficiency.STANDARD,target_outcome: Optional[str] = None ,plan: Optional[LessonPlanSchema] = None) -> SlideDeckSchema:
-    proficiency_str = class_proficiency.value if hasattr(class_proficiency, "value") else str(class_proficiency or "standard")
+    raise RuntimeError("Không thể tạo Kế hoạch bài dạy sau các lần thử.")
+
+def generate_slide_deck(topic: str, subject: str, grade: int, class_proficiency: Optional[ClassProficiency] = ClassProficiency.STANDARD, target_outcome: Optional[str] = None, plan: Optional[LessonPlanSchema] = None) -> SlideDeckSchema:
+    """
+    Soạn Slide bài giảng định tuyến qua LLM Gateway (Groq Llama 3.3 / Gemini 2.5 Flash).
+    """
+    if isinstance(class_proficiency, ClassProficiency):
+        proficiency_str = class_proficiency.value
+    else:
+        proficiency_str = str(class_proficiency or "standard")
     target_str = f"\nMục tiêu chuẩn đầu ra cần đạt: {target_outcome}" if target_outcome else ""
 
     if plan:
@@ -1143,54 +1178,15 @@ def generate_slide_deck(topic: str, subject: str, grade: int,class_proficiency: 
             f"Hãy soạn cấu trúc Slide bài giảng JSON cho bài dạy: '{topic}', Môn {subject}, Lớp {grade}.\n"
             f"Trình độ học lực lớp mục tiêu: '{proficiency_str}'.{target_str}"
         )
-    try:
-        config = types.GenerateContentConfig(
-            system_instruction=SLIDE_SYSTEM_PROMPT,
-            response_mime_type="application/json",
-            response_schema=SlideDeckSchema,
-            temperature=0.7,
-            automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True)
-        )
-        response = _call_gemini_with_fallback(user_prompt, config)
-        fixed_json_text = fix_latex_backslashes_in_json(response.text)
-        try:
-            deck_dict = json.loads(fixed_json_text)
-            if isinstance(deck_dict, dict) and "slides" in deck_dict and isinstance(deck_dict["slides"], list):
-                for s in deck_dict["slides"]:
-                    if not isinstance(s, dict):
-                        continue
-                    quiz_opts = s.get("quiz_options") or []
-                    is_quiz = s.get("layout") == "QUIZ_OPTION"
 
-                    if is_quiz and not quiz_opts:
-                        # Auto-heal: Hạ cấp layout về SINGLE_COLUMN nếu AI không sinh quiz_options
-                        s["layout"] = "SINGLE_COLUMN"
-                        s["quiz_options"] = []
-                    elif quiz_opts:
-                        # Auto-heal: Chuẩn hóa tính hợp lệ của quiz_options (1 đúng, distractors có rationale)
-                        correct_count = sum(1 for opt in quiz_opts if isinstance(opt, dict) and opt.get("is_correct") is True)
-                        if correct_count != 1:
-                            if correct_count == 0 and len(quiz_opts) > 0:
-                                quiz_opts[0]["is_correct"] = True
-                            elif correct_count > 1:
-                                first_correct = True
-                                for opt in quiz_opts:
-                                    if isinstance(opt, dict) and opt.get("is_correct") is True:
-                                        if first_correct:
-                                            first_correct = False
-                                        else:
-                                            opt["is_correct"] = False
-                        for opt in quiz_opts:
-                            if isinstance(opt, dict) and not opt.get("is_correct"):
-                                if not opt.get("distractor_rationale") or not str(opt.get("distractor_rationale")).strip():
-                                    lbl = opt.get("label", "này")
-                                    opt["distractor_rationale"] = f"Phương án {lbl} chưa chính xác theo quy tắc tính toán hoặc kiến thức bài học."
-            return SlideDeckSchema.model_validate(deck_dict)
-        except Exception:
-            return SlideDeckSchema.model_validate_json(fixed_json_text)
-    except Exception as e:
-        print(f"Lỗi API khi sinh SlideDeck: {e}")
-        raise e
+    # Gọi qua Gateway có Auto-Fallback
+    slide_deck = llm_gateway.generate_structured(
+        prompt=user_prompt,
+        system_prompt=SLIDE_SYSTEM_PROMPT,
+        response_schema=SlideDeckSchema,
+        task_type="slide"
+    )
+    return slide_deck
 
 def export_slide_to_pptx(data, pptx_path: str):
     """Xuất Slide PowerPoint Native 100% qua python-pptx Hybrid"""
