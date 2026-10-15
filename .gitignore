@@ -33,7 +33,12 @@ project/
 *.swp
 .idea/
 .vscode/
+*.code-workspace
 ~$*
+
+# Documents & Planning files
+docs/
+plan_*.md
 
 # Generated output files
 app/backend/output/
