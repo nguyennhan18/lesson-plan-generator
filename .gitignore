@@ -1,19 +1,8 @@
 # =========================================================
-#  WHITELIST MODE: bỏ qua TẤT CẢ, chỉ cho phép những gì liệt kê bên dưới
+#  Git Ignore Configuration - LessonAI-5512
 # =========================================================
 
-# 1. Bỏ qua mọi thứ ở thư mục gốc
-/*
-
-# 2. Chỉ cho phép các file/thư mục này
-!/.gitignore
-!/project/
-
-# =========================================================
-#  Rác bên trong project/ (vẫn bị bỏ qua dù project/ được phép)
-# =========================================================
-
-# OS
+# OS metadata
 .DS_Store
 ._*
 Thumbs.db
@@ -24,26 +13,33 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 build/
-dist/
 
-# Virtual env
+# Node / Frontend
+node_modules/
+app/frontend/dist/
+
+# Virtual environments & legacy folder
 venv/
 .venv/
 env/
+project/
 
 # Secrets
 .env
 *.env
+!.env.example
 
-# IDE
-.vscode/
-.idea/
+# Editor / IDE
 *.swp
-
-# File Office sinh ra khi test (giữ lại template)
-*.pptx
-*.docx
+.idea/
+.vscode/
 ~$*
-!project/app/templates/*.pptx
-project/test/pptx/
-project/test/word/
+
+# Generated output files
+app/backend/output/
+*.log
+
+# Explicitly keep templates and test fixtures
+!app/backend/src/templates/*.pptx
+!app/backend/tests/fixtures/*.docx
+!app/backend/tests/fixtures/*.pptx

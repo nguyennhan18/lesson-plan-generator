@@ -1,0 +1,23 @@
+{
+	"folders": [
+		{
+			"name": "Backend",
+			"path": "app/backend"
+		},
+		{
+			"name": "Frontend",
+			"path": "app/frontend"
+		},
+		{
+			"name": "Docs",
+			"path": "docs"
+		}
+	],
+	"settings": {
+		"python.defaultInterpreterPath": "${workspaceFolder:Backend}/venv/bin/python",
+		"python.analysis.extraPaths": [
+			"${workspaceFolder:Backend}/src",
+			"${workspaceFolder:Backend}/venv/lib/python3.13/site-packages"
+		]
+	}
+}
