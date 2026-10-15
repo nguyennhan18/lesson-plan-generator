@@ -1,39 +1,97 @@
-import React, { useState } from 'react';
-import { Presentation, Download, Plus, Trash2, Edit3, HelpCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Presentation, Download, Plus, Trash2, Edit3, HelpCircle, Save } from 'lucide-react';
+import MathText from './MathText';
 
-export default function SlideEditorScreen() {
-  const [selectedSlide, setSelectedSlide] = useState(1);
-  const [title, setTitle] = useState('1. Đường Chéo AC\' & Góc Giữa Đường Thẳng Với Mặt Phẳng');
-  const [bullets, setBullets] = useState(`Trong mặt phẳng đáy (ABCD): AC = √(AB² + BC²) = a√2.
-Vì CC' ⊥ (ABCD) nên tam giác ACC' vuông tại C.
-Áp dụng định lý Pytago trong tam giác ACC': AC' = a√3.`);
-  const [latex, setLatex] = useState("AC' = \\sqrt{(a\\sqrt{2})^2 + a^2} = a\\sqrt{3}");
-  const [teacherNote, setTeacherNote] = useState("Nhắc nhở học sinh áp dụng quy tắc 2 bước Pytago. Không nhầm lẫn giữa đường chéo sàn (a√2) và không gian (a√3).");
+export default function SlideEditorScreen({
+  slideDeck,
+  setSlideDeck,
+  onExportPptx
+}) {
+  const slides = slideDeck?.slides || [];
+  const [selectedSlide, setSelectedSlide] = useState(0);
 
-  const slides = [
-    { id: 0, label: 'Slide 1: Khởi động', sub: 'Hình lập phương ABCD.A\'B\'C\'D\'' },
-    { id: 1, label: 'Slide 2: Khái niệm', sub: 'Đường chéo AC\' = a√3' },
-    { id: 2, label: 'Slide 3: Khoảng cách', sub: 'Đoạn vuông góc AH ⊥ B\'D\'' },
-    { id: 3, label: 'Slide 4: Thiết diện', sub: 'Mặt phẳng (A\'BD)' },
-    { id: 4, label: 'Slide 5: Live Quiz', sub: 'Góc giữa AC và A\'D' }
-  ];
+  // Form states cho slide đang chọn
+  const [title, setTitle] = useState('');
+  const [bulletsText, setBulletsText] = useState('');
+  const [latex, setLatex] = useState('');
+  const [teacherNote, setTeacherNote] = useState('');
 
-  const handleExportPPTX = () => {
-    alert("Đang đóng gói và xuất file PowerPoint (.pptx) chuẩn 16:9 kèm hình ảnh 3D và ghi chú giảng dạy...");
+  // Đồng bộ khi đổi slide được chọn hoặc khi slideDeck thay đổi
+  useEffect(() => {
+    if (slides[selectedSlide]) {
+      const cur = slides[selectedSlide];
+      setTitle(cur.title || '');
+      setBulletsText((cur.bullet_points || []).join('\n'));
+      setLatex(cur.main_definition_latex || '');
+      setTeacherNote(cur.teacher_note || '');
+    }
+  }, [selectedSlide, slideDeck]);
+
+  const handleSaveCurrentSlide = () => {
+    if (!slides[selectedSlide]) return;
+    const updated = [...slides];
+    const newBullets = bulletsText.split('\n').filter(line => line.trim().length > 0);
+    updated[selectedSlide] = {
+      ...updated[selectedSlide],
+      title,
+      bullet_points: newBullets,
+      main_definition_latex: latex,
+      teacher_note: teacherNote
+    };
+    if (setSlideDeck) {
+      setSlideDeck({ ...slideDeck, slides: updated });
+      alert(`💾 Đã lưu thay đổi vào Slide ${selectedSlide + 1}!`);
+    }
   };
+
+  const handleAddNewSlide = () => {
+    const newSlideNum = slides.length + 1;
+    const newSlide = {
+      slide_number: newSlideNum,
+      title: `${newSlideNum}. Nội dung bổ sung mới`,
+      activity_type: "LUYỆN TẬP & CỦNG CỐ",
+      layout: "IMAGE_TEXT",
+      bullet_points: ["Nhập các ý chính trọng tâm tại đây."],
+      main_definition_latex: "",
+      teacher_note: "Ghi chú dành riêng cho giáo viên.",
+      has_3d: false
+    };
+    if (setSlideDeck) {
+      const updated = [...slides, newSlide];
+      setSlideDeck({ ...slideDeck, slides: updated });
+      setSelectedSlide(updated.length - 1);
+    }
+  };
+
+  const handleDeleteSlide = (idx, e) => {
+    e.stopPropagation();
+    if (slides.length <= 1) {
+      alert("Không thể xóa slide duy nhất còn lại!");
+      return;
+    }
+    if (window.confirm(`Thầy/Cô có chắc chắn muốn xóa Slide ${idx + 1}?`)) {
+      const updated = slides.filter((_, i) => i !== idx);
+      if (setSlideDeck) {
+        setSlideDeck({ ...slideDeck, slides: updated });
+        setSelectedSlide(Math.max(0, idx - 1));
+      }
+    }
+  };
+
+  const curSlide = slides[selectedSlide] || {};
 
   return (
     <div className="flex-1 p-5 overflow-y-auto max-w-7xl mx-auto space-y-4">
-      {/* Screen Title */}
+      {/* Tiêu đề màn hình */}
       <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
         <div>
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <span>🛠️</span> Xưởng Biên Tập Slide & Đồ Thị Toán Học
           </h2>
-          <p className="text-xs text-slate-400">Biên tập chi tiết từng slide bài giảng, công thức KaTeX & Đồ thị hàm số</p>
+          <p className="text-xs text-slate-400">Chỉnh sửa trực tiếp từng slide bài giảng do AI sinh ra & Xuất file PowerPoint thật</p>
         </div>
         <button
-          onClick={handleExportPPTX}
+          onClick={onExportPptx}
           className="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold flex items-center gap-2 shadow-lg shadow-amber-950/40 transition"
         >
           <Download size={14} /> Xuất PowerPoint (.pptx)
@@ -41,38 +99,55 @@ Vì CC' ⊥ (ABCD) nên tam giác ACC' vuông tại C.
       </div>
 
       <div className="grid grid-cols-12 gap-4">
-        {/* Col 1: Slide Thumbnails */}
+        {/* Cột 1: Danh Sách Slide Thumbnails */}
         <div className="col-span-12 lg:col-span-3 glass-panel p-3.5 rounded-2xl border-slate-800 space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-            <span className="text-xs font-bold text-white">📑 Danh Sách Slide</span>
-            <button className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-cyan-400 text-xs flex items-center gap-1">
-              <Plus size={13} /> Thêm
+            <span className="text-xs font-bold text-white">📑 Danh Sách Slide ({slides.length})</span>
+            <button
+              onClick={handleAddNewSlide}
+              className="p-1 px-2 rounded bg-slate-800 hover:bg-slate-700 text-cyan-400 text-xs flex items-center gap-1 font-medium"
+            >
+              <Plus size={13} /> Thêm Slide
             </button>
           </div>
 
-          <div className="space-y-2">
-            {slides.map((s) => (
+          <div className="space-y-2 max-h-[560px] overflow-y-auto pr-1">
+            {slides.map((s, idx) => (
               <div
-                key={s.id}
-                onClick={() => setSelectedSlide(s.id)}
-                className={`p-2.5 rounded-xl border cursor-pointer transition text-xs ${
-                  selectedSlide === s.id
+                key={idx}
+                onClick={() => setSelectedSlide(idx)}
+                className={`p-2.5 rounded-xl border cursor-pointer transition text-xs flex items-start justify-between gap-2 ${
+                  selectedSlide === idx
                     ? 'border-cyan-500 bg-slate-900 shadow-md shadow-cyan-950/30'
                     : 'border-slate-800/80 bg-slate-900/40 hover:bg-slate-800/60'
                 }`}
               >
-                <div className="font-semibold text-white">{s.label}</div>
-                <div className="text-[11px] text-slate-400 truncate mt-0.5">{s.sub}</div>
+                <div className="truncate">
+                  <div className="font-semibold text-white truncate">Slide {idx + 1}: {s.title || `Trang ${idx + 1}`}</div>
+                  <div className="text-[11px] text-slate-400 truncate mt-0.5">{s.activity_type || 'Nội dung bài'}</div>
+                </div>
+                <button
+                  onClick={(e) => handleDeleteSlide(idx, e)}
+                  className="text-slate-500 hover:text-rose-400 p-0.5 rounded transition"
+                  title="Xóa slide này"
+                >
+                  <Trash2 size={13} />
+                </button>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Col 2: Slide WYSIWYG Editor */}
+        {/* Cột 2: Trình Soạn Thảo Chi Tiết */}
         <div className="col-span-12 lg:col-span-5 glass-panel p-4 rounded-2xl border-slate-800 space-y-3.5 text-xs">
-          <h3 className="font-bold text-white text-sm pb-2 border-b border-slate-800 flex items-center gap-2">
-            <Edit3 size={15} className="text-cyan-400" /> Nội Dung Trình Chiếu Slide
-          </h3>
+          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+            <h3 className="font-bold text-white text-sm flex items-center gap-2">
+              <Edit3 size={15} className="text-cyan-400" /> Biên Tập Slide {selectedSlide + 1}
+            </h3>
+            <span className="text-[11px] text-cyan-400 font-mono">
+              Bố cục: {curSlide.layout || 'IMAGE_TEXT'}
+            </span>
+          </div>
 
           <div>
             <label className="text-slate-400 block mb-1">Tiêu đề slide:</label>
@@ -85,20 +160,11 @@ Vì CC' ⊥ (ABCD) nên tam giác ACC' vuông tại C.
           </div>
 
           <div>
-            <label className="text-slate-400 block mb-1">Bố cục layout:</label>
-            <select className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-2 text-white">
-              <option value="two">2 Cột (Nội dung lý thuyết + Mô hình 3D bên phải)</option>
-              <option value="quiz">Quiz Trắc Nghiệm 4 Phương Án</option>
-              <option value="single">1 Cột Toàn Cảnh</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="text-slate-400 block mb-1">Danh sách ý gạch đầu dòng:</label>
+            <label className="text-slate-400 block mb-1">Các ý gạch đầu dòng (Mỗi dòng một ý):</label>
             <textarea
               rows={4}
-              value={bullets}
-              onChange={(e) => setBullets(e.target.value)}
+              value={bulletsText}
+              onChange={(e) => setBulletsText(e.target.value)}
               className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white leading-relaxed focus:outline-none focus:border-cyan-500 font-mono text-[11px]"
             />
           </div>
@@ -109,8 +175,15 @@ Vì CC' ⊥ (ABCD) nên tam giác ACC' vuông tại C.
               type="text"
               value={latex}
               onChange={(e) => setLatex(e.target.value)}
+              placeholder="VD: \Delta = b^2 - 4ac hoặc x = \frac{-b \pm \sqrt{\Delta}}{2a}"
               className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-cyan-300 font-mono"
             />
+            {latex && (
+              <div className="mt-1.5 p-2 bg-slate-950/80 rounded-lg border border-cyan-800/50 text-center">
+                <span className="text-[10px] text-slate-400 block mb-0.5">Hiển thị KaTeX chuẩn:</span>
+                <MathText text={latex} block={true} />
+              </div>
+            )}
           </div>
 
           <div>
@@ -119,77 +192,60 @@ Vì CC' ⊥ (ABCD) nên tam giác ACC' vuông tại C.
               rows={2}
               value={teacherNote}
               onChange={(e) => setTeacherNote(e.target.value)}
+              placeholder="Ghi chú phương pháp hoặc lời nhắc học sinh..."
               className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-300 text-[11px]"
             />
           </div>
 
           <button
-            onClick={() => alert("Đã lưu các thay đổi vào Slide!")}
-            className="w-full py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold transition"
+            type="button"
+            onClick={handleSaveCurrentSlide}
+            className="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold transition flex items-center justify-center gap-2 shadow-lg shadow-cyan-950/40"
           >
-            💾 Lưu Thay Đổi Vào Slide
+            <Save size={15} /> Lưu Thay Đổi Vào Slide
           </button>
         </div>
 
-        {/* Col 3: Quiz Inspector & Distractor Analysis */}
+        {/* Cột 3: Thanh Soi Quiz & Distractor */}
         <div className="col-span-12 lg:col-span-4 glass-panel p-4 rounded-2xl border-slate-800 space-y-3 text-xs">
           <h3 className="font-bold text-white text-sm pb-2 border-b border-slate-800 flex items-center gap-1.5">
             <HelpCircle size={15} className="text-amber-400" /> Cấu Hình Quiz & Bẫy Sai Lầm
           </h3>
 
-          <div>
-            <label className="text-slate-400 block mb-1">Câu hỏi trắc nghiệm:</label>
-            <input
-              type="text"
-              defaultValue="Góc giữa AC và A'D bằng bao nhiêu độ?"
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <div>
-              <label className="text-emerald-400 block mb-0.5 font-semibold">Phương án A (Đáp án đúng):</label>
-              <input
-                type="text"
-                defaultValue="60° (Tam giác A'C'D đều)"
-                className="w-full bg-slate-900 border border-emerald-600/60 rounded-lg p-2 text-white"
-              />
+          {curSlide.quiz_options && curSlide.quiz_options.length > 0 ? (
+            <div className="space-y-2.5">
+              <div className="text-[11px] text-slate-400">
+                Slide này có câu hỏi trắc nghiệm tương tác:
+              </div>
+              {curSlide.quiz_options.map((opt) => (
+                <div
+                  key={opt.label}
+                  className={`p-2.5 rounded-lg border space-y-1 ${
+                    opt.is_correct
+                      ? 'border-emerald-600/70 bg-emerald-950/30'
+                      : 'border-slate-800 bg-slate-900/60'
+                  }`}
+                >
+                  <div className="flex items-center justify-between font-semibold">
+                    <span className={opt.is_correct ? 'text-emerald-300' : 'text-slate-200'}>
+                      {opt.label}. {opt.text}
+                    </span>
+                    {opt.is_correct && <span className="text-[10px] text-emerald-400 font-bold">[Đáp án đúng]</span>}
+                  </div>
+                  {opt.distractor_rationale && (
+                    <div className="text-[10px] text-slate-400 italic">
+                      Lý do: {opt.distractor_rationale}
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
-
-            <div>
-              <label className="text-slate-400 block mb-0.5">Phương án B (Nhiễu):</label>
-              <input
-                type="text"
-                defaultValue="90° (Nhầm quan hệ vuông góc)"
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white"
-              />
+          ) : (
+            <div className="p-6 text-center text-slate-500 space-y-2">
+              <p>Slide hiện tại là dạng trình bày lý thuyết / mô hình không gian 3D.</p>
+              <p className="text-[11px] text-slate-600">Để biến thành slide Quiz, Thầy/Cô có thể nhờ Trợ Giảng AI thêm câu hỏi trắc nghiệm qua khung chat Co-pilot.</p>
             </div>
-
-            <div>
-              <label className="text-slate-400 block mb-0.5">Phương án C (Nhiễu):</label>
-              <input
-                type="text"
-                defaultValue="45°"
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white"
-              />
-            </div>
-
-            <div>
-              <label className="text-slate-400 block mb-0.5">Phương án D (Nhiễu):</label>
-              <input
-                type="text"
-                defaultValue="120° (Bẫy góc tù)"
-                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-white"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="text-slate-400 block mb-1">Phân tích bẫy tâm lý học sinh:</label>
-            <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 text-[11px] text-amber-300/90 leading-relaxed">
-              HS hay chọn 120° vì tính trực tiếp góc giữa 2 vectơ thay vì góc giữa 2 đường thẳng (luôn ≤ 90°).
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

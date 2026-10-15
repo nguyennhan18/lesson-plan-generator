@@ -1,11 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bot, Send, Trash2, ChevronLeft, Sparkles } from 'lucide-react';
+import { Bot, Send, Trash2, ChevronLeft, Sparkles, Check } from 'lucide-react';
+import MathText from './MathText';
 
-export default function TeacherChatDock({ isOpen, onToggle, currentSlide = 0 }) {
+export default function TeacherChatDock({
+  isOpen,
+  onToggle,
+  currentSlide = 0,
+  slideDeck,
+  onApplyPatch
+}) {
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      text: `Chào Thầy/Cô! Em là Trợ Giảng AI Co-pilot, đang theo dõi cùng Thầy/Cô tại **Slide ${currentSlide + 1}**.\nThầy/Cô có thể nhắn cho em để giải thích lại slide, gợi ý câu hỏi tương tác hoặc thêm bài tập vận dụng bất cứ lúc nào!`,
+      text: `Chào Thầy/Cô! Em là Trợ Giảng AI Co-pilot, đang đồng hành cùng Thầy/Cô tại **Slide ${currentSlide + 1}**.\nThầy/Cô có thể yêu cầu em giải thích bài, đổi số liệu hoặc thêm câu hỏi trắc nghiệm bất cứ lúc nào!`,
       time: '08:00'
     }
   ]);
@@ -14,10 +21,10 @@ export default function TeacherChatDock({ isOpen, onToggle, currentSlide = 0 }) 
   const messagesEndRef = useRef(null);
 
   const quickChips = [
-    '💡 Giải thích slide 2 đơn giản hơn',
-    '❓ Gợi ý câu hỏi gợi mở cho học sinh',
+    '💡 Giải thích slide này đơn giản hơn',
+    '❓ Gợi ý 2 câu hỏi gợi mở cho học sinh',
     '📝 Thêm 1 câu hỏi trắc nghiệm củng cố',
-    '🧠 Mẹo giúp học sinh nhớ lâu công thức'
+    '🧠 Đổi bài toán sang ví dụ thực tế'
   ];
 
   const scrollToBottom = () => {
@@ -39,56 +46,62 @@ export default function TeacherChatDock({ isOpen, onToggle, currentSlide = 0 }) 
     setIsThinking(true);
 
     try {
-      // Call FastAPI Chat endpoint
       const res = await fetch('/api/v1/chat/interact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          session_id: 'sess_react_pilot_' + currentSlide,
+          session_id: 'session_teacher_dock',
           user_message: text,
-          current_slide_index: currentSlide
+          current_slide_index: currentSlide,
+          slide_deck: slideDeck
         })
       });
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-
       const aiTime = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-      setMessages([...newMessages, {
-        role: 'assistant',
-        text: data.ai_response || 'Dạ Thầy/Cô, em đã ghi nhận và cập nhật vào bài giảng!',
-        time: aiTime
-      }]);
-    } catch (err) {
-      // Fallback response for offline / demo mode
-      setTimeout(() => {
-        const aiTime = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-        setMessages([...newMessages, {
+
+      setMessages([
+        ...newMessages,
+        {
           role: 'assistant',
-          text: `Dạ Thầy/Cô, đối với **Slide ${currentSlide + 1}**, em khuyến nghị: \n• Nhấn mạnh công thức Pytago 2 bước: $AC = a\\sqrt{2} \\implies AC' = \\sqrt{2a^2 + a^2} = a\\sqrt{3}$.\n• Cho học sinh quan sát mô hình 3D xoay góc SGK chuẩn để tránh nhầm giữa đường chéo mặt đáy và đường chéo không gian.`,
+          text: data.ai_response || 'Dạ Thầy/Cô, em đã ghi nhận yêu cầu!',
+          time: aiTime,
+          patchProposal: data.patch_proposal || null
+        }
+      ]);
+    } catch (err) {
+      const aiTime = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+      setMessages([
+        ...newMessages,
+        {
+          role: 'assistant',
+          text: `Dạ Thầy/Cô, tại Slide ${currentSlide + 1}, Thầy/Cô nên lưu ý học sinh áp dụng đúng công thức định lý và quan sát kỹ góc chiếu của mô hình 3D.`,
           time: aiTime
-        }]);
-      }, 700);
+        }
+      ]);
     } finally {
       setIsThinking(false);
     }
   };
 
-  const clearChat = () => {
-    if (window.confirm("Làm mới cuộc trò chuyện với Trợ giảng AI?")) {
-      setMessages([{
-        role: 'assistant',
-        text: `Đã làm mới phiên hỗ trợ! Em đang sẵn sàng cùng Thầy/Cô tại **Slide ${currentSlide + 1}**.`,
-        time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
-      }]);
+  const handleApplyPatchClick = (patch, msgIdx) => {
+    if (onApplyPatch && patch) {
+      const success = onApplyPatch(patch);
+      if (success) {
+        const updated = [...messages];
+        updated[msgIdx].isPatched = true;
+        setMessages(updated);
+        alert(`✅ Đã áp dụng thành công bản vá vào Slide ${(patch.target_slide_index ?? currentSlide) + 1}!`);
+      }
     }
   };
 
   if (!isOpen) return null;
 
   return (
-    <aside className="w-80 glass-panel border-r border-slate-800 flex flex-col justify-between h-full transition-all duration-300 z-10">
-      {/* 1. Header */}
+    <aside className="w-80 glass-panel border-r border-slate-800 flex flex-col justify-between h-full transition-all duration-300 z-10 bg-[#090d1c]/95">
+      {/* Header */}
       <div className="p-3 border-b border-slate-800 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center text-white shadow-md">
@@ -99,13 +112,17 @@ export default function TeacherChatDock({ isOpen, onToggle, currentSlide = 0 }) 
               Trợ Giảng AI Co-pilot
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
             </h3>
-            <p className="text-[11px] text-cyan-400">Đang hỗ trợ • Slide {currentSlide + 1}/5</p>
+            <p className="text-[11px] text-cyan-400">Đang theo dõi • Slide {currentSlide + 1}</p>
           </div>
         </div>
 
         <div className="flex items-center gap-1">
           <button
-            onClick={clearChat}
+            onClick={() => setMessages([{
+              role: 'assistant',
+              text: `Đã làm mới phiên hỗ trợ! Em đang sẵn sàng cùng Thầy/Cô tại Slide ${currentSlide + 1}.`,
+              time: '08:00'
+            }])}
             className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition"
             title="Làm mới chat"
           >
@@ -114,14 +131,14 @@ export default function TeacherChatDock({ isOpen, onToggle, currentSlide = 0 }) 
           <button
             onClick={onToggle}
             className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition"
-            title="Thu gọn khung chat (C)"
+            title="Thu gọn khung chat (Phím C)"
           >
             <ChevronLeft size={16} />
           </button>
         </div>
       </div>
 
-      {/* 2. Quick Suggestion Chips */}
+      {/* Quick Chips */}
       <div className="p-2 border-b border-slate-800/60 bg-slate-950/40 space-y-1">
         {quickChips.map((chip, idx) => (
           <button
@@ -135,7 +152,7 @@ export default function TeacherChatDock({ isOpen, onToggle, currentSlide = 0 }) 
         ))}
       </div>
 
-      {/* 3. Messages Stream */}
+      {/* Messages Stream */}
       <div className="flex-1 p-3 overflow-y-auto space-y-3 text-xs">
         {messages.map((m, idx) => (
           <div
@@ -146,13 +163,41 @@ export default function TeacherChatDock({ isOpen, onToggle, currentSlide = 0 }) 
               {m.role === 'user' ? 'Giáo viên' : 'Trợ giảng AI'} • {m.time}
             </div>
             <div
-              className={`max-w-[88%] p-2.5 rounded-xl leading-relaxed whitespace-pre-wrap ${
+              className={`max-w-[92%] p-2.5 rounded-xl leading-relaxed whitespace-pre-wrap ${
                 m.role === 'user'
                   ? 'bg-gradient-to-r from-cyan-600 to-indigo-600 text-white rounded-br-none shadow-md shadow-cyan-900/20'
                   : 'bg-slate-900/90 text-slate-200 border border-slate-800 rounded-bl-none'
               }`}
             >
-              {m.text}
+              <MathText text={m.text} />
+
+              {/* HỘP ĐỀ XUẤT BẢN VÁ LIVE PATCH */}
+              {m.patchProposal && (
+                <div className="mt-2.5 pt-2 border-t border-slate-700/80 space-y-1.5">
+                  <div className="text-[10px] font-bold text-amber-400 flex items-center gap-1">
+                    <span>⚡ Đề xuất cập nhật nội dung Slide:</span>
+                  </div>
+                  <button
+                    onClick={() => handleApplyPatchClick(m.patchProposal, idx)}
+                    disabled={m.isPatched}
+                    className={`w-full py-1.5 px-2 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1.5 transition ${
+                      m.isPatched
+                        ? 'bg-emerald-950 text-emerald-400 border border-emerald-800 opacity-80'
+                        : 'bg-amber-600 hover:bg-amber-500 text-white shadow-md shadow-amber-950/40'
+                    }`}
+                  >
+                    {m.isPatched ? (
+                      <>
+                        <Check size={13} /> Đã áp dụng vào Slide {(m.patchProposal.target_slide_index ?? currentSlide) + 1}
+                      </>
+                    ) : (
+                      <>
+                        <span>Áp dụng vào Slide {(m.patchProposal.target_slide_index ?? currentSlide) + 1}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -166,7 +211,7 @@ export default function TeacherChatDock({ isOpen, onToggle, currentSlide = 0 }) 
         <div ref={messagesEndRef} />
       </div>
 
-      {/* 4. Chat Input */}
+      {/* Input */}
       <form
         onSubmit={(e) => { e.preventDefault(); sendMessage(); }}
         className="p-2.5 border-t border-slate-800 bg-slate-950/60"
@@ -186,9 +231,6 @@ export default function TeacherChatDock({ isOpen, onToggle, currentSlide = 0 }) 
           >
             <Send size={13} />
           </button>
-        </div>
-        <div className="text-[10px] text-slate-500 mt-1 text-center">
-          Hỗ trợ KaTeX $...$ • Phím tắt <code>C</code> để ẩn/hiện
         </div>
       </form>
     </aside>
