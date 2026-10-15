@@ -18,11 +18,12 @@ from exporters.slide_exporter import export_slide_deck_to_pptx_file
 import subprocess
 
 load_dotenv()
+backend_env = Path(__file__).resolve().parent.parent.parent / ".env"
+if backend_env.exists():
+    load_dotenv(dotenv_path=backend_env)
 for env_path in [
-    os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "project", ".env"),
-    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"),
-    os.path.join(os.getcwd(), "project", ".env"),
-    os.path.join(os.getcwd(), ".env")
+    os.path.join(os.getcwd(), ".env"),
+    os.path.join(os.getcwd(), "app", "backend", ".env"),
 ]:
     if os.path.exists(env_path):
         load_dotenv(env_path)
@@ -399,52 +400,6 @@ _LATEX_CMDS = (
     r'int|sum|prod|lim|log|ln|cos|sin|cot|sqrt|le|ge|in|pm|mp|cdot|div|'
     r'approx|equiv|infty|partial|emptyset|to|newline)'
 )
-_FIX_PATTERN = re.compile(r'(?<!\\)\\(?=' + _LATEX_CMDS + r'\b)')
-
-def fix_latex_backslashes_in_json(raw_text: str) -> str:
-    """
-    Escape kép backslash CHỈ khi đứng trước 1 lệnh LaTeX đã biết (frac, text, theta,
-    neq, boxed...) và chưa được escape sẵn. Không đụng tới \\n, \\t, \\uXXXX hợp lệ
-    hay các backslash đã đúng chuẩn JSON từ trước — tránh lỗi 'invalid escape'.
-    """
-    return _FIX_PATTERN.sub(r'\\\\', raw_text)
-def generate_lesson_plan(topic: str, subject: str, grade: int, max_retries: int = 2) -> tuple[LessonPlanSchema, ValidationResult]:
-    user_prompt = f"Hãy soạn giáo án Công văn 5512 cho bài dạy: '{topic}', Môn {subject}, Lớp {grade}."
-    current_promt = user_prompt
-    for attempt in range(max_retries + 1):
-        try:
-            response = client.models.generate_content(
-                model="gemini-3.8-flash",
-                contents = current_promt,
-                config = types.GenerateContentConfig(
-                    system_instruction = SYSTEM_PROMPT,
-                    response_mime_type = "application/json",
-                    response_schema = LessonPlanSchema,
-                    temperature = 0.7,
-                    automatic_function_calling = types.AutomaticFunctionCallingConfig(disable=True)
-                ),
-            )
-            # code cu : plan = response.parse ->
-
-            fixed_json_text = fix_latex_backslashes_in_json(response.text)
-            plan = LessonPlanSchema.model_validate_json(fixed_json_text)
-        # Kiem duyet qua Validation
-
-            val_result = validate_5512_lesson_plan(plan)
-
-            if not val_result.is_valid or attempt == max_retries:
-                if val_result.is_valid:
-                    print("Kiểm duyệt thành công")
-                else:
-                    print(f"Phát hiện lỗi {attempt + 1} lần thừ : {val_result.errors}")
-                return plan, val_result
-
-            error_feedback = "\n".join(val_result.errors)
-            print(f"Phát hiện lỗi 5512. Đang gửi phản hồi để AI sửa lại .. .. ..\n {error_feedback}\n")
-            current_promt = f"{user_prompt}\n Lưu ý: File trước bị lỗi QUY CHUẨN 5512 sau: \n {error_feedback} \n hãy sữa lại để đảm báo dúng 100% quy định 5512"
-        except Exception as e:
-            if attempt == max_retries:
-                raise e
 
 SLIDE_SYSTEM_PROMPT = r"""
 Bạn là Chuyên gia Sư phạm hàng đầu về giảng dạy môn Toán cấp THPT (Lớp 10, 11, 12) thuộc Bộ Giáo dục và Đào tạo Việt Nam, chuyên gia Instructional Design và kỹ sư AI thiết kế slide bài giảng điện tử.
@@ -1250,8 +1205,8 @@ def get_next_test_filepath(file_type: str) -> Path:
     ext = "docx" if file_type in ["word", "docx"] else "pptx"
     folder_name = "word" if ext == "docx" else "pptx"
 
-    # 1. Định vị thư mục lưu trữ: test/pptx/ hoặc test/word/
-    base_dir = Path(__file__).resolve().parent.parent.parent / "test" / folder_name
+    # 1. Định vị thư mục lưu trữ: output/pptx/ hoặc output/word/
+    base_dir = Path(__file__).resolve().parent.parent.parent / "output" / folder_name
     base_dir.mkdir(parents=True, exist_ok=True)  # Tự động tạo thư mục nếu chưa tồn tại
 
     # 2. Quét các file hiện có để tìm index lớn nhất

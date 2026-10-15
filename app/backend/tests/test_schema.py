@@ -3,10 +3,13 @@ import os
 import pytest
 from pydantic import ValidationError
 
-# Thêm đường dẫn thư mục root/app vào sys.path để import các module schema
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from pathlib import Path
 
-from app.schemas.slide_schema import (
+SRC_DIR = Path(__file__).resolve().parent.parent / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+from schemas.slide_schema import (
     SlideDeckSchema,
     SlideSchema,
     SlideType,
@@ -15,7 +18,7 @@ from app.schemas.slide_schema import (
     ClassProficiency,
     ThemeType,
 )
-from app.schemas.schemas import LessonRequest
+from schemas.schemas import LessonRequest
 
 
 def test_quiz_slide_valid():

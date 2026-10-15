@@ -3,10 +3,11 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-# Thêm đường dẫn project/app vào sys.path
-ROOT_DIR = Path(__file__).resolve().parent.parent.parent
-APP_DIR = ROOT_DIR / "project" / "app"
-sys.path.insert(0, str(APP_DIR))
+# Thêm đường dẫn src vào sys.path
+TESTS_DIR = Path(__file__).resolve().parent
+SRC_DIR = TESTS_DIR.parent / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
 
 from parsers.common import clean_text, ParsedDocumentResponse
 from parsers.docx_parser import parse_docx
@@ -15,8 +16,8 @@ from main import app
 
 client = TestClient(app)
 
-DOCX_SAMPLE = ROOT_DIR / "document" / "GA_test_5512.docx"
-PPTX_SAMPLE = ROOT_DIR / "project" / "test" / "pptx" / "test_15.pptx"
+DOCX_SAMPLE = TESTS_DIR / "fixtures" / "GA_test_5512.docx"
+PPTX_SAMPLE = TESTS_DIR / "fixtures" / "sample_slide.pptx"
 
 
 def test_clean_text():

@@ -3,18 +3,23 @@ import os
 import json
 from pathlib import Path
 from dotenv import load_dotenv
+import pytest
 
 # Nạp file .env từ thư mục project
 env_path = Path(__file__).resolve().parent.parent / ".env"
 load_dotenv(dotenv_path=env_path)
 
-# Thêm đường dẫn project/app vào sys.path
-sys.path.append(str(Path(__file__).resolve().parent.parent / "app"))
+# Thêm đường dẫn src vào sys.path
+SRC_DIR = Path(__file__).resolve().parent.parent / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
 
 from schemas.slide_schema import ClassProficiency, SlideLayout
 from services.ai_service import generate_slide_deck
 
 def test_differentiation():
+    if not os.getenv("GEMINI_API_KEY"):
+        pytest.skip("Bỏ qua test do chưa cấu hình GEMINI_API_KEY")
     print("==================================================")
     print("🚀 BẮT ĐẦU TEST TASK 2.3: SINH SLIDE PHÂN HÓA HỌC LỰC")
     print("🎯 BÀI HỌC: PHƯƠNG TRÌNH BẬC HAI MỘT ẨN")
@@ -28,13 +33,18 @@ def test_differentiation():
     # 1. TEST CASE 1: LỚP CƠ BẢN / YẾU (BASIC)
     # -------------------------------------------------------------
     print("⏳ [1/2] Đang gọi Gemini sinh slide cho Lớp Cơ bản (BASIC)...")
-    deck_basic = generate_slide_deck(
-        topic=topic,
-        subject=subject,
-        grade=grade,
-        class_proficiency=ClassProficiency.BASIC,
-        target_outcome="Học sinh xác định đúng hệ số a, b, c, tính chính xác biệt thức Delta và áp dụng công thức nghiệm cơ bản."
-    )
+    try:
+        deck_basic = generate_slide_deck(
+            topic=topic,
+            subject=subject,
+            grade=grade,
+            class_proficiency=ClassProficiency.BASIC,
+            target_outcome="Học sinh xác định đúng hệ số a, b, c, tính chính xác biệt thức Delta và áp dụng công thức nghiệm cơ bản."
+        )
+    except Exception as e:
+        if "ConnectError" in type(e).__name__ or "ConnectError" in str(e) or "Network" in str(e):
+            pytest.skip(f"Bỏ qua test do không có kết nối mạng tới Gemini API: {e}")
+        raise
     print(f"✅ Đã sinh thành công bộ slide BASIC: {len(deck_basic.slides)} slides.")
     
     # -------------------------------------------------------------

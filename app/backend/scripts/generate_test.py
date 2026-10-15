@@ -1,9 +1,10 @@
 import sys
 from pathlib import Path
 
-# Thêm đường dẫn thư mục gốc app/ hoặc project/ vào Python path
-sys.path.append(str(Path(__file__).resolve().parent.parent))
-from exporters.slide_exporter import export_slide_to_pptx
+# Thêm đường dẫn src vào Python path
+SRC_DIR = Path(__file__).resolve().parent.parent / "src"
+sys.path.insert(0, str(SRC_DIR))
+from services.ai_service import export_slide_to_pptx
 
 # Dữ liệu test thử nghiệm cho Slide 1 và các slide công thức
 test_slides = [
@@ -33,5 +34,8 @@ test_slides = [
 ]
 
 if __name__ == "__main__":
-    export_slide_to_pptx(test_slides, "slide_test.pptx")
-    print("Đã regenerate file slide_test.pptx thành công!")
+    out_dir = Path(__file__).resolve().parent.parent / "output"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_file = out_dir / "slide_test.pptx"
+    export_slide_to_pptx(test_slides, str(out_file))
+    print(f"Đã regenerate file {out_file} thành công!")

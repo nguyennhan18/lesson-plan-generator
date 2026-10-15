@@ -3,8 +3,9 @@ import sys
 import json
 from pathlib import Path
 
-# Thêm đường dẫn app vào sys.path
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# Thêm đường dẫn src vào sys.path
+SRC_DIR = Path(__file__).resolve().parent.parent / "src"
+sys.path.insert(0, str(SRC_DIR))
 
 from services.ai_service import generate_lesson_plan, generate_slide_deck, export_slide_to_pptx
 from exporters.docx_exporter import export_lesson_plan_to_docx
@@ -19,7 +20,7 @@ DEFAULT_TEST_CASES = [
 ]
 
 def run_batch():
-    test_file = Path(__file__).parent / "test_cases.json"
+    test_file = SRC_DIR / "test_cases.json"
     if test_file.exists():
         with open(test_file, "r", encoding="utf-8") as f:
             test_cases = json.load(f)
@@ -30,8 +31,8 @@ def run_batch():
             json.dump(test_cases, f, ensure_ascii=False, indent=2)
         print(f"📝 Đã tạo file mẫu {test_file.name} chứa {len(test_cases)} bài test.")
 
-    out_word_dir = Path(__file__).resolve().parent.parent / "test" / "word"
-    out_pptx_dir = Path(__file__).resolve().parent.parent / "test" / "pptx"
+    out_word_dir = Path(__file__).resolve().parent.parent / "output" / "word"
+    out_pptx_dir = Path(__file__).resolve().parent.parent / "output" / "pptx"
     out_word_dir.mkdir(parents=True, exist_ok=True)
     out_pptx_dir.mkdir(parents=True, exist_ok=True)
 

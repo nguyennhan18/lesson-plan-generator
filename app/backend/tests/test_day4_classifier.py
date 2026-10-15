@@ -7,17 +7,17 @@ from dotenv import load_dotenv
 from fastapi.testclient import TestClient
 from openpyxl import Workbook
 
-# 1. Nạp biến môi trường từ file .env trong thư mục project
-ROOT_DIR = Path(__file__).resolve().parent.parent.parent
-PROJECT_DIR = Path(__file__).resolve().parent.parent
-APP_DIR = PROJECT_DIR / "app"
-ENV_PATH = PROJECT_DIR / ".env"
+# 1. Nạp biến môi trường từ file .env trong thư mục backend
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+SRC_DIR = BACKEND_DIR / "src"
+ENV_PATH = BACKEND_DIR / ".env"
 
 if ENV_PATH.exists():
     load_dotenv(dotenv_path=ENV_PATH)
 
-# 2. Thêm đường dẫn project/app vào sys.path để import các module hệ thống
-sys.path.insert(0, str(APP_DIR))
+# 2. Thêm đường dẫn src vào sys.path để import các module hệ thống
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
 
 from services.grade_classifier import (
     StudentEvaluation,

@@ -5,7 +5,7 @@ import os
 from datetime import datetime, timedelta
 
 # Đảm bảo đường dẫn module
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "app"))
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src"))
 
 from main import app
 from schemas.chat_schema import (

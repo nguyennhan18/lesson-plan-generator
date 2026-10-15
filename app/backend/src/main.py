@@ -13,7 +13,7 @@ import base64
 from urllib.parse import quote
 
 from fastapi import FastAPI, HTTPException, APIRouter, UploadFile, File, status
-from fastapi.responses import Response, HTMLResponse, FileResponse
+from fastapi.responses import Response, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -51,17 +51,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount thư mục static cho giao diện Web
-static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
-if os.path.exists(static_dir):
-    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+# Giao diện React đã build nằm tại app/frontend/dist (src/ -> backend/ -> app/ -> frontend/dist)
+react_dist_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "frontend", "dist"))
+react_assets_dir = os.path.join(react_dist_dir, "assets")
+
+if os.path.exists(react_assets_dir):
+    app.mount("/assets", StaticFiles(directory=react_assets_dir), name="assets")
 
 @app.get("/", response_class=HTMLResponse)
 def root():
-    index_file = os.path.join(static_dir, "index.html")
-    if os.path.exists(index_file):
-        with open(index_file, "r", encoding="utf-8") as f:
+    # Phục vụ giao diện React 19 + Three.js nếu đã build (npm run build trong app/frontend)
+    react_index = os.path.join(react_dist_dir, "index.html")
+    if os.path.exists(react_index):
+        with open(react_index, "r", encoding="utf-8") as f:
             return HTMLResponse(content=f.read())
+
     return HTMLResponse(content="""
         <div style="font-family: sans-serif; padding: 40px; text-align: center;">
             <h2>🚀 LessonAI-5512 API Server</h2>
@@ -73,20 +77,6 @@ def root():
 @app.get("/ui", response_class=HTMLResponse)
 def ui_page():
     return root()
-
-@app.get("/style.css")
-def get_root_css():
-    css_file = os.path.join(static_dir, "style.css")
-    if os.path.exists(css_file):
-        return FileResponse(css_file, media_type="text/css")
-    raise HTTPException(status_code=404, detail="style.css not found")
-
-@app.get("/app.js")
-def get_root_js():
-    js_file = os.path.join(static_dir, "app.js")
-    if os.path.exists(js_file):
-        return FileResponse(js_file, media_type="application/javascript")
-    raise HTTPException(status_code=404, detail="app.js not found")
 
 @app.get("/api/v1/health")
 def health_check():
