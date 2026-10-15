@@ -42,7 +42,8 @@ def test_differentiation():
             target_outcome="Học sinh xác định đúng hệ số a, b, c, tính chính xác biệt thức Delta và áp dụng công thức nghiệm cơ bản."
         )
     except Exception as e:
-        if "ConnectError" in type(e).__name__ or "ConnectError" in str(e) or "Network" in str(e):
+        err_text = str(e)
+        if any(term in err_text for term in ["ConnectError", "Network", "nodename nor servname", "không phản hồi", "API Key"]):
             pytest.skip(f"Bỏ qua test do không có kết nối mạng tới Gemini API: {e}")
         raise
     print(f"✅ Đã sinh thành công bộ slide BASIC: {len(deck_basic.slides)} slides.")
