@@ -125,6 +125,26 @@ const SAMPLE_QUADRATIC_PLAN = {
   subject: "Toán học",
   grade: 10,
   duration_periods: 1,
+  knowledge_goals: [
+    "Hiểu bản chất hình học của biệt thức Delta (Δ = b² - 4ac) thông qua số giao điểm của Parabol y = ax² + bx + c với trục hoành Ox.",
+    "Nắm vững và vận dụng thành thạo quy trình 4 bước giải phương trình bậc hai một ẩn cùng công thức nghiệm tổng quát.",
+    "Hiểu và vận dụng hệ thức Vi-ét (S = -b/a, P = c/a) để nhẩm nghiệm nhanh và tính giá trị biểu thức đối xứng của nghiệm."
+  ],
+  competency_goals: [
+    "Năng lực tư duy và lập luận toán học: Biện luận số nghiệm phương trình chứa tham số m.",
+    "Năng lực mô hình hóa toán học: Thiết lập phương trình bậc hai từ bài toán quỹ đạo ném bóng Parabol thực tiễn."
+  ],
+  skills_goals: [
+    "Biến đổi đại số chính xác, tránh bẫy sai dấu (-b) và khai triển hằng đẳng thức.",
+    "Đọc và phân tích đồ thị hàm số bậc hai trên mặt phẳng tọa độ Oxy."
+  ],
+  character_goals: [
+    "Rèn luyện tính cẩn thận, chính xác khi thực hiện biến đổi đại số; tinh thần trách nhiệm và hợp tác trong hoạt động nhóm."
+  ],
+  teaching_equipment: [
+    "Giáo viên: Bộ Slide tương tác tích hợp đồ thị Parabol 2D trực quan, phiếu học tập nhóm.",
+    "Học sinh: Sách giáo khoa Toán 10, máy tính cầm tay, bảng phụ nhóm."
+  ],
   objectives: {
     knowledge: "Học sinh hiểu bản chất hình học của biệt thức Delta qua giao điểm của Parabol với trục Ox; thành thạo 4 bước giải và công thức nghiệm; vận dụng định lý Vi-ét tính tổng và tích nghiệm.",
     competencies: "Năng lực tư duy và lập luận toán học; năng lực mô hình hóa toán học qua bài toán quỹ đạo ném bóng Parabol; năng lực giải quyết vấn đề.",
@@ -132,24 +152,60 @@ const SAMPLE_QUADRATIC_PLAN = {
   },
   activities: [
     {
+      activity_number: 1,
       name: "Khởi động: Bài toán quỹ đạo ném bóng rổ Parabol",
+      goal: "Mở đầu / Khởi động: Tạo hứng thú và nhận biết nhu cầu giải phương trình bậc hai qua bài toán quỹ đạo ném bóng rổ thực tế.",
       time_minutes: 7,
-      objective: "Học sinh quan sát chuyển động ném bóng rổ thực tế, thiết lập phương trình độ cao -0.5t² + 2t + 2.5 = 0 và nhận biết nhu cầu giải phương trình bậc hai một ẩn."
+      objective: "Học sinh quan sát chuyển động ném bóng rổ thực tế, thiết lập phương trình độ cao -0.5t² + 2t + 2.5 = 0 và nhận biết nhu cầu giải phương trình bậc hai một ẩn.",
+      expected_product: "Học sinh viết được phương trình -0.5t² + 2t + 2.5 = 0 và xác định được các hệ số a = -0.5, b = 2, c = 2.5.",
+      execution: {
+        step_1_assign: "GV chiếu mô phỏng quỹ đạo ném bóng rổ h(t) = -0.5t² + 2t + 2.5 và đặt câu hỏi: Khi bóng chạm sàn (h=0), làm thế nào tìm được thời điểm t?",
+        step_2_excute: "HS thảo luận cặp đôi, thay h(t) = 0 để lập phương trình đại số và nhận xét bậc của ẩn t.",
+        step_3_report: "Đại diện 2 nhóm trình bày phương trình thu được và chỉ ra vị trí bóng chạm đất trên đồ thị Parabol.",
+        step_4_conclusion: "GV nhận xét, chốt định nghĩa phương trình bậc hai một ẩn ax² + bx + c = 0 (a ≠ 0) và dẫn dắt vào bài mới."
+      }
     },
     {
+      activity_number: 2,
       name: "Hình thành kiến thức: Biệt thức Delta và Ý nghĩa hình học",
+      goal: "Hình thành kiến thức / Khám phá: Xây dựng công thức nghiệm tổng quát và liên hệ trực quan với đồ thị Parabol.",
       time_minutes: 18,
-      objective: "Học sinh xây dựng công thức nghiệm qua phương pháp biến đổi bình phương; liên hệ trực quan số nghiệm với số giao điểm giữa Parabol y = ax² + bx + c và trục Ox."
+      objective: "Học sinh xây dựng công thức nghiệm qua phương pháp biến đổi bình phương; liên hệ trực quan số nghiệm với số giao điểm giữa Parabol y = ax² + bx + c và trục Ox.",
+      expected_product: "Bảng tổng kết 3 trường hợp của Δ (Δ > 0, Δ = 0, Δ < 0) gắn liền với hình ảnh giao điểm Parabol và trục hoành Ox.",
+      execution: {
+        step_1_assign: "GV yêu cầu HS quan sát 3 đồ thị Parabol tương ứng Δ > 0, Δ = 0, Δ < 0 và hoàn thành bảng mối liên hệ giữa số giao điểm với trục Ox và số nghiệm.",
+        step_2_excute: "HS thực hiện biến đổi đưa ax² + bx + c = 0 về dạng (x + b/2a)² = Δ / 4a² dưới sự hướng dẫn của GV.",
+        step_3_report: "HS lên bảng trình bày công thức nghiệm trong 3 trường hợp của biệt thức Δ.",
+        step_4_conclusion: "GV chốt công thức nghiệm tổng quát, nhấn mạnh ý nghĩa hình học của Δ và lưu ý bẫy sai dấu -b."
+      }
     },
     {
+      activity_number: 3,
       name: "Luyện tập: Quy trình 4 bước giải và Định lý Vi-ét",
+      goal: "Luyện tập: Rèn luyện kỹ năng giải phương trình bậc hai theo 4 bước chuẩn mực và nhẩm nghiệm nhanh bằng hệ thức Vi-ét.",
       time_minutes: 12,
-      objective: "Học sinh rèn luyện kỹ năng giải phương trình, tránh bẫy sai lầm dấu âm (-b), và thành thạo kỹ thuật nhẩm nghiệm nhanh a+b+c=0 và a-b+c=0."
+      objective: "Học sinh rèn luyện kỹ năng giải phương trình, tránh bẫy sai lầm dấu âm (-b), và thành thạo kỹ thuật nhẩm nghiệm nhanh a+b+c=0 và a-b+c=0.",
+      expected_product: "Lời giải chi tiết các phương trình x² - 2x - 3 = 0, x² - 5x + 6 = 0 trên phiếu học tập.",
+      execution: {
+        step_1_assign: "GV giao 2 bài tập trên phiếu học tập: Bài 1 giải theo quy trình 4 bước; Bài 2 áp dụng định lý Vi-ét nhẩm nghiệm nhanh trong 15 giây.",
+        step_2_excute: "HS làm việc cá nhân rồi trao đổi chéo kiểm tra bước xác định hệ số a, b, c và bước tính Δ.",
+        step_3_report: "3 HS trình bày lời giải, cả lớp đối chiếu với giao điểm trên đồ thị Parabol 2D.",
+        step_4_conclusion: "GV tổng kết các lỗi sai thường gặp (quên đổi dấu -b, tính nhầm -b²) và khen thưởng nhóm làm nhanh nhất."
+      }
     },
     {
+      activity_number: 4,
       name: "Vận dụng: Tìm tham số m và Giải quyết tình huống thực tế",
+      goal: "Vận dụng: Giải quyết bài toán tìm tham số m để phương trình có hai nghiệm phân biệt qua Live Poll tương tác.",
       time_minutes: 8,
-      objective: "Học sinh tham gia Live Poll tương tác, tìm điều kiện tham số m để phương trình có 2 nghiệm phân biệt và phân tích các bẫy sai lầm thường gặp."
+      objective: "Học sinh tham gia Live Poll tương tác, tìm điều kiện tham số m để phương trình có 2 nghiệm phân biệt và phân tích các bẫy sai lầm thường gặp.",
+      expected_product: "Học sinh tìm đúng điều kiện m < 2 cho phương trình x² - 2(m-1)x + m² - 3 = 0 và giải thích được bẫy chia số âm.",
+      execution: {
+        step_1_assign: "GV mở câu hỏi trắc nghiệm Live Poll trên màn hình: Tìm m để x² - 2(m-1)x + m² - 3 = 0 có hai nghiệm phân biệt.",
+        step_2_excute: "HS tính nhanh Δ' = (m-1)² - (m² - 3) = -2m + 4 > 0 và chọn đáp án A, B, C hoặc D.",
+        step_3_report: "GV công bố tỷ lệ bình chọn và mời HS giải thích tại sao phương án B (m > 2) và C (m ≤ 2) là bẫy sai lầm.",
+        step_4_conclusion: "GV chốt bài học, dặn dò bài tập về nhà và hướng dẫn chuẩn bị bài dấu của tam thức bậc hai."
+      }
     }
   ]
 };
@@ -244,6 +300,22 @@ const SAMPLE_CUBE_PLAN = {
   subject: "Toán học",
   grade: 11,
   duration_periods: 1,
+  knowledge_goals: [
+    "Xác định được góc giữa đường thẳng và mặt phẳng trong hình lập phương.",
+    "Tính được độ dài đường chéo không gian AC' = a√3 và diện tích thiết diện (A'BD)."
+  ],
+  competency_goals: [
+    "Năng lực tưởng tượng không gian 3D và mô hình hóa hình học."
+  ],
+  skills_goals: [
+    "Vẽ hình biểu diễn và xác định hình chiếu vuông góc trên mặt phẳng đáy."
+  ],
+  character_goals: [
+    "Chăm chỉ, tư duy trực quan hình học khoa học."
+  ],
+  teaching_equipment: [
+    "Mô hình 3D WebGL hình lập phương ABCD.A'B'C'D' tương tác trực tiếp."
+  ],
   objectives: {
     knowledge: "Học sinh xác định được góc giữa đường thẳng và mặt phẳng, tính độ dài đường chéo AC' = a√3 và dựng được thiết diện mặt phẳng (A'BD).",
     competencies: "Năng lực tưởng tượng không gian 3D, năng lực tính toán hình học không gian.",
@@ -251,24 +323,60 @@ const SAMPLE_CUBE_PLAN = {
   },
   activities: [
     {
+      activity_number: 1,
       name: "Khởi động: Nhận diện hình lập phương trong thực tế",
+      goal: "Mở đầu / Khởi động: Nhận diện các tính chất đối xứng và vuông góc của hình lập phương.",
       time_minutes: 5,
-      objective: "Học sinh quan sát khối rubik, hộp quà và mô hình 3D hình lập phương."
+      objective: "Học sinh quan sát khối rubik, hộp quà và mô hình 3D hình lập phương.",
+      expected_product: "Học sinh nêu được 8 đỉnh, 12 cạnh bằng nhau và 6 mặt hình vuông.",
+      execution: {
+        step_1_assign: "GV chiếu mô hình 3D hình lập phương và yêu cầu HS chỉ ra các cạnh bên vuông góc với mặt đáy.",
+        step_2_excute: "HS quan sát mô hình xoay 360 độ và liệt kê các cặp đường thẳng vuông góc.",
+        step_3_report: "Đại diện HS trả lời nhanh tại chỗ.",
+        step_4_conclusion: "GV chốt lại tính chất AA', BB', CC', DD' cùng vuông góc với hai đáy."
+      }
     },
     {
+      activity_number: 2,
       name: "Hình thành kiến thức: Đường chéo AC' và góc đường - mặt",
+      goal: "Hình thành kiến thức / Khám phá: Chứng minh công thức đường chéo AC' = a√3.",
       time_minutes: 20,
-      objective: "Chứng minh CC' vuông góc đáy và tính độ dài AC' = a√3 qua định lý Pytago."
+      objective: "Chứng minh CC' vuông góc đáy và tính độ dài AC' = a√3 qua định lý Pytago.",
+      expected_product: "Chứng minh tam giác ACC' vuông tại C và tính đúng AC' = a√3.",
+      execution: {
+        step_1_assign: "GV yêu cầu HS xác định hình chiếu của AC' lên mặt phẳng (ABCD) và tính AC'.",
+        step_2_excute: "HS áp dụng định lý Pytago trong tam giác ABC và tam giác ACC'.",
+        step_3_report: "HS lên bảng trình bày các bước tính toán.",
+        step_4_conclusion: "GV tổng quát hóa công thức đường chéo hình lập phương cạnh a là a√3."
+      }
     },
     {
+      activity_number: 3,
       name: "Luyện tập: Dựng thiết diện (A'BD)",
+      goal: "Luyện tập: Xác định thiết diện tạo bởi mặt phẳng (A'BD) và tính diện tích.",
       time_minutes: 12,
-      objective: "Chứng minh thiết diện là tam giác đều cạnh a√2 và tính diện tích."
+      objective: "Chứng minh thiết diện là tam giác đều cạnh a√2 và tính diện tích.",
+      expected_product: "Tính đúng diện tích S = (a²√3)/2.",
+      execution: {
+        step_1_assign: "GV bật mặt phẳng cắt (A'BD) trên mô hình 3D và yêu cầu HS nhận xét tam giác A'BD.",
+        step_2_excute: "HS tính độ dài 3 cạnh A'B, BD, DA' và áp dụng công thức diện tích tam giác đều.",
+        step_3_report: "Đại diện nhóm báo cáo kết quả.",
+        step_4_conclusion: "GV nhận xét và chốt phương pháp dựng thiết diện."
+      }
     },
     {
+      activity_number: 4,
       name: "Vận dụng: Live Poll góc giữa hai đường chéo",
+      goal: "Vận dụng: Xác định góc giữa hai đường thẳng chéo nhau AC và A'D trong không gian.",
       time_minutes: 8,
-      objective: "Xác định góc 60 độ giữa AC và A'D qua quan hệ song song."
+      objective: "Xác định góc 60 độ giữa AC và A'D qua quan hệ song song.",
+      expected_product: "HS chọn đúng đáp án 60 độ và giải thích được vì sao tam giác A'C'D đều.",
+      execution: {
+        step_1_assign: "GV mở câu hỏi Live Poll: Góc giữa AC và A'D bằng bao nhiêu độ?",
+        step_2_excute: "HS kẻ đường thẳng song song AC là A'C' và xét tam giác A'C'D.",
+        step_3_report: "HS giải thích lý do chọn đáp án A (60°).",
+        step_4_conclusion: "GV tổng kết bài học và giao nhiệm vụ về nhà."
+      }
     }
   ]
 };
@@ -293,9 +401,30 @@ export default function App() {
   const [slideDeck, setSlideDeck] = useState(SAMPLE_QUADRATIC_DECK);
   const [lessonPlan, setLessonPlan] = useState(SAMPLE_QUADRATIC_PLAN);
 
+  // State đồng bộ Phân tích Bảng điểm Z-Score -> Soạn Giáo Án 5512
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [classProficiency, setClassProficiency] = useState('standard');
+  const [recommendedOutcome, setRecommendedOutcome] = useState('');
+
   // 3. Trạng thái Loading khi gọi Gemini AI
   const [isAiGenerating, setIsAiGenerating] = useState(false);
   const [generationStep, setGenerationStep] = useState('');
+
+  const handleClassificationSuccess = (result) => {
+    setAnalyticsData(result);
+    if (result?.class_label) {
+      setClassProficiency(result.class_label);
+    }
+    if (result?.target_outcome) {
+      setRecommendedOutcome(result.target_outcome);
+    }
+  };
+
+  const handleApplyAnalyticsToLessonPlan = (proficiencyLabel, outcomeText) => {
+    if (proficiencyLabel) setClassProficiency(proficiencyLabel);
+    if (outcomeText) setRecommendedOutcome(outcomeText);
+    setActiveScreen('lesson-plan');
+  };
 
   // Hàm chuyển đổi nhanh giữa các bài mẫu (Quick Topic Switcher)
   const handleSwitchSample = (type) => {
@@ -314,7 +443,7 @@ export default function App() {
   // Keyboard Shortcuts Handler
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+      if (['INPUT', 'TEXTAREA', 'SELECT', 'MATH-FIELD'].includes(e.target.tagName)) return;
 
       if (e.key === 'c' || e.key === 'C') {
         setIsLeftOpen((prev) => !prev);
@@ -454,23 +583,62 @@ export default function App() {
     }
   };
 
-  // Áp dụng Live Patch từ Trợ giảng AI vào Slide hiện tại
+  // Áp dụng Live Patch từ Trợ giảng AI vào Slide hiện tại (Hỗ trợ cả chuẩn SlidePatchProposal của Backend & mẫu cũ)
   const handleApplySlidePatch = (patch) => {
-    if (!patch) return;
-    const targetIdx = patch.target_slide_index !== undefined ? patch.target_slide_index : currentSlide;
-    const updatedSlides = [...slideDeck.slides];
+    if (!patch) return false;
+    const targetIdx =
+      patch.target_slide_index !== undefined && patch.target_slide_index !== null
+        ? patch.target_slide_index
+        : currentSlide;
+    const updatedSlides = [...(slideDeck.slides || [])];
 
     if (updatedSlides[targetIdx]) {
       const target = { ...updatedSlides[targetIdx] };
-      if (patch.updated_title) target.title = patch.updated_title;
-      if (patch.updated_bullet_points) target.bullet_points = patch.updated_bullet_points;
-      if (patch.updated_latex) target.main_definition_latex = patch.updated_latex;
-      if (patch.updated_teacher_note) target.teacher_note = patch.updated_teacher_note;
-      if (patch.new_quiz_option) {
+
+      const newTitle = patch.title || patch.updated_title;
+      if (newTitle) target.title = newTitle;
+
+      const newBullets = patch.bullet_points || patch.updated_bullet_points;
+      if (Array.isArray(newBullets) && newBullets.length > 0) {
+        target.bullet_points = newBullets;
+      }
+
+      const newLatex = patch.main_definition_latex || patch.updated_latex;
+      if (newLatex) target.main_definition_latex = newLatex;
+
+      const newTeacherNote = patch.teacher_note || patch.updated_teacher_note;
+      if (newTeacherNote) target.teacher_note = newTeacherNote;
+
+      // Xử lý khi bản vá bổ sung Câu hỏi Trắc nghiệm (QuizData từ Backend)
+      if (patch.quiz) {
+        target.layout = 'QUIZ_OPTION';
+        if (patch.quiz.question) {
+          target.bullet_points = [patch.quiz.question];
+        }
+        if (Array.isArray(patch.quiz.options) && patch.quiz.options.length > 0) {
+          const correctLetter = String(patch.quiz.correct_answer || 'A').trim().toUpperCase();
+          target.quiz_options = patch.quiz.options.map((optStr, idx) => {
+            const labels = ['A', 'B', 'C', 'D'];
+            const label = labels[idx] || String(idx + 1);
+            const cleanText = String(optStr).replace(/^[A-D]\.\s*/, '');
+            const isCorrect = label === correctLetter;
+            return {
+              label,
+              text: cleanText,
+              is_correct: isCorrect,
+              distractor_rationale: isCorrect
+                ? (patch.quiz.explanation || 'Đáp án chính xác.')
+                : 'Phương án gây nhiễu, học sinh cần kiểm tra lại công thức.'
+            };
+          });
+        }
+      } else if (patch.new_quiz_option) {
         target.quiz_options = [...(target.quiz_options || []), patch.new_quiz_option];
       }
+
       updatedSlides[targetIdx] = target;
       setSlideDeck({ ...slideDeck, slides: updatedSlides });
+      setCurrentSlide(targetIdx);
       return true;
     }
     return false;
@@ -518,6 +686,7 @@ export default function App() {
 
             <PresentationStage
               slideDeck={slideDeck}
+              setSlideDeck={setSlideDeck}
               currentSlide={currentSlide}
               setCurrentSlide={setCurrentSlide}
               isLeftOpen={isLeftOpen}
@@ -558,6 +727,8 @@ export default function App() {
             isGenerating={isAiGenerating}
             onGenerateFromAi={handleGenerateFromAi}
             onExportDocx={handleExportDocx}
+            externalProficiency={classProficiency}
+            externalOutcome={recommendedOutcome}
           />
         )}
 
@@ -571,7 +742,13 @@ export default function App() {
         )}
 
         {/* MÀN HÌNH 4: PHÂN TÍCH LỚP HỌC (Z-Score & Bảng điểm thực) */}
-        {activeScreen === 'analytics' && <AnalyticsScreen />}
+        {activeScreen === 'analytics' && (
+          <AnalyticsScreen
+            analyticsData={analyticsData}
+            onClassificationSuccess={handleClassificationSuccess}
+            onApplyToLessonPlan={handleApplyAnalyticsToLessonPlan}
+          />
+        )}
       </main>
     </div>
   );

@@ -1,18 +1,36 @@
-import React, { useState } from 'react';
-import { FileText, Download, Sparkles, BookOpen, CheckCircle, UploadCloud } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { FileText, Download, Sparkles, BookOpen, CheckCircle, Wrench, Layers } from 'lucide-react';
 import MathText from './MathText';
 
 export default function LessonPlanScreen({
   lessonPlan,
   isGenerating,
   onGenerateFromAi,
-  onExportDocx
+  onExportDocx,
+  externalProficiency,
+  externalOutcome
 }) {
   const [topic, setTopic] = useState('Phương trình bậc hai một ẩn và định lý Vi-et');
   const [subject, setSubject] = useState('Toán học');
   const [grade, setGrade] = useState('10');
-  const [proficiency, setProficiency] = useState('standard');
-  const [outcome, setOutcome] = useState('Học sinh hiểu bản chất hình học của biệt thức Delta qua giao điểm của Parabol y = ax^2 + bx + c với trục Ox, thành thạo 4 bước giải và công thức nghiệm x = (-b ± √Δ)/(2a), ứng dụng định lý Vi-et nhẩm nghiệm nhanh.');
+  const [proficiency, setProficiency] = useState(externalProficiency || 'standard');
+  const [outcome, setOutcome] = useState(
+    externalOutcome ||
+      'Học sinh hiểu bản chất hình học của biệt thức Delta qua giao điểm của Parabol y = ax^2 + bx + c với trục Ox, thành thạo 4 bước giải và công thức nghiệm x = (-b ± √Δ)/(2a), ứng dụng định lý Vi-et nhẩm nghiệm nhanh.'
+  );
+
+  // Tự động đồng bộ khi người dùng truyền học lực lớp từ màn hình Phân Tích Điểm (AnalyticsScreen)
+  useEffect(() => {
+    if (externalProficiency) {
+      setProficiency(externalProficiency);
+    }
+  }, [externalProficiency]);
+
+  useEffect(() => {
+    if (externalOutcome) {
+      setOutcome(externalOutcome);
+    }
+  }, [externalOutcome]);
 
   // DANH MỤC CÁC BÀI TOÁN SGK THPT (LỚP 10, 11, 12)
   const textbookPresets = [
@@ -75,6 +93,33 @@ export default function LessonPlanScreen({
       });
     }
   };
+
+  // CHUẨN HÓA ĐỌC SONG SONG CẤU TRÚC PHẲNG (BACKEND) & CẤU TRÚC LỒNG NHAU (MẪU)
+  const knowledgeText =
+    Array.isArray(lessonPlan?.knowledge_goals) && lessonPlan.knowledge_goals.length > 0
+      ? lessonPlan.knowledge_goals.join(' • ')
+      : lessonPlan?.objectives?.knowledge || 'Nắm vững kiến thức trọng tâm SGK.';
+
+  const competencyList =
+    Array.isArray(lessonPlan?.competency_goals) && lessonPlan.competency_goals.length > 0
+      ? lessonPlan.competency_goals
+      : Array.isArray(lessonPlan?.skills_goals) && lessonPlan.skills_goals.length > 0
+      ? lessonPlan.skills_goals
+      : null;
+
+  const competencyText = competencyList
+    ? competencyList.join(' • ')
+    : lessonPlan?.objectives?.competencies || 'Phát triển tư duy logic và giải quyết vấn đề toán học.';
+
+  const characterText =
+    Array.isArray(lessonPlan?.character_goals) && lessonPlan.character_goals.length > 0
+      ? lessonPlan.character_goals.join(' • ')
+      : lessonPlan?.objectives?.qualities || 'Chăm chỉ, trách nhiệm và tính kỷ luật trong học tập.';
+
+  const equipmentList =
+    Array.isArray(lessonPlan?.teaching_equipment) && lessonPlan.teaching_equipment.length > 0
+      ? lessonPlan.teaching_equipment
+      : null;
 
   return (
     <div className="flex-1 p-5 overflow-y-auto max-w-7xl mx-auto space-y-4">
@@ -160,7 +205,14 @@ export default function LessonPlanScreen({
 
           {/* Phân hóa học lực */}
           <div>
-            <label className="text-slate-400 block mb-1.5">Trình độ phân hóa học lực lớp:</label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-slate-400">Trình độ phân hóa học lực lớp:</label>
+              {externalProficiency && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800">
+                  Đồng bộ từ Bảng điểm Z-Score
+                </span>
+              )}
+            </div>
             <div className="grid grid-cols-3 gap-2">
               {[
                 { key: 'basic', label: 'Cơ bản', color: 'border-emerald-500 text-emerald-300' },
@@ -221,33 +273,108 @@ export default function LessonPlanScreen({
               <div className="p-3 rounded-xl bg-cyan-950/20 border border-cyan-800/40">
                 <h4 className="text-sm font-bold text-white">{lessonPlan.lesson_title}</h4>
                 <div className="text-[11px] text-slate-400 mt-0.5">
-                  Môn: {lessonPlan.subject} | Khối: {lessonPlan.grade} | Thời lượng: {lessonPlan.duration_periods || 1} tiết
+                  Môn: {lessonPlan.subject} | Khối: {lessonPlan.grade} | Thời lượng: {lessonPlan.duration_periods || 1} tiết (45 phút)
                 </div>
               </div>
 
-              {/* Mục tiêu */}
-              <div className="space-y-1">
-                <strong className="text-cyan-400 block text-xs">I. MỤC TIÊU BÀI DẠY:</strong>
-                <ul className="list-disc pl-4 text-slate-300 space-y-1">
-                  <li><strong>Kiến thức:</strong> <MathText text={lessonPlan.objectives?.knowledge || 'Nắm vững kiến thức trọng tâm SGK.'} /></li>
-                  <li><strong>Năng lực:</strong> <MathText text={lessonPlan.objectives?.competencies || 'Phát triển tư duy logic và giải quyết vấn đề toán học.'} /></li>
-                  <li><strong>Phẩm chất:</strong> <MathText text={lessonPlan.objectives?.qualities || 'Chăm chỉ, trách nhiệm và tính kỷ luật trong học tập.'} /></li>
+              {/* I. Mục tiêu bài dạy */}
+              <div className="space-y-1.5">
+                <strong className="text-cyan-400 block text-xs">I. YÊU CẦU CẦN ĐẠT (MỤC TIÊU BÀI DẠY):</strong>
+                <ul className="list-disc pl-4 text-slate-300 space-y-1.5">
+                  <li>
+                    <strong className="text-white">1. Kiến thức:</strong> <MathText text={knowledgeText} />
+                  </li>
+                  <li>
+                    <strong className="text-white">2. Năng lực:</strong> <MathText text={competencyText} />
+                  </li>
+                  <li>
+                    <strong className="text-white">3. Phẩm chất:</strong> <MathText text={characterText} />
+                  </li>
                 </ul>
               </div>
 
+              {/* Thiết bị dạy học và học liệu (nếu có) */}
+              {equipmentList && (
+                <div className="space-y-1">
+                  <strong className="text-indigo-400 flex items-center gap-1.5 text-xs">
+                    <Wrench size={13} /> II. THIẾT BỊ DẠY HỌC VÀ HỌC LIỆU:
+                  </strong>
+                  <ul className="list-disc pl-4 text-slate-300 space-y-1">
+                    {equipmentList.map((eq, idx) => (
+                      <li key={idx}><MathText text={eq} /></li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               {/* Tiến trình 4 hoạt động */}
-              <div className="space-y-2">
-                <strong className="text-amber-400 block text-xs">II. TIẾN TRÌNH 4 HOẠT ĐỘNG DẠY HỌC (CV 5512):</strong>
-                <div className="space-y-2">
-                  {(lessonPlan.activities || []).map((act, i) => (
-                    <div key={i} className="p-2.5 rounded-lg bg-slate-900/60 border border-slate-800 space-y-1">
-                      <div className="font-bold text-white flex items-center justify-between">
-                        <span>Hoạt động {i + 1}: <MathText text={act.name} /></span>
-                        <span className="text-[10px] text-cyan-400 font-mono">{act.time_minutes || 10} phút</span>
+              <div className="space-y-2.5">
+                <strong className="text-amber-400 flex items-center gap-1.5 text-xs">
+                  <Layers size={13} /> {equipmentList ? 'III.' : 'II.'} TIẾN TRÌNH 4 HOẠT ĐỘNG DẠY HỌC (CV 5512):
+                </strong>
+                <div className="space-y-2.5">
+                  {(lessonPlan.activities || []).map((act, i) => {
+                    const actTitle = act.name || act.goal || `Hoạt động ${i + 1}`;
+                    const actGoal = act.objective || act.goal || '';
+                    const actProduct = act.expected_product || '';
+                    const exec = act.execution;
+
+                    return (
+                      <div key={i} className="p-3 rounded-xl bg-slate-900/70 border border-slate-800 space-y-2">
+                        <div className="font-bold text-white flex items-center justify-between gap-2">
+                          <span className="text-cyan-300">
+                            Hoạt động {act.activity_number || i + 1}: <MathText text={actTitle} />
+                          </span>
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-950/70 border border-cyan-800/60 text-cyan-300 font-mono shrink-0">
+                            {act.time_minutes || 10} phút
+                          </span>
+                        </div>
+
+                        {actGoal && (
+                          <p className="text-[11px] text-slate-300">
+                            <strong className="text-slate-200">• Mục tiêu: </strong>
+                            <MathText text={actGoal} />
+                          </p>
+                        )}
+
+                        {actProduct && (
+                          <p className="text-[11px] text-emerald-300/90">
+                            <strong className="text-emerald-400">• Sản phẩm dự kiến: </strong>
+                            <MathText text={actProduct} />
+                          </p>
+                        )}
+
+                        {exec && (
+                          <div className="pt-1.5 mt-1.5 border-t border-slate-800/80 grid grid-cols-1 gap-1.5 text-[11px] text-slate-300">
+                            {exec.step_1_assign && (
+                              <div className="bg-slate-950/60 p-2 rounded-lg border border-slate-800/60">
+                                <strong className="text-amber-300">B1. Chuyển giao nhiệm vụ: </strong>
+                                <MathText text={exec.step_1_assign} />
+                              </div>
+                            )}
+                            {exec.step_2_excute && (
+                              <div className="bg-slate-950/60 p-2 rounded-lg border border-slate-800/60">
+                                <strong className="text-cyan-300">B2. Thực hiện nhiệm vụ: </strong>
+                                <MathText text={exec.step_2_excute} />
+                              </div>
+                            )}
+                            {exec.step_3_report && (
+                              <div className="bg-slate-950/60 p-2 rounded-lg border border-slate-800/60">
+                                <strong className="text-indigo-300">B3. Báo cáo, thảo luận: </strong>
+                                <MathText text={exec.step_3_report} />
+                              </div>
+                            )}
+                            {exec.step_4_conclusion && (
+                              <div className="bg-slate-950/60 p-2 rounded-lg border border-slate-800/60">
+                                <strong className="text-emerald-300">B4. Kết luận, nhận định: </strong>
+                                <MathText text={exec.step_4_conclusion} />
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      <p className="text-[11px] text-slate-300"><MathText text={act.objective} /></p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>

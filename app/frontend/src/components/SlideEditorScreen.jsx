@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Presentation, Download, Plus, Trash2, Edit3, HelpCircle, Save } from 'lucide-react';
+import { Presentation, Download, Plus, Trash2, Edit3, HelpCircle, Save, Sparkles } from 'lucide-react';
 import MathText from './MathText';
+import MathLiveModal from './MathLiveModal';
 
 export default function SlideEditorScreen({
   slideDeck,
@@ -15,6 +16,9 @@ export default function SlideEditorScreen({
   const [bulletsText, setBulletsText] = useState('');
   const [latex, setLatex] = useState('');
   const [teacherNote, setTeacherNote] = useState('');
+
+  // Task 8.2: Trạng thái mở Modal MathLive trong Xưởng Biên Tập Slide
+  const [isMathModalOpen, setIsMathModalOpen] = useState(false);
 
   // Đồng bộ khi đổi slide được chọn hoặc khi slideDeck thay đổi
   useEffect(() => {
@@ -170,17 +174,33 @@ export default function SlideEditorScreen({
           </div>
 
           <div>
-            <label className="text-slate-400 block mb-1">Công thức Toán LaTeX trọng tâm:</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-slate-400">Công thức Toán LaTeX trọng tâm:</label>
+              <button
+                type="button"
+                onClick={() => setIsMathModalOpen(true)}
+                className="px-2 py-0.5 rounded bg-cyan-950/80 hover:bg-cyan-900 text-cyan-300 border border-cyan-700/60 text-[10px] font-semibold flex items-center gap-1 transition"
+              >
+                <Sparkles size={11} /> Gõ trực quan MathLive
+              </button>
+            </div>
             <input
               type="text"
               value={latex}
               onChange={(e) => setLatex(e.target.value)}
+              onDoubleClick={() => setIsMathModalOpen(true)}
               placeholder="VD: \Delta = b^2 - 4ac hoặc x = \frac{-b \pm \sqrt{\Delta}}{2a}"
               className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-cyan-300 font-mono"
             />
             {latex && (
-              <div className="mt-1.5 p-2 bg-slate-950/80 rounded-lg border border-cyan-800/50 text-center">
-                <span className="text-[10px] text-slate-400 block mb-0.5">Hiển thị KaTeX chuẩn:</span>
+              <div
+                onDoubleClick={() => setIsMathModalOpen(true)}
+                title="Nhấp đúp (Double-Click) để sửa bằng MathLive"
+                className="mt-1.5 p-2 bg-slate-950/80 hover:bg-slate-900 rounded-lg border border-cyan-800/50 hover:border-cyan-500 text-center cursor-pointer transition"
+              >
+                <span className="text-[10px] text-slate-400 block mb-0.5">
+                  Hiển thị KaTeX chuẩn (Nhấp đúp để mở MathLive):
+                </span>
                 <MathText text={latex} block={true} />
               </div>
             )}
@@ -248,6 +268,15 @@ export default function SlideEditorScreen({
           )}
         </div>
       </div>
+
+      {/* Task 8.2: Modal Popup chỉnh sửa công thức Toán trực quan (MathLive) */}
+      <MathLiveModal
+        isOpen={isMathModalOpen}
+        initialLatex={latex}
+        fieldLabel={`Công thức trọng tâm (Slide ${selectedSlide + 1})`}
+        onClose={() => setIsMathModalOpen(false)}
+        onSave={(formattedLatex) => setLatex(formattedLatex)}
+      />
     </div>
   );
 }

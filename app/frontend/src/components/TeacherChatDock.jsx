@@ -67,7 +67,7 @@ export default function TeacherChatDock({
           role: 'assistant',
           text: data.ai_response || 'Dạ Thầy/Cô, em đã ghi nhận yêu cầu!',
           time: aiTime,
-          patchProposal: data.patch_proposal || null
+          patchProposal: data.suggested_patch || data.patch_proposal || null
         }
       ]);
     } catch (err) {
@@ -177,6 +177,11 @@ export default function TeacherChatDock({
                   <div className="text-[10px] font-bold text-amber-400 flex items-center gap-1">
                     <span>⚡ Đề xuất cập nhật nội dung Slide:</span>
                   </div>
+                  {m.patchProposal.preview_explanation && (
+                    <div className="text-[10px] text-slate-400 italic">
+                      {m.patchProposal.preview_explanation}
+                    </div>
+                  )}
                   <button
                     onClick={() => handleApplyPatchClick(m.patchProposal, idx)}
                     disabled={m.isPatched}
