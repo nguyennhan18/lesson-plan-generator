@@ -397,18 +397,27 @@ def handle_copilot_chat(
         sender = "Giáo viên" if item["role"] == "user" else "Trợ giảng AI"
         history_formatted += f"[{item.get('timestamp', '')}] {sender}: {item['content']}\n"
 
-    # 4. Thử gọi mô hình Gemini nếu có cấu hình
-    api_key = os.getenv("GEMINI_API_KEY")
+    # 4. Định tuyến qua Multi-Provider LLM Gateway (Ưu tiên Groq LPU -> Gemini -> OpenRouter)
     ai_response_text = None
     suggested_patch = None
     suggested_action = "GENERAL_ADVICE"
 
-    if api_key and not os.getenv("PYTEST_CURRENT_TEST"):
-        try:
-            from google import genai
-            from google.genai import types
+    # Tạo sẵn gợi ý bản vá ngữ cảnh (nếu câu lệnh của GV yêu cầu sửa slide / thêm quiz)
+    fallback_res = _generate_intelligent_fallback_response(
+        user_message=user_message,
+        current_slide_index=current_slide_index,
+        slide_context_str=slide_context
+    )
+    suggested_action = fallback_res.get("suggested_action", "GENERAL_ADVICE")
+    suggested_patch = fallback_res.get("suggested_patch")
 
-            client = genai.Client(api_key=api_key)
+    if not os.getenv("PYTEST_CURRENT_TEST"):
+        try:
+            try:
+                from services.llm_gateway import llm_gateway
+            except ImportError:
+                from .llm_gateway import llm_gateway
+
             prompt = (
                 f"### NGỮ CẢNH BÀI GIẢNG HIỆN TẠI:\n{slide_context}\n\n"
                 f"### LỊCH SỬ HỘI THOẠI TRƯỚC ĐÓ:\n{history_formatted}\n\n"
@@ -416,38 +425,18 @@ def handle_copilot_chat(
                 f"Hãy đóng vai Trợ giảng AI sư phạm, trả lời ngắn gọn, thực tế, đúng trọng tâm và hỗ trợ giáo viên."
             )
 
-            config = types.GenerateContentConfig(
-                system_instruction=COPILOT_SYSTEM_PROMPT,
-                temperature=0.6,
-                max_output_tokens=1000
+            ai_response_text = llm_gateway.generate_text(
+                prompt=prompt,
+                system_prompt=COPILOT_SYSTEM_PROMPT,
+                task_type="chat",
+                temperature=0.6
             )
-
-            # Gọi Gemini models
-            for model_name in ["gemini-2.5-flash", "gemini-1.5-flash", "gemini-2.0-flash"]:
-                try:
-                    res = client.models.generate_content(
-                        model=model_name,
-                        contents=prompt,
-                        config=config
-                    )
-                    if res and res.text:
-                        ai_response_text = res.text.strip()
-                        break
-                except Exception:
-                    continue
         except Exception as e:
-            print(f"[ChatService] Lưu ý khi gọi Gemini: {e}. Kích hoạt bộ sinh sư phạm thông minh.")
+            print(f"[ChatService] Lưu ý khi gọi LLM Gateway: {e}. Kích hoạt bộ sinh sư phạm thông minh.")
 
-    # 5. Nếu không gọi được Gemini (offline/sandbox/test), sử dụng bộ sinh sư phạm thông minh
+    # 5. Nếu không gọi được LLM Gateway (offline/sandbox/test), sử dụng bộ sinh sư phạm thông minh
     if not ai_response_text:
-        fallback_res = _generate_intelligent_fallback_response(
-            user_message=user_message,
-            current_slide_index=current_slide_index,
-            slide_context_str=slide_context
-        )
         ai_response_text = fallback_res["ai_response"]
-        suggested_action = fallback_res.get("suggested_action", "GENERAL_ADVICE")
-        suggested_patch = fallback_res.get("suggested_patch")
 
     # 6. Lưu phản hồi của AI vào session history kèm vị trí slide hiện tại
     session_manager.add_turn(

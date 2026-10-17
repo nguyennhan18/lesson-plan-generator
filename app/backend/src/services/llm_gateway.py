@@ -56,15 +56,23 @@ def fix_latex_backslashes(raw_text: str) -> str:
 
 def strip_markdown_json_fence(text: str) -> str:
     """
-    Làm sạch các đoạn bọc markdown ```json ... ``` do một số LLMs tự ý thêm vào.
+    Làm sạch các khối suy luận <think>...</think> và đoạn bọc markdown ```json ... ```
+    do một số LLMs (như Qwen, DeepSeek, Gemini) tự ý thêm vào.
     """
-    text = text.strip()
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
     if text.startswith("```json"):
         text = text[7:]
     elif text.startswith("```"):
         text = text[3:]
     if text.endswith("```"):
         text = text[:-3]
+    text = text.strip()
+
+    # Trích xuất đối tượng JSON ngoài cùng nếu còn sót văn bản dẫn nhập/kết luận
+    first_brace = text.find("{")
+    last_brace = text.rfind("}")
+    if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+        text = text[first_brace : last_brace + 1]
     return text.strip()
 
 
@@ -105,6 +113,8 @@ class LLMGateway:
         self.transition_history: List[Dict[str, Any]] = []
         self._cached_groq_models: Optional[List[str]] = None
         self._cached_google_models: Optional[List[str]] = None
+        # Danh sách đen (Blacklist) chứa các model đã bị ngừng hỗ trợ (404) hoặc không tương thích trong phiên chạy
+        self._dead_models: set[str] = set()
 
         # Khởi tạo Google GenAI Client
         self.google_client: Any = None
@@ -163,39 +173,84 @@ class LLMGateway:
                 pass
 
     def get_available_groq_models(self) -> List[str]:
-        """Tự động truy vấn danh sách Model ID thực tế từ Groq API để tránh lỗi 404."""
+        """Tự động truy vấn và lọc các Text-Generation LLM thực tế từ Groq API, loại bỏ Audio/Guardrails."""
         if self._cached_groq_models is not None:
-            return self._cached_groq_models
+            return [m for m in self._cached_groq_models if f"groq:{m}" not in self._dead_models]
         if not self.groq_client:
             return []
         try:
             res = self.groq_client.models.list()
-            models = [m.id for m in getattr(res, "data", []) if hasattr(m, "id")]
+            excluded_keywords = (
+                "guard", "whisper", "orpheus", "tts", "audio",
+                "vision", "embed", "moderation", "safeguard", "playai", "allam"
+            )
+            models = []
+            for m in getattr(res, "data", []):
+                mid = getattr(m, "id", "")
+                if mid and not any(kw in mid.lower() for kw in excluded_keywords):
+                    models.append(mid)
+
+            def _groq_priority(model_id: str) -> int:
+                ml = model_id.lower()
+                if "llama-3.3" in ml or "llama-4" in ml or "llama-3.1-70b" in ml:
+                    return 0
+                if "qwen" in ml:
+                    return 1
+                if "deepseek" in ml:
+                    return 2
+                if "llama" in ml:
+                    return 3
+                if "gemma" in ml or "mixtral" in ml:
+                    return 4
+                return 5
+
+            models.sort(key=_groq_priority)
             if models:
-                print(f"[LLM Gateway] 🔍 Đã phát hiện {len(models)} model Groq khả dụng: {models[:5]}")
+                print(f"[LLM Gateway] 🔍 Đã lọc {len(models)} model sinh văn bản Groq khả dụng: {models[:5]}")
                 self._cached_groq_models = models
-                return models
+                return [m for m in models if f"groq:{m}" not in self._dead_models]
         except Exception:
             pass
         return []
 
     def get_available_google_models(self) -> List[str]:
-        """Tự động truy vấn danh sách Model ID thực tế từ Google API để tránh lỗi 404."""
+        """Tự động truy vấn và lọc các model Gemini sinh văn bản đang hoạt động, loại bỏ model ngừng hỗ trợ (2.5) và TTS/Image."""
         if self._cached_google_models is not None:
-            return self._cached_google_models
+            return [m for m in self._cached_google_models if f"google:{m}" not in self._dead_models]
         if not self.google_client:
             return []
         try:
+            excluded_keywords = (
+                "embedding", "aqa", "tts", "image", "imagen", "veo",
+                "vision", "audio", "live", "robotics", "computer-use",
+                "learnlm", "2.5-flash", "2.5-pro", "2.0-flash-exp", "1.5-", "1.0-"
+            )
             models = []
             for m in self.google_client.models.list():
                 raw = getattr(m, "name", "")
                 clean = raw.replace("models/", "")
-                if "gemini" in clean and "embedding" not in clean and "aqa" not in clean:
+                if "gemini" in clean.lower() and not any(kw in clean.lower() for kw in excluded_keywords):
                     models.append(clean)
+
+            def _google_priority(model_id: str) -> int:
+                ml = model_id.lower()
+                if ml == "gemini-flash-latest":
+                    return 0
+                if "gemini-3" in ml and "flash" in ml and "preview" not in ml:
+                    return 1
+                if "gemini-3" in ml and "flash" in ml:
+                    return 2
+                if "flash" in ml and "lite" not in ml:
+                    return 3
+                if "pro" in ml and "preview" not in ml:
+                    return 4
+                return 5
+
+            models.sort(key=_google_priority)
             if models:
-                print(f"[LLM Gateway] 🔍 Đã phát hiện {len(models)} model Google khả dụng: {models[:5]}")
+                print(f"[LLM Gateway] 🔍 Đã lọc {len(models)} model sinh văn bản Google khả dụng: {models[:5]}")
                 self._cached_google_models = models
-                return models
+                return [m for m in models if f"google:{m}" not in self._dead_models]
         except Exception:
             pass
         return []
@@ -211,12 +266,18 @@ class LLMGateway:
         # Lấy danh sách model Google thực tế hoặc fallback
         google_models = self.get_available_google_models()
         if not google_models:
-            google_models = ["gemini-3.8-flash", "gemini-3.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+            google_models = [
+                m for m in ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"]
+                if f"google:{m}" not in self._dead_models
+            ]
 
         # Lấy danh sách model Groq thực tế hoặc fallback
         groq_models = self.get_available_groq_models()
         if not groq_models:
-            groq_models = ["llama-3.1-8b-instant", "llama3-70b-8192", "llama3-8b-8192", "mixtral-8x7b-32768"]
+            groq_models = [
+                m for m in ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"]
+                if f"groq:{m}" not in self._dead_models
+            ]
 
         if task_type == "lesson_plan":
             # 1. Soạn Kế hoạch bài dạy 5512
@@ -226,7 +287,7 @@ class LLMGateway:
             if self.groq_key:
                 for m in groq_models[:2]:
                     routes.append(ProviderRoute("groq", m, "https://api.groq.com/openai/v1", self.groq_key))
-            if self.openrouter_key:
+            if self.openrouter_key and "openrouter:deepseek/deepseek-chat" not in self._dead_models:
                 routes.append(ProviderRoute("openrouter", "deepseek/deepseek-chat", "https://openrouter.ai/api/v1", self.openrouter_key))
             if self.gemini_key and len(google_models) > 2:
                 for m in google_models[2:4]:
@@ -240,34 +301,37 @@ class LLMGateway:
             if self.gemini_key:
                 for m in google_models[:2]:
                     routes.append(ProviderRoute("google", m, api_key=self.gemini_key))
-            if self.openrouter_key:
+            if self.openrouter_key and "openrouter:deepseek/deepseek-chat" not in self._dead_models:
                 routes.append(ProviderRoute("openrouter", "deepseek/deepseek-chat", "https://openrouter.ai/api/v1", self.openrouter_key))
 
         elif task_type == "chat":
             # 3. Chat Trợ giảng Co-pilot
             if self.groq_key:
-                routes.append(ProviderRoute("groq", groq_models[0], "https://api.groq.com/openai/v1", self.groq_key))
+                for m in groq_models[:2]:
+                    routes.append(ProviderRoute("groq", m, "https://api.groq.com/openai/v1", self.groq_key))
             if self.gemini_key:
                 for m in google_models[:2]:
                     routes.append(ProviderRoute("google", m, api_key=self.gemini_key))
+            if self.openrouter_key and "openrouter:deepseek/deepseek-chat" not in self._dead_models:
+                routes.append(ProviderRoute("openrouter", "deepseek/deepseek-chat", "https://openrouter.ai/api/v1", self.openrouter_key))
 
         elif task_type == "math_code":
             # 4. Sinh mã nguồn hình học / đồ thị
-            if self.openrouter_key:
+            if self.openrouter_key and "openrouter:qwen/qwen-2.5-coder-32b-instruct" not in self._dead_models:
                 routes.append(ProviderRoute("openrouter", "qwen/qwen-2.5-coder-32b-instruct", "https://openrouter.ai/api/v1", self.openrouter_key))
-            if self.groq_key:
+            if self.groq_key and groq_models:
                 routes.append(ProviderRoute("groq", groq_models[0], "https://api.groq.com/openai/v1", self.groq_key))
-            if self.gemini_key:
+            if self.gemini_key and google_models:
                 routes.append(ProviderRoute("google", google_models[0], api_key=self.gemini_key))
 
         else:
             # Tuyến mặc định an toàn
-            if self.gemini_key:
+            if self.gemini_key and google_models:
                 routes.append(ProviderRoute("google", google_models[0], api_key=self.gemini_key))
-            if self.groq_key:
+            if self.groq_key and groq_models:
                 routes.append(ProviderRoute("groq", groq_models[0], "https://api.groq.com/openai/v1", self.groq_key))
 
-        return routes
+        return [r for r in routes if f"{r.provider_id}:{r.model_name}" not in self._dead_models]
 
     def generate_structured(
         self,
@@ -338,7 +402,7 @@ class LLMGateway:
                                 "content": (
                                     f"{system_prompt}\n\nQUY TẮC BẮT BUỘC:\n"
                                     f"Chỉ trả về duy nhất chuỗi JSON hợp lệ tuân thủ chính xác Schema sau:\n{schema_json}\n"
-                                    "Tuyệt đối không bọc trong ```json và không có bất kỳ ký tự nào ngoài JSON."
+                                    "Tuyệt đối không bọc trong ```json, không xuất thẻ <think> và không có bất kỳ ký tự nào ngoài JSON."
                                 )
                             },
                             {
@@ -346,13 +410,27 @@ class LLMGateway:
                                 "content": prompt
                             }
                         ]
-                        completion = self.groq_client.chat.completions.create(
-                            model=route.model_name,
-                            messages=messages,
-                            response_format={"type": "json_object"},
-                            temperature=temperature
-                        )
-                        raw_text = completion.choices[0].message.content or "{}"
+                        try:
+                            completion = self.groq_client.chat.completions.create(
+                                model=route.model_name,
+                                messages=messages,
+                                response_format={"type": "json_object"},
+                                temperature=temperature
+                            )
+                            raw_text = completion.choices[0].message.content or "{}"
+                        except Exception as groq_err:
+                            err_text = str(groq_err).lower()
+                            if "failed to generate json" in err_text or "failed_generation" in err_text or "json_validate_failed" in err_text:
+                                print(f"[LLM Gateway] 🔧 Groq json_object bị từ chối do thẻ suy luận/cú pháp, đang thử lại chế độ tự làm sạch JSON trên '{route.model_name}'...")
+                                completion = self.groq_client.chat.completions.create(
+                                    model=route.model_name,
+                                    messages=messages,
+                                    temperature=temperature
+                                )
+                                raw_text = completion.choices[0].message.content or "{}"
+                            else:
+                                raise groq_err
+
                         clean_text = strip_markdown_json_fence(fix_latex_backslashes(raw_text))
                         result = response_schema.model_validate_json(clean_text)
 
@@ -405,10 +483,23 @@ class LLMGateway:
                 except Exception as e:
                     last_error = e
                     err_str = str(e)
-                    is_rate_limit = any(term in err_str.lower() for term in ["429", "resource_exhausted", "ratelimit", "quota"])
+                    err_lower = err_str.lower()
+                    is_rate_limit = any(term in err_lower for term in ["429", "resource_exhausted", "ratelimit", "quota"])
+                    is_dead_model = any(
+                        term in err_lower
+                        for term in [
+                            "404", "not_found", "no longer available", "does not exist",
+                            "not a valid model", "decommissioned", "model_not_found",
+                            "reduce the length of the messages"
+                        ]
+                    )
+
+                    if is_dead_model:
+                        self._dead_models.add(f"{route.provider_id}:{route.model_name}")
+                        print(f"[LLM Gateway] 🚫 Đã loại bỏ vĩnh viễn model không khả dụng [{route.provider_id.upper()}: {route.model_name}] khỏi danh sách định tuyến.")
 
                     # NẾU GẶP 429 TRÊN GOOGLE: THỰC HIỆN EXPONENTIAL BACKOFF (4s -> 8s)
-                    if is_rate_limit and route.provider_id == "google" and route_attempt < max_route_attempts - 1:
+                    if is_rate_limit and not is_dead_model and route.provider_id == "google" and route_attempt < max_route_attempts - 1:
                         backoff_sec = 4.0 if route_attempt == 0 else 8.0
                         print(f"[LLM Gateway] ⏳ Phát hiện Quota Limit 429 trên [{route.model_name}]. Đang thực hiện Exponential Backoff ({backoff_sec}s)...")
                         time.sleep(backoff_sec)
@@ -433,6 +524,102 @@ class LLMGateway:
             f"Toàn bộ {len(routes)} tuyến LLM đều không phản hồi sau {total_elapsed}s. Lỗi cuối cùng: {last_error}"
         )
 
+    def generate_text(
+        self,
+        prompt: str,
+        system_prompt: str,
+        task_type: str = "chat",
+        temperature: float = 0.6
+    ) -> str:
+        """
+        Thực thi sinh văn bản tự do (Conversational / Co-pilot) qua chuỗi Fallback đa nhà cung cấp.
+        Ưu tiên tốc độ phản hồi cực nhanh của Groq LPU, sau đó đến Gemini và OpenRouter.
+        """
+        routes = self.get_active_routes(task_type)
+        if not routes:
+            raise ValueError("Không tìm thấy tuyến LLM khả dụng cho tác vụ sinh văn bản.")
+
+        last_error = None
+        for route in routes:
+            attempt_start = time.time()
+            try:
+                if route.provider_id == "google" and self.google_client is not None and genai_types is not None:
+                    config = genai_types.GenerateContentConfig(
+                        system_instruction=system_prompt,
+                        temperature=temperature,
+                        max_output_tokens=1000
+                    )
+                    res = self.google_client.models.generate_content(
+                        model=route.model_name,
+                        contents=prompt,
+                        config=config
+                    )
+                    if res and res.text:
+                        latency = round(time.time() - attempt_start, 2)
+                        self.transition_history.append({
+                            "provider": route.provider_id,
+                            "model": route.model_name,
+                            "status": "success",
+                            "latency_sec": latency
+                        })
+                        return res.text.strip()
+
+                elif route.provider_id == "groq" and self.groq_client is not None:
+                    completion = self.groq_client.chat.completions.create(
+                        model=route.model_name,
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": prompt}
+                        ],
+                        temperature=temperature,
+                        max_tokens=1000
+                    )
+                    text = completion.choices[0].message.content
+                    if text:
+                        latency = round(time.time() - attempt_start, 2)
+                        self.transition_history.append({
+                            "provider": route.provider_id,
+                            "model": route.model_name,
+                            "status": "success",
+                            "latency_sec": latency
+                        })
+                        return text.strip()
+
+                elif route.provider_id == "openrouter" and self.openrouter_client is not None:
+                    completion = self.openrouter_client.chat.completions.create(
+                        model=route.model_name,
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": prompt}
+                        ],
+                        temperature=temperature,
+                        max_tokens=1000
+                    )
+                    text = completion.choices[0].message.content
+                    if text:
+                        latency = round(time.time() - attempt_start, 2)
+                        self.transition_history.append({
+                            "provider": route.provider_id,
+                            "model": route.model_name,
+                            "status": "success",
+                            "latency_sec": latency
+                        })
+                        return text.strip()
+            except Exception as e:
+                last_error = e
+                latency = round(time.time() - attempt_start, 2)
+                self.transition_history.append({
+                    "provider": route.provider_id,
+                    "model": route.model_name,
+                    "status": "failed",
+                    "error": str(e)[:120],
+                    "latency_sec": latency
+                })
+                continue
+
+        raise RuntimeError(f"Không thể sinh văn bản phản hồi từ các tuyến LLM: {last_error}")
+
 
 # Khởi tạo Singleton Gateway dùng chung cho toàn bộ ứng dụng
 llm_gateway = LLMGateway()
+

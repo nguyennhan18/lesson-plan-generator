@@ -1108,7 +1108,12 @@ def generate_lesson_plan(topic: str, subject: str, grade: int, max_retries: int 
     Soạn giáo án Công văn 5512 định tuyến qua LLM Gateway có Graceful Fallback.
     Bảo đảm không bao giờ ném lỗi 500 nếu đã từng sinh được bản giáo án hợp lệ.
     """
-    user_prompt = f"Hãy soạn giáo án Công văn 5512 cho bài dạy: '{topic}', Môn {subject}, Lớp {grade}."
+    user_prompt = (
+        f"Hãy soạn giáo án Công văn 5512 cho bài dạy: '{topic}', Môn {subject}, Lớp {grade}. "
+        "YÊU CẦU BẮT BUỘC: Mảng `activities` phải có ĐÚNG 4 phần tử tương ứng 4 hoạt động "
+        "(activity_number = 1, 2, 3, 4: Khởi động, Hình thành kiến thức, Luyện tập, Vận dụng) "
+        "với tổng time_minutes của cả 4 hoạt động đúng bằng 45 phút."
+    )
     current_prompt = user_prompt
 
     last_successful_plan: Optional[LessonPlanSchema] = None

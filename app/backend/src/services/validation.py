@@ -19,8 +19,8 @@ def validate_5512_lesson_plan(plan: LessonPlanSchema) -> ValidationResult:
     # 1. Kiểm tra mục tiêu
     if not plan.knowledge_goals:
         errors.append("Mục tiêu bài học thiếu phần 'Kiến thức'. ")
-    if not plan.skills_goals:
-        warnings.append("Mục tiêu bai học nên có phần 'Năng Lực' ")
+    if not plan.competency_goals and not plan.skills_goals:
+        warnings.append("Mục tiêu bài học nên có phần 'Năng Lực'")
     # 2. Kiểm tra số lượng hoạt động
     if len(plan.activities) != 4:
         errors.append(f"Giáo án phải có đùng 4 hoạt động theo CV 5512(Hiện có: {len(plan.activities)})")
