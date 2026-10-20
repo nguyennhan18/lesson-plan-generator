@@ -206,7 +206,7 @@ class LLMGateway:
 
             models.sort(key=_groq_priority)
             if models:
-                print(f"[LLM Gateway] 🔍 Đã lọc {len(models)} model sinh văn bản Groq khả dụng: {models[:5]}")
+                print(f"[LLM Gateway] Đã lọc {len(models)} model sinh văn bản Groq khả dụng: {models[:5]}")
                 self._cached_groq_models = models
                 return [m for m in models if f"groq:{m}" not in self._dead_models]
         except Exception:
@@ -248,7 +248,7 @@ class LLMGateway:
 
             models.sort(key=_google_priority)
             if models:
-                print(f"[LLM Gateway] 🔍 Đã lọc {len(models)} model sinh văn bản Google khả dụng: {models[:5]}")
+                print(f"[LLM Gateway] Đã lọc {len(models)} model sinh văn bản Google khả dụng: {models[:5]}")
                 self._cached_google_models = models
                 return [m for m in models if f"google:{m}" not in self._dead_models]
         except Exception:
@@ -363,7 +363,7 @@ class LLMGateway:
 
             for route_attempt in range(max_route_attempts):
                 try:
-                    print(f"[LLM Gateway] 🚀 Đang định tuyến tới [{route.provider_id.upper()}]: Model '{route.model_name}' (Tác vụ: '{task_type}' | Lần {route_attempt + 1})...")
+                    print(f"[LLM Gateway] Đang định tuyến tới [{route.provider_id.upper()}]: Model '{route.model_name}' (Tác vụ: '{task_type}' | Lần {route_attempt + 1})...")
 
                     # ================= 1. XỬ LÝ QUA GOOGLE GENAI SDK =================
                     if route.provider_id == "google" and self.google_client is not None and genai_types is not None:
@@ -390,7 +390,7 @@ class LLMGateway:
                             "status": "success",
                             "latency_sec": latency
                         })
-                        print(f"[LLM Gateway] ✅ Thành công với [{route.provider_id.upper()}]: '{route.model_name}' trong {latency}s")
+                        print(f"[LLM Gateway] Thành công với [{route.provider_id.upper()}]: '{route.model_name}' trong {latency}s")
                         return result
 
                     # ================= 2. XỬ LÝ QUA GROQ CLOUD LPU =================
@@ -421,7 +421,7 @@ class LLMGateway:
                         except Exception as groq_err:
                             err_text = str(groq_err).lower()
                             if "failed to generate json" in err_text or "failed_generation" in err_text or "json_validate_failed" in err_text:
-                                print(f"[LLM Gateway] 🔧 Groq json_object bị từ chối do thẻ suy luận/cú pháp, đang thử lại chế độ tự làm sạch JSON trên '{route.model_name}'...")
+                                print(f"[LLM Gateway] Groq json_object bị từ chối do thẻ suy luận/cú pháp, đang thử lại chế độ tự làm sạch JSON trên '{route.model_name}'...")
                                 completion = self.groq_client.chat.completions.create(
                                     model=route.model_name,
                                     messages=messages,
@@ -441,7 +441,7 @@ class LLMGateway:
                             "status": "success",
                             "latency_sec": latency
                         })
-                        print(f"[LLM Gateway] ✅ Thành công với [{route.provider_id.upper()}]: '{route.model_name}' trong {latency}s")
+                        print(f"[LLM Gateway] Thành công với [{route.provider_id.upper()}]: '{route.model_name}' trong {latency}s")
                         return result
 
                     # ================= 3. XỬ LÝ QUA OPENROUTER =================
@@ -477,7 +477,7 @@ class LLMGateway:
                             "status": "success",
                             "latency_sec": latency
                         })
-                        print(f"[LLM Gateway] ✅ Thành công với [{route.provider_id.upper()}]: '{route.model_name}' trong {latency}s")
+                        print(f"[LLM Gateway] Thành công với [{route.provider_id.upper()}]: '{route.model_name}' trong {latency}s")
                         return result
 
                 except Exception as e:
@@ -496,12 +496,12 @@ class LLMGateway:
 
                     if is_dead_model:
                         self._dead_models.add(f"{route.provider_id}:{route.model_name}")
-                        print(f"[LLM Gateway] 🚫 Đã loại bỏ vĩnh viễn model không khả dụng [{route.provider_id.upper()}: {route.model_name}] khỏi danh sách định tuyến.")
+                        print(f"[LLM Gateway] Đã loại bỏ vĩnh viễn model không khả dụng [{route.provider_id.upper()}: {route.model_name}] khỏi danh sách định tuyến.")
 
                     # NẾU GẶP 429 TRÊN GOOGLE: THỰC HIỆN EXPONENTIAL BACKOFF (4s -> 8s)
                     if is_rate_limit and not is_dead_model and route.provider_id == "google" and route_attempt < max_route_attempts - 1:
                         backoff_sec = 4.0 if route_attempt == 0 else 8.0
-                        print(f"[LLM Gateway] ⏳ Phát hiện Quota Limit 429 trên [{route.model_name}]. Đang thực hiện Exponential Backoff ({backoff_sec}s)...")
+                        print(f"[LLM Gateway] Phát hiện Quota Limit 429 trên [{route.model_name}]. Đang thực hiện Exponential Backoff ({backoff_sec}s)...")
                         time.sleep(backoff_sec)
                         continue  # Thử lại trên chính model này sau khi đợi
 
@@ -514,8 +514,8 @@ class LLMGateway:
                         "error": err_str[:120],
                         "latency_sec": latency
                     })
-                    print(f"[LLM Gateway] ⚠️ Tuyến [{route.provider_id.upper()}: {route.model_name}] gặp lỗi: {err_str[:120]}")
-                    print("[LLM Gateway] 🔄 Đang tự động chuyển mạch sang tuyến dự phòng kế tiếp...")
+                    print(f"[LLM Gateway] Tuyến [{route.provider_id.upper()}: {route.model_name}] gặp lỗi: {err_str[:120]}")
+                    print("[LLM Gateway] Đang tự động chuyển mạch sang tuyến dự phòng kế tiếp...")
                     time.sleep(0.3)
                     break
 

@@ -249,10 +249,10 @@ def _generate_intelligent_fallback_response(
                 f"- Bước 1: Tính đường chéo mặt sàn: $AC = \\sqrt{{a^2 + a^2}} = a\\sqrt{{2}}$.\n"
                 f"- Bước 2: Dựng cột đứng $CC' = a$, theo Pytago trong $\\triangle ACC'$:\n"
                 f"$$AC' = \\sqrt{{(a\\sqrt{{2}})^2 + a^2}} = \\mathbf{{a\\sqrt{{3}}}}$$\n\n"
-                f"**💡 Gợi ý nội dung tóm gọn chiếu lên slide:**\n"
+                f"**Gợi ý nội dung tóm gọn chiếu lên slide:**\n"
                 f"• Đường chéo đáy: $AC = a\\sqrt{{2}}$\n"
                 f"• Đường chéo không gian: $AC' = \\sqrt{{a^2 + a^2 + a^2}} = a\\sqrt{{3}}$\n\n"
-                f"**❓ Câu hỏi gợi mở cho học sinh:** *'Nếu cạnh phòng tăng gấp đôi thành $2a$ thì đường chéo dài gấp mấy lần?'*"
+                f"**Câu hỏi gợi mở cho học sinh:** *'Nếu cạnh phòng tăng gấp đôi thành $2a$ thì đường chéo dài gấp mấy lần?'*"
             )
             patch = SlidePatchProposal(
                 target_slide_index=slide_num - 1,
@@ -276,7 +276,7 @@ def _generate_intelligent_fallback_response(
                 f"**2. Công thức đường cao tam giác đều:**\n"
                 f"Đường cao tam giác đều cạnh $x$ là $x \\cdot \\frac{{\\sqrt{{3}}}}{{2}}$. Thay $x = a\\sqrt{{2}}$ vào:\n"
                 f"$$AH = (a\\sqrt{{2}}) \\cdot \\frac{{\\sqrt{{3}}}}{{2}} = \\mathbf{{\\frac{{a\\sqrt{{6}}}}{{3}}}}$$\n\n"
-                f"**💡 Gợi ý câu chốt cho học sinh:** *'Nhìn thấy 3 đường chéo của 3 mặt phẳng vuông góc nhau -> Nhớ ngay tam giác đều!'*"
+                f"**Gợi ý câu chốt cho học sinh:** *'Nhìn thấy 3 đường chéo của 3 mặt phẳng vuông góc nhau -> Nhớ ngay tam giác đều!'*"
             )
             patch = SlidePatchProposal(
                 target_slide_index=slide_num - 1,

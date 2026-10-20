@@ -139,4 +139,4 @@ def generate_math_plot(config: dict, figsize: tuple = (6, 4)) -> bytes:
 
 if __name__ == "__main__":
     buf = generate_math_plot({"expression": "x**3 - 3*x", "chart_title": "Đồ thị y = x^3 - 3x"})
-    print(f"✅ Đã tạo thành công ảnh đồ thị Matplotlib! Kích thước: {len(buf)} bytes")
+    print(f"Đã tạo thành công ảnh đồ thị Matplotlib! Kích thước: {len(buf)} bytes")

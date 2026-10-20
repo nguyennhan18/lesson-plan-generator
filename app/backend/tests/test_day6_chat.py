@@ -283,6 +283,6 @@ def test_api_chat_empty_message_validation():
 if __name__ == "__main__":
     import pytest
     print("=" * 70)
-    print("🚀 ĐANG CHẠY TOÀN BỘ BỘ TEST CASE NGÀY 6 (CHAT CO-PILOT)...")
+    print("ĐANG CHẠY TOÀN BỘ BỘ TEST CASE NGÀY 6 (CHAT CO-PILOT)...")
     print("=" * 70)
     sys.exit(pytest.main(["-v", __file__]))

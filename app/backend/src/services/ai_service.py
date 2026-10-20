@@ -1142,12 +1142,12 @@ def generate_lesson_plan(topic: str, subject: str, grade: int, max_retries: int 
             current_prompt = f"{user_prompt}\nLưu ý các lỗi trước:\n{error_feedback}\nHãy khắc phục triệt để theo chuẩn 5512."
         except Exception as e:
             err_msg = str(e)
-            print(f"[AI Service] ⚠️ Lần thử {attempt + 1} gặp lỗi: {err_msg[:120]}")
+            print(f"[AI Service] Lần thử {attempt + 1} gặp lỗi: {err_msg[:120]}")
 
             # GRACEFUL FALLBACK: Nếu đã từng có bản giáo án thành công ở lần thử trước,
             # hoàn trả ngay bản kế hoạch đó kèm cảnh báo, KHÔNG BAO GIỜ ném lỗi 500!
             if last_successful_plan is not None:
-                print("[AI Service] 🛡️ Kích hoạt Graceful Fallback: Trả về bản giáo án gần nhất đã kiểm duyệt!")
+                print("[AI Service] Kích hoạt Graceful Fallback: Trả về bản giáo án gần nhất đã kiểm duyệt!")
                 res = last_validation_result or ValidationResult(is_valid=True, errors=[], warnings=[])
                 res.warnings.append("Hệ thống đã tự động bảo toàn bản kế hoạch thành công gần nhất do mạng/quota gián đoạn.")
                 return last_successful_plan, res
@@ -1227,7 +1227,7 @@ if __name__ == "__main__":
     topic = args.topic
     if not topic:
         try:
-            topic = input("📌 Nhập tên bài dạy / chủ đề cần sinh (VD: Cấp số cộng, Đạo hàm, Tích phân...): ").strip()
+            topic = input("Nhập tên bài dạy / chủ đề cần sinh (VD: Cấp số cộng, Đạo hàm, Tích phân...): ").strip()
         except Exception:
             topic = ""
         if not topic:
@@ -1247,10 +1247,10 @@ if __name__ == "__main__":
     docx_stream = export_lesson_plan_to_docx(plan)
     with open(docx_path, "wb") as f:
         f.write(docx_stream.getbuffer())
-    print(f"✅ Đã xuất ra file Word: {docx_path}")
+    print(f"Đã xuất ra file Word: {docx_path}")
 
     # Xuất Slide dùng chính plan vừa sinh ra
-    print("\n🚀 Đang sinh Slide bài giảng JSON từ AI...")
+    print("\nĐang sinh Slide bài giảng JSON từ AI...")
     try:
         slide_deck = generate_slide_deck(
             topic=topic,
@@ -1260,6 +1260,6 @@ if __name__ == "__main__":
         )
         pptx_path = get_next_test_filepath("pptx")
         export_slide_to_pptx(slide_deck, str(pptx_path))
-        print(f"🎉 Đã xuất thành công file PowerPoint: {pptx_path}")
+        print(f"Đã xuất thành công file PowerPoint: {pptx_path}")
     except Exception as e:
-        print(f"⚠️ Lỗi khi xuất PowerPoint: {e}")
+        print(f"Lỗi khi xuất PowerPoint: {e}")

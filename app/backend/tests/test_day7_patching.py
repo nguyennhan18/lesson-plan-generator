@@ -246,6 +246,6 @@ def test_e2e_full_workflow_chat_to_live_patch():
 if __name__ == "__main__":
     import pytest
     print("=" * 70)
-    print("🚀 ĐANG CHẠY BỘ TEST SUITE TASK 7.4 (E2E LIVE PATCHING & TUẦN 1)...")
+    print("ĐANG CHẠY BỘ TEST SUITE TASK 7.4 (E2E LIVE PATCHING & TUẦN 1)...")
     print("=" * 70)
     sys.exit(pytest.main(["-v", __file__]))

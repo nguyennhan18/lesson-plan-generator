@@ -68,7 +68,7 @@ def root():
 
     return HTMLResponse(content="""
         <div style="font-family: sans-serif; padding: 40px; text-align: center;">
-            <h2>🚀 LessonAI-5512 API Server</h2>
+            <h2>LessonAI-5512 API Server</h2>
             <p>Server đang hoạt động bình thường.</p>
             <p><a href="/docs">Xem tài liệu API Swagger</a> | <a href="/ui">Giao diện Studio</a></p>
         </div>
@@ -397,6 +397,6 @@ app.include_router(ingest_router)
 if __name__ == "__main__":
     import uvicorn
     app_dir = os.path.dirname(os.path.abspath(__file__))
-    print("🚀 Đang khởi chạy Server FastAPI tại http://localhost:8000 ...")
-    print("📖 Xem tài liệu Swagger UI thử nghiệm API tại: http://localhost:8000/docs")
+    print("Đang khởi chạy Server FastAPI tại http://localhost:8000 ...")
+    print("Xem tài liệu Swagger UI thử nghiệm API tại: http://localhost:8000/docs")
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True, app_dir=app_dir)

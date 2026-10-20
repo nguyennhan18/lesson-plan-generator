@@ -431,7 +431,7 @@ def build_content_slide(slide, slide_data: dict, slide_idx: int, total_slides: i
         tf_pb = p_badge.text_frame
         tf_pb.vertical_anchor = MSO_ANCHOR.MIDDLE
         p_run = tf_pb.paragraphs[0].add_run()
-        p_run.text = '📊 Đồ thị Matplotlib Native'
+        p_run.text = 'Đồ thị Matplotlib Native'
         p_run.font.name = 'Arial'
         p_run.font.size = Pt(8.5)
         p_run.font.bold = True
