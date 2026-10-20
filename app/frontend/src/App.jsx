@@ -6,6 +6,10 @@ import RightToolsDock from './components/RightToolsDock';
 import LessonPlanScreen from './components/LessonPlanScreen';
 import SlideEditorScreen from './components/SlideEditorScreen';
 import AnalyticsScreen from './components/AnalyticsScreen';
+import {
+  loadSlideDeckFromBrowserMemory,
+  saveSlideDeckToBrowserMemory
+} from './utils/slideDeckStorage';
 
 // ==============================================================================
 // 1. DỮ LIỆU BÀI MẪU CHUẨN MỰC: PHƯƠNG TRÌNH BẬC HAI (TOÁN 10)
@@ -397,9 +401,16 @@ export default function App() {
   const [showAxes, setShowAxes] = useState(false);
   const [cameraPreset, setCameraPreset] = useState('iso');
 
-  // ================= CENTRAL STATE (MẶC ĐỊNH LÀ PHƯƠNG TRÌNH BẬC HAI) =================
-  const [slideDeck, setSlideDeck] = useState(SAMPLE_QUADRATIC_DECK);
+  // ================= CENTRAL STATE (ĐỒNG BỘ 2 CHIỀU VỚI BỘ NHỚ TRÌNH DUYỆT - TASK 9.2) =================
+  const [slideDeck, setSlideDeck] = useState(() =>
+    loadSlideDeckFromBrowserMemory(SAMPLE_QUADRATIC_DECK)
+  );
   const [lessonPlan, setLessonPlan] = useState(SAMPLE_QUADRATIC_PLAN);
+
+  // Task 9.2: Tự động đồng bộ cấu trúc Slide JSON vào bộ nhớ trình duyệt (sessionStorage) mỗi khi cập nhật
+  useEffect(() => {
+    saveSlideDeckToBrowserMemory(slideDeck);
+  }, [slideDeck]);
 
   // State đồng bộ Phân tích Bảng điểm Z-Score -> Soạn Giáo Án 5512
   const [analyticsData, setAnalyticsData] = useState(null);
@@ -524,7 +535,7 @@ export default function App() {
 
       // Chuyển thẳng về Màn hình Trình Chiếu để giáo viên bắt đầu tiết học
       setActiveScreen('presentation');
-      alert(`🎉 Đã gọi Gemini AI sinh thành công Kế hoạch bài dạy và ${slideData.slides?.length || 0} slide cho chủ đề: "${params.topic}"!`);
+      alert(`Đã gọi Gemini AI sinh thành công Kế hoạch bài dạy và ${slideData.slides?.length || 0} slide cho chủ đề: "${params.topic}"!`);
     } catch (err) {
       console.error(err);
       alert(`Không thể sinh bài từ AI: ${err.message}. Vui lòng kiểm tra server FastAPI và GEMINI_API_KEY.`);

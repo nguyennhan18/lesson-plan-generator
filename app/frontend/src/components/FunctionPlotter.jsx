@@ -27,12 +27,12 @@ export default function FunctionPlotter({
   }, [defaultExpr]);
 
   const presets = [
-    { label: '🏀 Parabol bậc 2 (2 nghiệm): y = x² - 4', val: 'x**2 - 4' },
-    { label: '🎯 Parabol bậc 2 (Nghiệm kép): y = x² - 2x + 1', val: 'x**2 - 2*x + 1' },
-    { label: '☁️ Parabol bậc 2 (Vô nghiệm): y = x² + 2', val: 'x**2 + 2' },
-    { label: '⛹️ Quỹ đạo ném bóng: y = -0.5x² + 2x + 2.5', val: '-0.5*x**2 + 2*x + 2.5' },
-    { label: '📈 Bậc nhất: y = 2x - 1', val: '2*x - 1' },
-    { label: '🌊 Lượng giác: y = 2sin(x)', val: '2*sin(x)' }
+    { label: 'Parabol bậc 2 (2 nghiệm): y = x² - 4', val: 'x**2 - 4' },
+    { label: 'Parabol bậc 2 (Nghiệm kép): y = x² - 2x + 1', val: 'x**2 - 2*x + 1' },
+    { label: 'Parabol bậc 2 (Vô nghiệm): y = x² + 2', val: 'x**2 + 2' },
+    { label: 'Quỹ đạo ném bóng: y = -0.5x² + 2x + 2.5', val: '-0.5*x**2 + 2*x + 2.5' },
+    { label: 'Bậc nhất: y = 2x - 1', val: '2*x - 1' },
+    { label: 'Lượng giác: y = 2sin(x)', val: '2*sin(x)' }
   ];
 
   // Phân tích đặc trưng hàm số bậc hai y = ax^2 + bx + c
@@ -253,7 +253,7 @@ export default function FunctionPlotter({
       <div className="flex items-center justify-between border-b border-slate-800/80 pb-1.5 shrink-0">
         <div>
           <span className="font-bold text-cyan-300 flex items-center gap-1.5 text-xs">
-            📊 {title}
+            {title}
           </span>
           {pedagogicalPurpose && (
             <p className="text-[10px] text-slate-400 mt-0.5">{pedagogicalPurpose}</p>

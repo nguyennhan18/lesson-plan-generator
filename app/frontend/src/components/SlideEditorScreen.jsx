@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Presentation, Download, Plus, Trash2, Edit3, HelpCircle, Save, Sparkles } from 'lucide-react';
 import MathText from './MathText';
 import MathLiveModal from './MathLiveModal';
+import { updateSlideFormulaInDeck } from '../utils/slideDeckStorage';
+import { validateLatexSyntax } from '../utils/latexValidator';
 
 export default function SlideEditorScreen({
   slideDeck,
@@ -20,6 +22,18 @@ export default function SlideEditorScreen({
   // Task 8.2: Trạng thái mở Modal MathLive trong Xưởng Biên Tập Slide
   const [isMathModalOpen, setIsMathModalOpen] = useState(false);
 
+  // Task 9.3: Trạng thái Highlight xác nhận khung Preview KaTeX vừa được cập nhật
+  const [isFormulaUpdated, setIsFormulaUpdated] = useState(false);
+
+  // Task 9.4: Trạng thái lưu lỗi kiểm tra cú pháp LaTeX tại Form Biên Tập
+  const [editorLatexError, setEditorLatexError] = useState(null);
+
+  useEffect(() => {
+    if (!isFormulaUpdated) return;
+    const timer = setTimeout(() => setIsFormulaUpdated(false), 2400);
+    return () => clearTimeout(timer);
+  }, [isFormulaUpdated]);
+
   // Đồng bộ khi đổi slide được chọn hoặc khi slideDeck thay đổi
   useEffect(() => {
     if (slides[selectedSlide]) {
@@ -28,11 +42,26 @@ export default function SlideEditorScreen({
       setBulletsText((cur.bullet_points || []).join('\n'));
       setLatex(cur.main_definition_latex || '');
       setTeacherNote(cur.teacher_note || '');
+      setEditorLatexError(null);
     }
   }, [selectedSlide, slideDeck]);
 
   const handleSaveCurrentSlide = () => {
     if (!slides[selectedSlide]) return;
+
+    // Task 9.4: Kiểm tra cú pháp LaTeX hợp lệ trước khi lưu vào Slide JSON
+    if (String(latex || '').trim()) {
+      const validation = validateLatexSyntax(latex, {
+        displayMode: true,
+        allowPlaceholdersForPreview: false
+      });
+      if (!validation.isValid) {
+        setEditorLatexError(validation.errorMessage);
+        return;
+      }
+    }
+    setEditorLatexError(null);
+
     const updated = [...slides];
     const newBullets = bulletsText.split('\n').filter(line => line.trim().length > 0);
     updated[selectedSlide] = {
@@ -44,7 +73,8 @@ export default function SlideEditorScreen({
     };
     if (setSlideDeck) {
       setSlideDeck({ ...slideDeck, slides: updated });
-      alert(`💾 Đã lưu thay đổi vào Slide ${selectedSlide + 1}!`);
+      setIsFormulaUpdated(true);
+      alert(`Đã lưu thay đổi vào Slide ${selectedSlide + 1}!`);
     }
   };
 
@@ -90,7 +120,7 @@ export default function SlideEditorScreen({
       <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
         <div>
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <span>🛠️</span> Xưởng Biên Tập Slide & Đồ Thị Toán Học
+            Xưởng Biên Tập Slide & Đồ Thị Toán Học
           </h2>
           <p className="text-xs text-slate-400">Chỉnh sửa trực tiếp từng slide bài giảng do AI sinh ra & Xuất file PowerPoint thật</p>
         </div>
@@ -106,7 +136,7 @@ export default function SlideEditorScreen({
         {/* Cột 1: Danh Sách Slide Thumbnails */}
         <div className="col-span-12 lg:col-span-3 glass-panel p-3.5 rounded-2xl border-slate-800 space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-            <span className="text-xs font-bold text-white">📑 Danh Sách Slide ({slides.length})</span>
+            <span className="text-xs font-bold text-white">Danh Sách Slide ({slides.length})</span>
             <button
               onClick={handleAddNewSlide}
               className="p-1 px-2 rounded bg-slate-800 hover:bg-slate-700 text-cyan-400 text-xs flex items-center gap-1 font-medium"
@@ -187,19 +217,37 @@ export default function SlideEditorScreen({
             <input
               type="text"
               value={latex}
-              onChange={(e) => setLatex(e.target.value)}
+              onChange={(e) => {
+                setLatex(e.target.value);
+                setEditorLatexError(null);
+              }}
               onDoubleClick={() => setIsMathModalOpen(true)}
               placeholder="VD: \Delta = b^2 - 4ac hoặc x = \frac{-b \pm \sqrt{\Delta}}{2a}"
               className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-cyan-300 font-mono"
             />
+            {editorLatexError && (
+              <div className="mt-1.5 px-2.5 py-1.5 rounded-lg bg-rose-950/80 border border-rose-500/80 text-[11px] text-rose-200">
+                ⚠️ <strong>Đã chặn lưu:</strong> {editorLatexError}
+              </div>
+            )}
             {latex && (
               <div
                 onDoubleClick={() => setIsMathModalOpen(true)}
                 title="Nhấp đúp (Double-Click) để sửa bằng MathLive"
-                className="mt-1.5 p-2 bg-slate-950/80 hover:bg-slate-900 rounded-lg border border-cyan-800/50 hover:border-cyan-500 text-center cursor-pointer transition"
+                className={`mt-1.5 p-2 rounded-lg border text-center cursor-pointer transition-all duration-500 ${
+                  isFormulaUpdated
+                    ? 'bg-emerald-950/40 border-emerald-400 ring-2 ring-emerald-500/60'
+                    : 'bg-slate-950/80 hover:bg-slate-900 border-cyan-800/50 hover:border-cyan-500'
+                }`}
               >
                 <span className="text-[10px] text-slate-400 block mb-0.5">
-                  Hiển thị KaTeX chuẩn (Nhấp đúp để mở MathLive):
+                  {isFormulaUpdated ? (
+                    <span className="text-emerald-300 font-semibold">
+                      ✓ Đã cập nhật & kết xuất KaTeX mới:
+                    </span>
+                  ) : (
+                    'Hiển thị KaTeX chuẩn (Nhấp đúp để mở MathLive):'
+                  )}
                 </span>
                 <MathText text={latex} block={true} />
               </div>
@@ -269,13 +317,25 @@ export default function SlideEditorScreen({
         </div>
       </div>
 
-      {/* Task 8.2: Modal Popup chỉnh sửa công thức Toán trực quan (MathLive) */}
+      {/* Task 8.2, Task 9.2 & Task 9.3: Modal Popup chỉnh sửa công thức Toán trực quan & Đồng bộ Slide JSON */}
       <MathLiveModal
         isOpen={isMathModalOpen}
         initialLatex={latex}
         fieldLabel={`Công thức trọng tâm (Slide ${selectedSlide + 1})`}
         onClose={() => setIsMathModalOpen(false)}
-        onSave={(formattedLatex) => setLatex(formattedLatex)}
+        onSave={(formattedLatex, rawExpandedLatex) => {
+          setLatex(formattedLatex);
+          setIsFormulaUpdated(true);
+          if (setSlideDeck && slides[selectedSlide]) {
+            const updatedDeck = updateSlideFormulaInDeck(slideDeck, {
+              slideIndex: selectedSlide,
+              targetField: 'main_definition_latex',
+              formattedLatex,
+              rawExpandedLatex
+            });
+            setSlideDeck(updatedDeck);
+          }
+        }}
       />
     </div>
   );

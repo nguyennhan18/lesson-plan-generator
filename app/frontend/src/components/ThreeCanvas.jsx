@@ -294,7 +294,7 @@ export default function ThreeCanvas({
       onWheel={handleWheel}
     >
       <div className="absolute bottom-2 right-2 px-2 py-1 bg-slate-900/80 backdrop-blur rounded text-[11px] text-slate-400 pointer-events-none border border-slate-800 flex items-center gap-1">
-        <span>🖱️ Kéo xoay 360° • Cuộn zoom</span>
+        <span>Kéo xoay 360° • Cuộn zoom</span>
       </div>
     </div>
   );

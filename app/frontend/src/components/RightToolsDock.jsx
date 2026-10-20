@@ -56,7 +56,7 @@ export default function RightToolsDock({
                   : 'text-slate-400 hover:text-white'
               }`}
             >
-              <Box size={14} /> 🧊 Hình Học 3D
+              <Box size={14} /> Hình Học 3D
             </button>
             <button
               onClick={() => setSubTab('graph')}
@@ -66,7 +66,7 @@ export default function RightToolsDock({
                   : 'text-slate-400 hover:text-white'
               }`}
             >
-              <LineChart size={14} /> 📈 Đồ Thị Hàm Số
+              <LineChart size={14} /> Đồ Thị Hàm Số
             </button>
           </div>
         </div>
@@ -171,7 +171,6 @@ export default function RightToolsDock({
                     onClick={() => onQuickGeom('diagonal')}
                     className="w-full text-left p-2 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-slate-800 text-cyan-300 hover:border-cyan-500/50 transition flex items-center gap-2"
                   >
-                    <span>📐</span>
                     <div>
                       <div className="font-semibold text-white">Kẻ đường chéo AC' = a√3</div>
                       <div className="text-[10px] text-slate-400">Định lý Pytago 2 bước không gian</div>
@@ -182,7 +181,6 @@ export default function RightToolsDock({
                     onClick={() => onQuickGeom('altitude')}
                     className="w-full text-left p-2 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-slate-800 text-emerald-300 hover:border-emerald-500/50 transition flex items-center gap-2"
                   >
-                    <span>📏</span>
                     <div>
                       <div className="font-semibold text-white">Hạ vuông góc AH ⊥ B'D'</div>
                       <div className="text-[10px] text-slate-400">Khoảng cách từ 1 điểm đến đường thẳng</div>
@@ -193,7 +191,6 @@ export default function RightToolsDock({
                     onClick={() => onQuickGeom('cross_section')}
                     className="w-full text-left p-2 rounded-lg bg-slate-900/90 hover:bg-slate-800 border border-slate-800 text-amber-300 hover:border-amber-500/50 transition flex items-center gap-2"
                   >
-                    <span>▱</span>
                     <div>
                       <div className="font-semibold text-white">Cắt thiết diện (A'BD)</div>
                       <div className="text-[10px] text-slate-400">Thiết diện tam giác đều S = a²√3/2</div>

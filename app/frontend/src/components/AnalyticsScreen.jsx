@@ -180,7 +180,7 @@ export default function AnalyticsScreen({
       <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
         <div>
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <span>📊</span> Trung Tâm Phân Tích Lớp Học & Bảng Điểm Chuẩn Hóa
+            Trung Tâm Phân Tích Lớp Học & Bảng Điểm Chuẩn Hóa
           </h2>
           <p className="text-xs text-slate-400">
             Tải lên bảng điểm (.xlsx, .csv) để tính Z-Score / T-Score thực tế và tự động phân hóa giáo án 5512
@@ -298,14 +298,14 @@ export default function AnalyticsScreen({
         {/* Differentiation Cards */}
         <div className="col-span-12 lg:col-span-5 glass-panel p-4 rounded-2xl border-slate-800 space-y-3 text-xs">
           <h3 className="font-bold text-white text-sm pb-2 border-b border-slate-800 flex items-center justify-between">
-            <span>👥 Khuyến Nghị Phân Hóa Sư Phạm (CV 5512)</span>
+            <span>Khuyến Nghị Phân Hóa Sư Phạm (CV 5512)</span>
             <FileSpreadsheet size={15} className="text-cyan-400" />
           </h3>
 
           {/* Mục tiêu đầu ra tự động kết xuất từ GradeClassifier */}
           <div className={`p-3 rounded-xl border ${labelBadge.bg} space-y-1`}>
             <strong className={`${labelBadge.color} block font-semibold`}>
-              🎯 Định hướng tự động truyền sang AI Sinh Giáo Án:
+              Định hướng tự động truyền sang AI Sinh Giáo Án:
             </strong>
             <p className="text-slate-200 text-[11px] leading-relaxed">{data.target_outcome}</p>
           </div>
@@ -316,7 +316,7 @@ export default function AnalyticsScreen({
                 key={idx}
                 className="p-2.5 rounded-xl bg-amber-950/40 border border-amber-800/70 text-amber-200 text-[11px] leading-relaxed"
               >
-                ⚠️ {warn}
+                {warn}
               </div>
             ))}
 
@@ -352,7 +352,7 @@ export default function AnalyticsScreen({
         <div className="col-span-12 lg:col-span-7 glass-panel p-4 rounded-2xl border-slate-800 space-y-3 text-xs">
           <div className="flex items-center justify-between pb-2 border-b border-slate-800">
             <h3 className="font-bold text-white text-sm">
-              📋 Bảng Điểm & Chỉ Số Chuẩn Hóa Z-Score / T-Score
+              Bảng Điểm & Chỉ Số Chuẩn Hóa Z-Score / T-Score
             </h3>
             <span className="text-[11px] text-slate-400">
               Hiển thị {(data.student_evaluations || []).length} bản ghi

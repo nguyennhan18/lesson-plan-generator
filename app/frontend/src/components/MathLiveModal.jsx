@@ -2,40 +2,123 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { X, Check, Sparkles, Keyboard, Eye, Code2, CheckCircle2, AlertTriangle } from 'lucide-react';
 import katex from 'katex';
 import MathText from './MathText';
+import { validateLatexSyntax } from '../utils/latexValidator';
 
 /**
- * Helper: Tách ký hiệu bao toán học ($...$ hoặc $$...$$) để nạp chuỗi LaTeX thuần
- * vào Web Component <math-field> của MathLive.
+ * Helper: Tách ký hiệu bao toán học ($...$ hoặc $$...$$) và ngữ cảnh văn bản Tiếng Việt xung quanh
+ * để nạp đúng biểu thức LaTeX thuần vào Web Component <math-field> của MathLive.
+ * Hỗ trợ cả công thức thuần ("$$y = 2x$$") lẫn câu văn pha trộn ("Xét hàm số $y = 2x$ trên R").
  */
-function unwrapLatexDelimiters(rawText = '') {
-  const trimmed = String(rawText).trim();
+export function unwrapLatexDelimiters(rawText = '') {
+  const original = String(rawText ?? '');
+  const trimmed = original.trim();
+
+  if (!trimmed) {
+    return {
+      cleanLatex: '',
+      delimiter: '$$',
+      prefix: '',
+      suffix: ''
+    };
+  }
+
+  // Trường hợp 1: Chuỗi thuần công thức khối $$...$$
   if (trimmed.startsWith('$$') && trimmed.endsWith('$$') && trimmed.length >= 4) {
+    const inner = trimmed.slice(2, -2);
+    if (!inner.includes('$$')) {
+      return {
+        cleanLatex: inner.trim(),
+        delimiter: '$$',
+        prefix: '',
+        suffix: ''
+      };
+    }
+  }
+
+  // Trường hợp 2: Chuỗi thuần công thức nội dòng $...$
+  if (trimmed.startsWith('$') && trimmed.endsWith('$') && !trimmed.startsWith('$$') && trimmed.length >= 2) {
+    const inner = trimmed.slice(1, -1);
+    if (!inner.includes('$')) {
+      return {
+        cleanLatex: inner.trim(),
+        delimiter: '$',
+        prefix: '',
+        suffix: ''
+      };
+    }
+  }
+
+  // Trường hợp 3: Câu văn Tiếng Việt pha trộn công thức ($...$ hoặc $$...$$ nằm giữa câu)
+  const embeddedRegex = /(\$\$[\s\S]+?\$\$|\$[^\$\n]+?\$)/;
+  const match = embeddedRegex.exec(original);
+  if (match) {
+    const token = match[0];
+    const matchIndex = match.index;
+    const prefix = original.slice(0, matchIndex);
+    const suffix = original.slice(matchIndex + token.length);
+    const isBlock = token.startsWith('$$');
+    const cleanLatex = isBlock ? token.slice(2, -2).trim() : token.slice(1, -1).trim();
+
     return {
-      cleanLatex: trimmed.slice(2, -2).trim(),
-      delimiter: '$$'
+      cleanLatex,
+      delimiter: isBlock ? '$$' : '$',
+      prefix,
+      suffix
     };
   }
-  if (trimmed.startsWith('$') && trimmed.endsWith('$') && trimmed.length >= 2) {
-    return {
-      cleanLatex: trimmed.slice(1, -1).trim(),
-      delimiter: '$'
-    };
-  }
+
+  // Trường hợp 4: Chuỗi công thức thuần không có dấu $ bao ngoài
   return {
     cleanLatex: trimmed,
-    delimiter: '$$'
+    delimiter: '$$',
+    prefix: '',
+    suffix: ''
   };
 }
 
 /**
- * Helper: Đóng gói lại chuỗi LaTeX chuẩn khi lưu trả về Slide JSON.
+ * Helper: Đóng gói lại chuỗi LaTeX chuẩn với cặp dấu bao ($...$ hoặc $$...$$)
+ * và ghép lại ngữ cảnh câu văn Tiếng Việt (prefix / suffix) khi lưu trả về Slide JSON.
  */
-function wrapLatexDelimiters(cleanLatex = '', delimiter = '$$') {
+export function wrapLatexDelimiters(cleanLatex = '', delimiter = '$$', prefix = '', suffix = '') {
   const trimmed = String(cleanLatex).trim();
-  if (!trimmed) return '';
-  if (delimiter === '$$') return `$$${trimmed}$$`;
-  if (delimiter === '$') return `$${trimmed}$`;
-  return trimmed;
+  if (!trimmed) {
+    return `${prefix}${suffix}`.trim();
+  }
+  let wrapped = trimmed;
+  if (delimiter === '$$') {
+    wrapped = `$$${trimmed}$$`;
+  } else if (delimiter === '$') {
+    wrapped = `$${trimmed}$`;
+  }
+  return `${prefix}${wrapped}${suffix}`;
+}
+
+/**
+ * Task 9.1: Trích xuất chuỗi LaTeX chuẩn hóa từ Web Component <math-field>
+ * thông qua `mathfield.getValue('latex-expanded')` khi Giáo viên bấm "Lưu công thức".
+ */
+export function getExpandedLatexFromMathField(mathFieldEl, fallbackLatex = '') {
+  let rawLatex = '';
+
+  if (mathFieldEl) {
+    if (typeof mathFieldEl.getValue === 'function') {
+      rawLatex = mathFieldEl.getValue('latex-expanded') || mathFieldEl.getValue() || mathFieldEl.value || '';
+    } else if (typeof mathFieldEl.value === 'string') {
+      rawLatex = mathFieldEl.value;
+    }
+  }
+
+  if (!rawLatex) {
+    rawLatex = String(fallbackLatex || '');
+  }
+
+  // Chuẩn hóa serialization:
+  // 1. Giữ nội dung bên trong \placeholder{content} nếu có, hoặc xóa \placeholder{} rỗng
+  // 2. Chuẩn hóa khoảng trắng dư thừa ở hai đầu
+  return String(rawLatex)
+    .replace(/\\placeholder\{([^}]*)\}/g, '$1')
+    .trim();
 }
 
 /**
@@ -201,11 +284,12 @@ function configureVietnameseNativeVirtualKeyboard() {
 }
 
 /**
- * Task 8.2, 8.3 & 8.4: Modal Popup chỉnh sửa công thức Toán trực quan (MathLive <math-field>)
+ * Task 8.2, 8.3, 8.4 & Task 9.1: Modal Popup chỉnh sửa công thức Toán trực quan (MathLive <math-field>)
  * - Task 8.2: Mở Popup khi giáo viên click đúp vào công thức trên Slide.
  * - Task 8.3: Bàn phím ảo Toán học tiếng Việt chuẩn THPT (Toán 10, 11, 12).
- * - Task 8.4: Lắng nghe sự kiện `input` trên MathLive để hiển thị bản xem trước (Preview)
- *   bằng KaTeX theo thời gian thực kèm kiểm tra cú pháp tức thì.
+ * - Task 8.4: Lắng nghe sự kiện `input` trên MathLive để hiển thị bản xem trước (Preview) bằng KaTeX.
+ * - Task 9.1: Khi GV bấm "Lưu công thức", lấy chuỗi LaTeX từ `mathfield.getValue('latex-expanded')`
+ *   kèm bảo toàn ngữ cảnh văn bản (prefix/suffix).
  */
 export default function MathLiveModal({
   isOpen,
@@ -216,8 +300,11 @@ export default function MathLiveModal({
 }) {
   const mathFieldRef = useRef(null);
   const [delimiter, setDelimiter] = useState('$$');
+  const [textContext, setTextContext] = useState({ prefix: '', suffix: '' });
   const [currentLatex, setCurrentLatex] = useState('');
   const [activeKeyboardTab, setActiveKeyboardTab] = useState('algebra');
+  // Task 9.4: Trạng thái lưu lỗi kiểm duyệt cú pháp LaTeX khi Giáo viên bấm "Lưu công thức"
+  const [saveError, setSaveError] = useState(null);
 
   // Khởi tạo giá trị cho <math-field> và cấu hình bàn phím ảo tiếng Việt mỗi khi mở Modal
   useEffect(() => {
@@ -225,9 +312,11 @@ export default function MathLiveModal({
 
     configureVietnameseNativeVirtualKeyboard();
 
-    const { cleanLatex, delimiter: detectedDelim } = unwrapLatexDelimiters(initialLatex);
+    const { cleanLatex, delimiter: detectedDelim, prefix, suffix } = unwrapLatexDelimiters(initialLatex);
     setDelimiter(detectedDelim);
+    setTextContext({ prefix, suffix });
     setCurrentLatex(cleanLatex);
+    setSaveError(null);
 
     const mf = mathFieldRef.current;
     if (mf) {
@@ -260,6 +349,7 @@ export default function MathLiveModal({
           ? target.getValue('latex-expanded') || target.value
           : target?.value || '';
       setCurrentLatex(expandedLatex);
+      setSaveError(null);
     };
 
     mf.addEventListener('input', handleMathLiveInput);
@@ -268,15 +358,22 @@ export default function MathLiveModal({
     };
   }, [isOpen]);
 
-  // Task 8.4: Kiểm tra tính hợp lệ cú pháp KaTeX theo thời gian thực khi currentLatex thay đổi
+  // Task 8.4 & Task 9.4: Kiểm tra tính hợp lệ cú pháp KaTeX theo thời gian thực khi currentLatex thay đổi
   const katexValidation = useMemo(() => {
     const clean = String(currentLatex || '').trim();
     if (!clean) {
       return { isValid: true, errorMsg: null };
     }
     try {
-      // Loại bỏ ký hiệu placeholder tạm thời của MathLive (\placeholder{}) khi kiểm thử KaTeX
+      // Loại bỏ ký hiệu placeholder tạm thời của MathLive (\placeholder{}) khi kiểm thử KaTeX Preview
       const normalizedForCheck = clean.replace(/\\placeholder\{[^}]*\}/g, '\\square');
+      const result = validateLatexSyntax(normalizedForCheck, {
+        displayMode: delimiter === '$$',
+        allowPlaceholdersForPreview: true
+      });
+      if (!result.isValid) {
+        return { isValid: false, errorMsg: result.errorMessage };
+      }
       katex.renderToString(normalizedForCheck, {
         displayMode: delimiter === '$$',
         throwOnError: true,
@@ -319,6 +416,7 @@ export default function MathLiveModal({
    * Task 8.3: Chèn cấu trúc Toán học từ nút bấm bàn phím ảo Tiếng Việt vào đúng vị trí con trỏ của <math-field>
    */
   const handleInsertMathTemplate = (latexTemplate) => {
+    setSaveError(null);
     const mf = mathFieldRef.current;
     if (mf) {
       try {
@@ -351,6 +449,7 @@ export default function MathLiveModal({
   const handleRawLatexInputChange = (e) => {
     const nextVal = e.target.value;
     setCurrentLatex(nextVal);
+    setSaveError(null);
     const mf = mathFieldRef.current;
     if (mf) {
       if (typeof mf.setValue === 'function') {
@@ -361,19 +460,43 @@ export default function MathLiveModal({
     }
   };
 
+  /**
+   * Task 9.1 & Task 9.4: Khi GV bấm "Lưu công thức":
+   * 1. Lấy chuỗi LaTeX từ `mathfield.getValue('latex-expanded')`.
+   * 2. Chạy hàm kiểm tra cú pháp đa tầng `validateLatexSyntax(...)` trước khi lưu để tránh hỏng Slide.
+   * 3. Nếu hợp lệ mới đóng gói delimiter + ngữ cảnh và gọi `onSave`.
+   */
   const handleConfirmSave = () => {
     const mf = mathFieldRef.current;
-    const rawLatex =
+    const rawFromField =
       mf && typeof mf.getValue === 'function'
-        ? mf.getValue('latex-expanded') || mf.value
+        ? mf.getValue('latex-expanded') || mf.value || currentLatex
         : currentLatex;
 
-    const cleanedFinalLatex = String(rawLatex || '').replace(/\\placeholder\{[^}]*\}/g, '');
-    const formatted = wrapLatexDelimiters(cleanedFinalLatex, delimiter);
+    // Task 9.4: Kiểm tra cú pháp LaTeX nghiêm ngặt trước khi cho phép lưu
+    const validation = validateLatexSyntax(rawFromField, {
+      displayMode: delimiter === '$$',
+      allowPlaceholdersForPreview: false
+    });
+
+    if (!validation.isValid) {
+      setSaveError(validation.errorMessage || 'Công thức LaTeX không hợp lệ, vui lòng kiểm tra lại.');
+      return;
+    }
+
+    const expandedLatex = getExpandedLatexFromMathField(mf, validation.normalizedLatex);
+    const formattedSlideText = wrapLatexDelimiters(
+      expandedLatex,
+      delimiter,
+      textContext.prefix,
+      textContext.suffix
+    );
+
+    setSaveError(null);
     if (window.mathVirtualKeyboard?.visible) {
       window.mathVirtualKeyboard.hide();
     }
-    onSave?.(formatted, cleanedFinalLatex);
+    onSave?.(formattedSlideText, expandedLatex);
     onClose?.();
   };
 
@@ -393,6 +516,8 @@ export default function MathLiveModal({
   const currentTabConfig =
     VIETNAMESE_MATH_KEYBOARD_TABS.find((t) => t.id === activeKeyboardTab) ||
     VIETNAMESE_MATH_KEYBOARD_TABS[0];
+
+  const hasSurroundingText = Boolean(textContext.prefix || textContext.suffix);
 
   return (
     <div
@@ -440,6 +565,18 @@ export default function MathLiveModal({
 
         {/* Body: Ô nhập công thức WYSIWYG <math-field>, Bàn phím ảo Tiếng Việt & KaTeX Real-time Preview */}
         <div className="p-5 space-y-4 max-h-[82vh] overflow-y-auto">
+          {/* Hiển thị ngữ cảnh câu văn nếu công thức nằm trong một dòng bullet_points có chữ Tiếng Việt */}
+          {hasSurroundingText && (
+            <div className="px-3.5 py-2 rounded-xl bg-slate-950/90 border border-slate-800 text-xs text-slate-300 flex flex-wrap items-center gap-1.5">
+              <span className="text-cyan-400 font-semibold">📌 Ngữ cảnh câu trên Slide:</span>
+              {textContext.prefix && <span className="text-slate-400">"{textContext.prefix}"</span>}
+              <span className="px-2 py-0.5 rounded bg-cyan-950 border border-cyan-700/60 text-cyan-300 font-mono text-[11px]">
+                [Công thức đang sửa]
+              </span>
+              {textContext.suffix && <span className="text-slate-400">"{textContext.suffix}"</span>}
+            </div>
+          )}
+
           <div className="flex items-center justify-between text-xs">
             <label className="text-slate-300 font-medium">
               1. Ô nhập công thức trực quan (Click vào ô hoặc chọn nút bên dưới):
@@ -583,8 +720,13 @@ export default function MathLiveModal({
             <div className="min-h-[60px] px-4 py-3 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-center text-cyan-200 text-base md:text-lg font-bold">
               {previewLatexForKatex ? (
                 <MathText
-                  text={wrapLatexDelimiters(previewLatexForKatex, delimiter)}
-                  block={delimiter === '$$'}
+                  text={wrapLatexDelimiters(
+                    previewLatexForKatex,
+                    delimiter,
+                    textContext.prefix,
+                    textContext.suffix
+                  )}
+                  block={delimiter === '$$' && !hasSurroundingText}
                 />
               ) : (
                 <span className="text-xs font-normal text-slate-500 italic">
@@ -596,7 +738,7 @@ export default function MathLiveModal({
             {/* Hiển thị & cho phép chỉnh sửa chuỗi mã nguồn LaTeX thực tế */}
             <div className="flex items-center gap-2 pt-1">
               <span className="text-[11px] text-slate-400 flex items-center gap-1 shrink-0 font-mono">
-                <Code2 size={12} className="text-cyan-400" /> Chuỗi LaTeX:
+                <Code2 size={12} className="text-cyan-400" /> Chuỗi LaTeX (`latex-expanded`):
               </span>
               <input
                 type="text"
@@ -610,6 +752,19 @@ export default function MathLiveModal({
             {!katexValidation.isValid && katexValidation.errorMsg && (
               <div className="text-[11px] text-amber-300/90 bg-amber-950/30 border border-amber-800/50 rounded-lg px-2.5 py-1.5 font-mono">
                 ⚠️ Chi tiết cú pháp: {katexValidation.errorMsg}
+              </div>
+            )}
+
+            {/* Task 9.4: Khung cảnh báo chặn lưu khi Giáo viên bấm "Lưu công thức" mà cú pháp LaTeX chưa hợp lệ */}
+            {saveError && (
+              <div className="text-xs text-rose-200 bg-rose-950/80 border border-rose-500/80 rounded-xl px-3.5 py-2.5 flex items-start gap-2 shadow-lg">
+                <AlertTriangle size={15} className="text-rose-400 shrink-0 mt-0.5" />
+                <div>
+                  <strong className="font-bold text-rose-300 block">
+                    Đã chặn lưu để bảo vệ Slide khỏi lỗi hiển thị:
+                  </strong>
+                  <span>{saveError}</span>
+                </div>
               </div>
             )}
           </div>
@@ -635,7 +790,7 @@ export default function MathLiveModal({
             className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-lg shadow-cyan-950/50 transition"
           >
             <Check size={15} />
-            <span>Áp dụng vào Slide</span>
+            <span>Lưu công thức</span>
           </button>
         </div>
       </div>

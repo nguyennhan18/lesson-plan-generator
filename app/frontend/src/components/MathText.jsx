@@ -2,8 +2,24 @@ import React from 'react';
 import katex from 'katex';
 
 /**
- * MathText - Component hiển thị công thức Toán học chuẩn KaTeX
- * Tự động nhận diện cú pháp inline ($...$), block ($$...$$), và các lệnh LaTeX thuần.
+ * Helper: Bóc tách dấu bao $$...$$ hoặc $...$ ở hai đầu chuỗi công thức khối
+ * để KaTeX render chuẩn xác dù công thức được lưu ở chế độ $$ hay $.
+ */
+export function stripOuterMathDelimiters(rawStr = '') {
+  const trimmed = String(rawStr).trim();
+  if (trimmed.startsWith('$$') && trimmed.endsWith('$$') && trimmed.length >= 4) {
+    return trimmed.slice(2, -2).trim();
+  }
+  if (trimmed.startsWith('$') && trimmed.endsWith('$') && trimmed.length >= 2) {
+    return trimmed.slice(1, -1).trim();
+  }
+  return trimmed;
+}
+
+/**
+ * MathText - Component hiển thị công thức Toán học chuẩn KaTeX (Task 9.3)
+ * Tự động nhận diện cú pháp inline ($...$), block ($$...$$), và các lệnh LaTeX mở rộng
+ * từ MathLive (`latex-expanded`).
  * Thiết kế an toàn, không bao giờ gây sập UI nếu công thức bị lỗi cú pháp.
  */
 export default function MathText({ text = '', block = false, className = '' }) {
@@ -12,7 +28,7 @@ export default function MathText({ text = '', block = false, className = '' }) {
 
   // 1. Chế độ khối (Block Display Mode) hoặc chuỗi thuần công thức
   if (block) {
-    const cleanFormula = rawStr.replace(/^\$\$|\$\$$/g, '').trim();
+    const cleanFormula = stripOuterMathDelimiters(rawStr);
     try {
       const html = katex.renderToString(cleanFormula, {
         displayMode: true,
@@ -25,7 +41,7 @@ export default function MathText({ text = '', block = false, className = '' }) {
           dangerouslySetInnerHTML={{ __html: html }}
         />
       );
-    } catch (e) {
+    } catch {
       return <div className={`font-mono text-cyan-300 ${className}`}>{cleanFormula}</div>;
     }
   }
@@ -53,10 +69,16 @@ export default function MathText({ text = '', block = false, className = '' }) {
     parts.push({ type: 'text', content: rawStr.substring(lastIndex) });
   }
 
-  // 3. Nếu không có cặp dấu $ nào nhưng chứa các lệnh LaTeX đặc thù (VD: \frac, \Delta, \sqrt)
+  // 3. Nếu không có cặp dấu $ nào nhưng chứa các lệnh LaTeX đặc thù hoặc biểu thức toán thuần
   if (parts.length === 1 && parts[0].type === 'text') {
-    const content = parts[0].content;
-    if (/\\(frac|Delta|sqrt|alpha|beta|pi|times|pm|sum|int|le|ge|neq|in|subset|quad|text|mathbf)/.test(content)) {
+    const content = parts[0].content.trim();
+    const hasLatexCommand =
+      /\\(frac|Delta|sqrt|alpha|beta|pi|times|pm|sum|int|lim|vec|overrightarrow|widehat|begin|mathbb|varnothing|iff|ln|log|sin|cos|tan|perp|parallel|infty|cdot|le|ge|neq|in|subset|quad|text|mathbf)/.test(
+        content
+      );
+    const isPureEquation = /^[a-zA-Z0-9\s+\-*/=^_()[\]{}.,]+$/.test(content) && /[=^_]/.test(content);
+
+    if (hasLatexCommand || isPureEquation) {
       try {
         const html = katex.renderToString(content, {
           displayMode: false,
@@ -69,7 +91,7 @@ export default function MathText({ text = '', block = false, className = '' }) {
             dangerouslySetInnerHTML={{ __html: html }}
           />
         );
-      } catch (e) {
+      } catch {
         // Fallback về text thường
       }
     }
@@ -94,7 +116,7 @@ export default function MathText({ text = '', block = false, className = '' }) {
               className={p.type === 'display' ? 'block my-1 text-center' : 'inline-block px-0.5'}
             />
           );
-        } catch (e) {
+        } catch {
           return <span key={idx} className="font-mono text-cyan-300 font-semibold">{p.content}</span>;
         }
       })}

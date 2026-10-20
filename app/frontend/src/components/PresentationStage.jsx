@@ -4,6 +4,7 @@ import ThreeCanvas from './ThreeCanvas';
 import FunctionPlotter from './FunctionPlotter';
 import MathText from './MathText';
 import MathLiveModal from './MathLiveModal';
+import { updateSlideFormulaInDeck } from '../utils/slideDeckStorage';
 
 export default function PresentationStage({
   slideDeck,
@@ -42,6 +43,9 @@ export default function PresentationStage({
     fieldLabel: ''
   });
 
+  // Task 9.3: Trạng thái đánh dấu hiệu ứng Highlight xác nhận vị trí công thức vừa được render lại bằng KaTeX
+  const [recentlyUpdatedFormula, setRecentlyUpdatedFormula] = useState(null);
+
   const handleOpenMathModal = (targetField, initialValue, fieldLabel, bulletIndex = null) => {
     setMathModalState({
       isOpen: true,
@@ -52,27 +56,44 @@ export default function PresentationStage({
     });
   };
 
-  const handleSaveMathModal = (formattedLatex) => {
+  // Task 9.2 & Task 9.3: Cập nhật chuỗi LaTeX mới vào Slide JSON và kích hoạt re-render KaTeX kèm hiệu ứng Highlight
+  const handleSaveMathModal = (formattedLatex, rawExpandedLatex = '') => {
     if (!setSlideDeck || !slides[currentSlide]) return;
-    const updatedSlides = [...slides];
-    const targetSlide = { ...updatedSlides[currentSlide] };
-
-    if (mathModalState.targetField === 'main_definition_latex') {
-      targetSlide.main_definition_latex = formattedLatex;
-    } else if (
-      mathModalState.targetField === 'bullet_point' &&
-      typeof mathModalState.bulletIndex === 'number'
-    ) {
-      const updatedBullets = [...(targetSlide.bullet_points || [])];
-      updatedBullets[mathModalState.bulletIndex] = formattedLatex;
-      targetSlide.bullet_points = updatedBullets;
-    }
-
-    updatedSlides[currentSlide] = targetSlide;
-    setSlideDeck({
-      ...slideDeck,
-      slides: updatedSlides
+    const updatedDeck = updateSlideFormulaInDeck(slideDeck, {
+      slideIndex: currentSlide,
+      targetField: mathModalState.targetField,
+      bulletIndex: mathModalState.bulletIndex,
+      formattedLatex,
+      rawExpandedLatex
     });
+    setSlideDeck(updatedDeck);
+
+    // Kích hoạt hiệu ứng highlight xác nhận công thức vừa được render lại bằng KaTeX
+    setRecentlyUpdatedFormula({
+      slideIndex: currentSlide,
+      targetField: mathModalState.targetField,
+      bulletIndex: mathModalState.bulletIndex,
+      timestamp: Date.now()
+    });
+  };
+
+  // Tự động tắt hiệu ứng highlight sau 2.4 giây
+  useEffect(() => {
+    if (!recentlyUpdatedFormula) return;
+    const timer = setTimeout(() => {
+      setRecentlyUpdatedFormula(null);
+    }, 2400);
+    return () => clearTimeout(timer);
+  }, [recentlyUpdatedFormula]);
+
+  const isFormulaRecentlyUpdated = (targetField, bulletIndex = null) => {
+    if (!recentlyUpdatedFormula) return false;
+    if (recentlyUpdatedFormula.slideIndex !== currentSlide) return false;
+    if (recentlyUpdatedFormula.targetField !== targetField) return false;
+    if (targetField === 'bullet_point' && recentlyUpdatedFormula.bulletIndex !== bulletIndex) {
+      return false;
+    }
+    return true;
   };
 
   // Reset bình chọn khi chuyển slide
@@ -136,7 +157,7 @@ export default function PresentationStage({
                     : 'text-slate-300 hover:text-white'
                 }`}
               >
-                🏀 PT Bậc Hai (Toán 10)
+                PT Bậc Hai (Toán 10)
               </button>
               <button
                 onClick={() => onSwitchSample('cube')}
@@ -146,7 +167,7 @@ export default function PresentationStage({
                     : 'text-slate-300 hover:text-white'
                 }`}
               >
-                🧊 Hình Lập Phương (Toán 11)
+                Hình Lập Phương (Toán 11)
               </button>
             </div>
           )}
@@ -255,24 +276,36 @@ export default function PresentationStage({
                 <div className="grid grid-cols-12 gap-5 my-3 items-center flex-1">
                   <div className="col-span-7 space-y-3">
                     <ul className="space-y-2 text-sm text-slate-800 font-serif">
-                      {(slide.bullet_points || []).map((pt, i) => (
-                        <li
-                          key={i}
-                          onDoubleClick={() =>
-                            handleOpenMathModal(
-                              'bullet_point',
-                              pt,
-                              `Ý trọng tâm #${i + 1} (Slide ${currentSlide + 1})`,
-                              i
-                            )
-                          }
-                          title="Nhấp đúp (Double-Click) để chỉnh sửa công thức bằng MathLive"
-                          className="flex items-start gap-2 leading-relaxed rounded px-1.5 py-0.5 hover:bg-blue-100/70 cursor-pointer transition"
-                        >
-                          <span className="text-blue-700 font-bold">•</span>
-                          <span><MathText text={pt} /></span>
-                        </li>
-                      ))}
+                      {(slide.bullet_points || []).map((pt, i) => {
+                        const isUpdated = isFormulaRecentlyUpdated('bullet_point', i);
+                        return (
+                          <li
+                            key={i}
+                            onDoubleClick={() =>
+                              handleOpenMathModal(
+                                'bullet_point',
+                                pt,
+                                `Ý trọng tâm #${i + 1} (Slide ${currentSlide + 1})`,
+                                i
+                              )
+                            }
+                            title="Nhấp đúp (Double-Click) để chỉnh sửa công thức bằng MathLive"
+                            className={`flex items-start gap-2 leading-relaxed rounded px-1.5 py-0.5 cursor-pointer transition-all duration-500 ${
+                              isUpdated
+                                ? 'bg-emerald-100 ring-2 ring-emerald-500 shadow-sm'
+                                : 'hover:bg-blue-100/70'
+                            }`}
+                          >
+                            <span className="text-blue-700 font-bold">•</span>
+                            <span className="flex-1"><MathText text={pt} /></span>
+                            {isUpdated && (
+                              <span className="text-[10px] font-sans font-bold text-emerald-700 bg-emerald-200/80 px-1.5 py-0.5 rounded shrink-0">
+                                ✓ Đã cập nhật KaTeX
+                              </span>
+                            )}
+                          </li>
+                        );
+                      })}
                     </ul>
 
                     {slide.main_definition_latex && (
@@ -285,12 +318,22 @@ export default function PresentationStage({
                           )
                         }
                         title="Nhấp đúp (Double-Click) để chỉnh sửa công thức bằng MathLive"
-                        className="p-3 bg-blue-50 hover:bg-blue-100/80 border-l-4 border-blue-800 rounded text-blue-950 font-bold text-base my-2 cursor-pointer transition relative group"
+                        className={`p-3 border-l-4 rounded text-blue-950 font-bold text-base my-2 cursor-pointer transition-all duration-500 relative group ${
+                          isFormulaRecentlyUpdated('main_definition_latex')
+                            ? 'bg-emerald-50 border-emerald-600 ring-2 ring-emerald-500 shadow-md'
+                            : 'bg-blue-50 hover:bg-blue-100/80 border-blue-800'
+                        }`}
                       >
                         <MathText text={slide.main_definition_latex} block={true} />
-                        <span className="opacity-0 group-hover:opacity-100 transition text-[10px] font-normal text-blue-700 absolute top-1 right-2">
-                          ✏️ Click đúp để sửa MathLive
-                        </span>
+                        {isFormulaRecentlyUpdated('main_definition_latex') ? (
+                          <span className="text-[10px] font-sans font-bold text-emerald-700 bg-emerald-200/90 px-2 py-0.5 rounded absolute top-1 right-2">
+                            ✓ Đã cập nhật KaTeX
+                          </span>
+                        ) : (
+                          <span className="opacity-0 group-hover:opacity-100 transition text-[10px] font-normal text-blue-700 absolute top-1 right-2">
+                            Click đúp để sửa MathLive
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>
@@ -366,7 +409,7 @@ export default function PresentationStage({
                           </span>
                           {isSelected && (
                             <span className="text-[11px] font-bold">
-                              {opt.is_correct ? '✅ CHÍNH XÁC' : '❌ CHƯA ĐÚNG'}
+                              {opt.is_correct ? 'CHÍNH XÁC' : 'CHƯA ĐÚNG'}
                             </span>
                           )}
                           <span className="font-mono text-slate-400">{pct}%</span>
@@ -388,7 +431,7 @@ export default function PresentationStage({
                 {showExplanation && (
                   <div className="p-3 rounded-xl bg-slate-900/95 border border-slate-700 text-xs space-y-1">
                     <strong className="text-amber-400 flex items-center gap-1.5 font-bold">
-                      💡 Phân Tích Sư Phạm & Bẫy Sai Lầm (Distractor Analysis):
+                      Phân Tích Sư Phạm & Bẫy Sai Lầm (Distractor Analysis):
                     </strong>
                     <div className="text-slate-300 leading-relaxed space-y-1">
                       {slide.quiz_options?.map((opt) => (
@@ -408,36 +451,49 @@ export default function PresentationStage({
                   <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
                     <div className="flex items-center justify-between">
                       <strong className="text-cyan-400 block text-xs font-semibold uppercase tracking-wider">
-                        📌 Trọng tâm kiến thức:
+                        Trọng tâm kiến thức:
                       </strong>
                       <span className="text-[10px] text-slate-500">
                         Nhấp đúp vào dòng bất kỳ để sửa Toán
                       </span>
                     </div>
                     <ul className="space-y-2 text-slate-200">
-                      {(slide.bullet_points || []).map((pt, i) => (
-                        <li
-                          key={i}
-                          onDoubleClick={() =>
-                            handleOpenMathModal(
-                              'bullet_point',
-                              pt,
-                              `Ý trọng tâm #${i + 1} (Slide ${currentSlide + 1})`,
-                              i
-                            )
-                          }
-                          title="Nhấp đúp (Double-Click) để chỉnh sửa công thức bằng MathLive"
-                          className="flex items-start gap-2 leading-relaxed rounded-lg px-2 py-1 hover:bg-slate-800/80 border border-transparent hover:border-cyan-800/50 cursor-pointer transition group"
-                        >
-                          <span className="text-cyan-400 font-bold shrink-0">•</span>
-                          <span className="flex-1"><MathText text={pt} /></span>
-                          <Edit3 size={12} className="text-cyan-400 opacity-0 group-hover:opacity-100 shrink-0 mt-1 transition" />
-                        </li>
-                      ))}
+                      {(slide.bullet_points || []).map((pt, i) => {
+                        const isUpdated = isFormulaRecentlyUpdated('bullet_point', i);
+                        return (
+                          <li
+                            key={i}
+                            onDoubleClick={() =>
+                              handleOpenMathModal(
+                                'bullet_point',
+                                pt,
+                                `Ý trọng tâm #${i + 1} (Slide ${currentSlide + 1})`,
+                                i
+                              )
+                            }
+                            title="Nhấp đúp (Double-Click) để chỉnh sửa công thức bằng MathLive"
+                            className={`flex items-start gap-2 leading-relaxed rounded-lg px-2 py-1 border cursor-pointer transition-all duration-500 group ${
+                              isUpdated
+                                ? 'bg-emerald-950/40 border-emerald-400 ring-2 ring-emerald-500/60 shadow-lg shadow-emerald-950/50'
+                                : 'hover:bg-slate-800/80 border-transparent hover:border-cyan-800/50'
+                            }`}
+                          >
+                            <span className="text-cyan-400 font-bold shrink-0">•</span>
+                            <span className="flex-1"><MathText text={pt} /></span>
+                            {isUpdated ? (
+                              <span className="px-1.5 py-0.5 rounded bg-emerald-500/20 border border-emerald-400/60 text-emerald-300 text-[10px] font-semibold shrink-0 flex items-center gap-1">
+                                <Check size={10} /> Đã cập nhật KaTeX
+                              </span>
+                            ) : (
+                              <Edit3 size={12} className="text-cyan-400 opacity-0 group-hover:opacity-100 shrink-0 mt-1 transition" />
+                            )}
+                          </li>
+                        );
+                      })}
                     </ul>
                   </div>
 
-                  {/* Hiển thị công thức toán trọng tâm dạng KaTeX chuẩn (Hỗ trợ Double-Click mở MathLive) */}
+                  {/* Hiển thị công thức toán trọng tâm dạng KaTeX chuẩn (Hỗ trợ Double-Click mở MathLive & Highlight Task 9.3) */}
                   {slide.main_definition_latex && (
                     <div
                       onDoubleClick={() =>
@@ -448,12 +504,24 @@ export default function PresentationStage({
                         )
                       }
                       title="Nhấp đúp (Double-Click) để mở trình gõ công thức trực quan MathLive"
-                      className="p-3.5 rounded-xl bg-gradient-to-r from-cyan-950/40 via-indigo-950/30 to-slate-950 border border-cyan-800/60 hover:border-cyan-400 font-mono text-cyan-300 text-center text-sm md:text-base font-bold shadow-lg cursor-pointer transition relative group"
+                      className={`p-3.5 rounded-xl border font-mono text-cyan-300 text-center text-sm md:text-base font-bold shadow-lg cursor-pointer transition-all duration-500 relative group ${
+                        isFormulaRecentlyUpdated('main_definition_latex')
+                          ? 'bg-emerald-950/50 border-emerald-400 ring-2 ring-emerald-400/80 shadow-emerald-950/70'
+                          : 'bg-gradient-to-r from-cyan-950/40 via-indigo-950/30 to-slate-950 border-cyan-800/60 hover:border-cyan-400'
+                      }`}
                     >
                       <MathText text={slide.main_definition_latex} block={true} />
-                      <div className="mt-1.5 flex items-center justify-center gap-1 text-[10px] font-sans font-normal text-cyan-400/80 group-hover:text-cyan-300">
-                        <Edit3 size={11} />
-                        <span>Nhấp đúp (Double-Click) để sửa công thức bằng MathLive</span>
+                      <div className="mt-1.5 flex items-center justify-center gap-1 text-[10px] font-sans font-normal">
+                        {isFormulaRecentlyUpdated('main_definition_latex') ? (
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/60 text-emerald-300 font-semibold flex items-center gap-1">
+                            <Check size={11} /> Đã cập nhật & kết xuất KaTeX mới
+                          </span>
+                        ) : (
+                          <span className="text-cyan-400/80 group-hover:text-cyan-300 flex items-center gap-1">
+                            <Edit3 size={11} />
+                            <span>Nhấp đúp (Double-Click) để sửa công thức bằng MathLive</span>
+                          </span>
+                        )}
                       </div>
                     </div>
                   )}
@@ -461,7 +529,6 @@ export default function PresentationStage({
                   {/* Lời thoại gợi ý giảng dạy cho giáo viên */}
                   {slide.teacher_note && (
                     <div className="p-2.5 rounded-xl bg-amber-950/20 border border-amber-900/40 text-[11px] text-amber-300 flex items-start gap-2">
-                      <span className="shrink-0 text-sm">💬</span>
                       <span>
                         <strong>Lời nhắc sư phạm:</strong> <MathText text={slide.teacher_note} />
                       </span>

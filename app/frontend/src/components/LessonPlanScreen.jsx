@@ -127,7 +127,7 @@ export default function LessonPlanScreen({
       <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
         <div>
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
-            <span>📝</span> Soạn Kế Hoạch Bài Dạy Chuẩn Công Văn 5512
+            Soạn Kế Hoạch Bài Dạy Chuẩn Công Văn 5512
           </h2>
           <p className="text-xs text-slate-400">Chọn bài mẫu Sách giáo khoa THPT hoặc nhập chủ đề mới để Gemini AI sinh bài</p>
         </div>
@@ -152,7 +152,7 @@ export default function LessonPlanScreen({
               onClick={() => handleSelectPreset(preset)}
               className="px-3 py-1.5 rounded-lg bg-slate-900/90 hover:bg-cyan-950 hover:border-cyan-600 border border-slate-800 text-xs text-slate-300 hover:text-cyan-300 transition flex items-center gap-1.5"
             >
-              <span>📖</span> {preset.label}
+              {preset.label}
             </button>
           ))}
         </div>
@@ -162,7 +162,7 @@ export default function LessonPlanScreen({
         {/* Cột trái: Form cấu hình bài dạy */}
         <div className="col-span-12 lg:col-span-5 glass-panel p-4 rounded-2xl border-slate-800 space-y-3.5 text-xs">
           <h3 className="font-bold text-white text-sm pb-2 border-b border-slate-800 flex items-center gap-1.5">
-            ⚙️ Thiết Lập Bài Dạy & Hồ Sơ Lớp
+            Thiết Lập Bài Dạy & Hồ Sơ Lớp
           </h3>
 
           <div>
@@ -253,7 +253,7 @@ export default function LessonPlanScreen({
             className="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 via-indigo-600 to-cyan-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-semibold flex items-center justify-center gap-2 shadow-lg shadow-cyan-950/40 transition disabled:opacity-50"
           >
             <Sparkles size={16} />
-            {isGenerating ? 'Đang gọi Gemini AI sinh bài dạy & slide...' : '🚀 Gọi Gemini AI Sinh Bài Dạy & Bộ Slide'}
+            {isGenerating ? 'Đang gọi Gemini AI sinh bài dạy & slide...' : 'Gọi Gemini AI Sinh Bài Dạy & Bộ Slide'}
           </button>
         </div>
 
@@ -381,7 +381,7 @@ export default function LessonPlanScreen({
           ) : (
             <div className="p-8 text-center text-slate-400 space-y-2">
               <FileText size={32} className="mx-auto text-slate-600" />
-              <p>Chưa có dữ liệu giáo án mới. Hãy chọn bài toán SGK ở trên và bấm <strong>"🚀 Gọi Gemini AI Sinh Bài Dạy & Bộ Slide"</strong> để AI sinh dữ liệu thực tế!</p>
+              <p>Chưa có dữ liệu giáo án mới. Hãy chọn bài toán SGK ở trên và bấm <strong>"Gọi Gemini AI Sinh Bài Dạy & Bộ Slide"</strong> để AI sinh dữ liệu thực tế!</p>
             </div>
           )}
         </div>

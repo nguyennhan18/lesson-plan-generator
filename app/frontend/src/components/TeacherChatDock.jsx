@@ -21,10 +21,10 @@ export default function TeacherChatDock({
   const messagesEndRef = useRef(null);
 
   const quickChips = [
-    '💡 Giải thích slide này đơn giản hơn',
-    '❓ Gợi ý 2 câu hỏi gợi mở cho học sinh',
-    '📝 Thêm 1 câu hỏi trắc nghiệm củng cố',
-    '🧠 Đổi bài toán sang ví dụ thực tế'
+    'Giải thích slide này đơn giản hơn',
+    'Gợi ý 2 câu hỏi gợi mở cho học sinh',
+    'Thêm 1 câu hỏi trắc nghiệm củng cố',
+    'Đổi bài toán sang ví dụ thực tế'
   ];
 
   const scrollToBottom = () => {
@@ -92,7 +92,7 @@ export default function TeacherChatDock({
         const updated = [...messages];
         updated[msgIdx].isPatched = true;
         setMessages(updated);
-        alert(`✅ Đã áp dụng thành công bản vá vào Slide ${(patch.target_slide_index ?? currentSlide) + 1}!`);
+        alert(`Đã áp dụng thành công bản vá vào Slide ${(patch.target_slide_index ?? currentSlide) + 1}!`);
       }
     }
   };
@@ -175,7 +175,7 @@ export default function TeacherChatDock({
               {m.patchProposal && (
                 <div className="mt-2.5 pt-2 border-t border-slate-700/80 space-y-1.5">
                   <div className="text-[10px] font-bold text-amber-400 flex items-center gap-1">
-                    <span>⚡ Đề xuất cập nhật nội dung Slide:</span>
+                    <span>Đề xuất cập nhật nội dung Slide:</span>
                   </div>
                   {m.patchProposal.preview_explanation && (
                     <div className="text-[10px] text-slate-400 italic">
