@@ -10,8 +10,13 @@ class ChartType(str, Enum):
 
 class ChartSpec(BaseModel):
     kind: ChartType = Field(
-        default=ChartType.FUNCTION_PLOT,
-        description="BẮT BUỘC chọn 'function_plot' nếu nội dung slide có xuất hiện bất kỳ hàm số cụ thể nào (VD: f(x) = 2x, F(x) = x^3). Chỉ chọn 'none' đối với các slide thuần định nghĩa tổng quát."
+        default=ChartType.NONE,
+        description=(
+            "Chỉ chọn 'function_plot' đối với những slide thực sự cần minh họa trực quan đồ thị hàm số "
+            "(thường là 1-2 slide có layout 'IMAGE_TEXT' trong bài). "
+            "BẮT BUỘC chọn 'none' đối với các slide Định nghĩa, Công thức (CONCEPT_HIGHLIGHT), "
+            "Phương pháp giải & Ví dụ giải mẫu từng bước (TWO_COLUMN, SINGLE_COLUMN)."
+        )
     )
     pedagogical_purpose: Optional[str] = Field(
         default=None,
@@ -80,6 +85,18 @@ class SlideSchema(BaseModel):
     teacher_note: Optional[str] = Field(default=None, description="Kịch bản lời thoại và hướng dẫn tổ chức giảng dạy dành riêng cho Giáo viên")
     image_prompt: Optional[str] = Field(default=None, description="Mô tả ý tưởng đồ thị / hình vẽ để sinh tự động")
     chart_spec: Optional[ChartSpec] = Field(default=None, description="Cấu hình vẽ đồ thị hàm số tự động")
+    has_3d: Optional[bool] = Field(
+        default=False,
+        description="Bật khung mô hình Hình học không gian 3D tương tác (chỉ đặt True trên slide layout 'IMAGE_TEXT' của chủ đề Hình học không gian)"
+    )
+    polyhedron_type: Optional[str] = Field(
+        default=None,
+        description="Loại khối đa diện 3D chuẩn SGK: 'pyramid_triangle' (Hình chóp tam giác S.ABC), 'pyramid_square' (Hình chóp tứ giác S.ABCD), 'cube' (Hình lập phương ABCD.A'B'C'D'), 'prism_triangle' (Lăng trụ đứng ABC.A'B'C')"
+    )
+    worked_solution_steps: List[str] = Field(
+        default_factory=list,
+        description="Các bước giải mẫu tự luận chi tiết chuẩn SGK (Đề bài -> Bước 1 -> Bước 2 -> Kết luận) hiển thị ở cột phải của layout TWO_COLUMN"
+    )
     quiz_options: List[QuizOptionDetail] = Field(default_factory=list, description="Danh sách các phương án trắc nghiệm")
     math_formulas: List[str] = Field(default=[], description="Danh sách các công thức toán phức tạp (phân số, tích phân). Mỗi công thức là một mã LaTex chuẩn.")
     class_proficiency: Optional[ClassProficiency] = Field(

@@ -480,16 +480,24 @@ A. ĐỊNH HƯỚNG THIẾT KẾ CHO HỌC SINH THPT
    Nếu slide không có đồ thị, đặt `chart_spec` là `null` hoặc khai báo
    `kind: "none"` theo đúng schema của hệ thống.
 
-B. QUY TẮC CHỈ ĐỊNH BỐ CỤC LAYOUT CHO TỪNG SLIDE
+B. QUY TẮC CHỈ ĐỊNH BỐ CỤC LAYOUT ĐỘNG CHUẨN POWERPOINT THỰC THỤ CHO TỪNG SLIDE
 
-Mỗi slide bắt buộc phải có trường `layout`. Chọn layout phù hợp nhất với thông điệp chính của slide theo thứ tự ưu tiên sau:
+Mỗi slide bắt buộc phải có trường `layout`. Trong một bộ slide 5-8 trang, TUYỆT ĐỐI KHÔNG gán `IMAGE_TEXT` tràn lan cho mọi slide, mà phải phân bổ đa dạng các layout chuẩn PowerPoint theo đúng mục đích sư phạm:
 
-- Nếu slide là câu hỏi trắc nghiệm kiểm tra nhanh kiến thức → bắt buộc layout là `QUIZ_OPTION` (và phải có đủ 4 phương án trong `quiz_options`).
-- Nếu slide có so sánh hoặc kết hợp công thức với văn bản → `TWO_COLUMN`.
-- Nếu slide có đồ thị hàm số hoặc có `chart_spec` khác `null` → `IMAGE_TEXT`.
-- Nếu slide có công thức định nghĩa cốt lõi trong `main_definition_latex` → `CONCEPT_HIGHLIGHT`.
-- Nếu slide là tiêu đề hoặc phần kết → `TITLE_ONLY`.
-- Nếu không thuộc các trường hợp trên, chọn layout phù hợp nhất trong danh sách layout được hệ thống hỗ trợ; không bỏ trống trường `layout`.
+- `IMAGE_TEXT` (Bố cục Chia đôi: Lý thuyết + Đồ thị 2D hoặc Mô hình 3D):
+  + CHỈ DÙNG cho những slide thực sự cần học sinh quan sát trực quan Đồ thị hàm số (`chart_spec.kind = "function_plot"`) hoặc Khối đa diện 3D (`has_3d = true`, kèm `polyhedron_type` là `"pyramid_triangle"` cho $S.ABC$, `"pyramid_square"` cho $S.ABCD$, `"cube"` cho $ABCD.A'B'C'D'$, hoặc `"prism_triangle"` cho $ABC.A'B'C'$).
+  + Trong một bài giảng chỉ nên có 1-3 slide `IMAGE_TEXT` đúng trọng tâm trực quan hóa.
+- `CONCEPT_HIGHLIGHT` (Bố cục Toàn màn hình 100% — Định nghĩa & Công thức Cốt lõi):
+  + Dùng cho các slide trình bày Định nghĩa, Định lý, Bảng phân loại các trường hợp (ví dụ 3 trường hợp $\Delta > 0, \Delta = 0, \Delta < 0$) và Hộp công thức trọng tâm `main_definition_latex`.
+  + BẮT BUỘC đặt `chart_spec: null` (hoặc `kind: "none"`) và `has_3d: false` để dành trọn 100% chiều rộng màn hình cho công thức và kiến thức.
+- `TWO_COLUMN` (Bố cục Toàn màn hình 2 Cột Học Thuật — Phương pháp & Bài giải mẫu từng bước):
+  + Dùng cho các slide dạy Quy trình giải toán / Hệ thức Vi-ét / Chứng minh hình học kèm Ví dụ áp dụng.
+  + Cột trái (`bullet_points`): Trình bày Phương pháp giải tổng quát (Bước 1, Bước 2, Bước 3, Bước 4).
+  + Cột phải (`worked_solution_steps`): Trình bày Ví dụ minh họa & Lời giải tự luận từng bước chuẩn SGK (Đề bài $\rightarrow$ Bước 1 $\rightarrow$ Bước 2 $\rightarrow$ Kết luận).
+  + BẮT BUỘC đặt `chart_spec: null` (hoặc `kind: "none"`) và `has_3d: false`.
+- `QUIZ_OPTION` (Bố cục Trắc nghiệm Tương tác 4 phương án A, B, C, D):
+  + Dùng cho câu hỏi kiểm tra nhanh / phân tích bẫy sai lầm (bắt buộc có đủ 4 phương án trong `quiz_options`).
+- `TITLE_ONLY` / `SINGLE_COLUMN`: Dùng cho slide tiêu đề mở đầu hoặc tổng kết dặn dò cuối bài.
 
 C. QUY TẮC ĐẶC BIỆT CHO ĐẠI SỐ, HÀM SỐ & PHƯƠNG TRÌNH BẬC HAI (CHỐNG LỖI HÌNH HỌC SAI BẢN CHẤT):
 

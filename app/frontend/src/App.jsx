@@ -64,22 +64,29 @@ const SAMPLE_QUADRATIC_DECK = {
     },
     {
       slide_number: 3,
-      title: "2. Quy Trình 4 Bước Giải Phương Trình Bậc Hai Chuẩn Mực",
+      title: "2. Quy Trình 4 Bước Giải Phương Trình Bậc Hai & Ví Dụ Mẫu",
       activity_type: "HÌNH THÀNH KỸ NĂNG",
-      layout: "IMAGE_TEXT",
+      layout: "TWO_COLUMN",
       bullet_points: [
-        "Bước 1 (Xác định hệ số): Biến đổi về dạng chính tắc $ax^2 + bx + c = 0$, ghi rõ $a, b, c$ (Lưu ý dấu âm!).",
-        "Bước 2 (Tính biệt thức): $\\Delta = b^2 - 4ac$. Chú ý $(-b)^2$ luôn dương, tránh tính nhầm $-b^2$.",
-        "Bước 3 (Biện luận số nghiệm): So sánh $\\Delta$ với 0 để xác định số nghiệm.",
-        "Bước 4 (Tính nghiệm & Kết luận): Sử dụng công thức nghiệm thu gọn hoặc tổng quát, kết luận tập nghiệm $S$."
+        "Bước 1 (Xác định hệ số): Đưa phương trình về dạng chính tắc $ax^2 + bx + c = 0$, xác định rõ $a, b, c$ (chú ý dấu âm).",
+        "Bước 2 (Tính biệt thức): Tính $\\Delta = b^2 - 4ac$. Lưu ý $(-b)^2$ luôn không âm, tránh nhầm thành $-b^2$.",
+        "Bước 3 (Biện luận & Tính nghiệm): So sánh $\\Delta$ với $0$. Nếu $\\Delta > 0$, tính $x_{1,2} = \\frac{-b \\pm \\sqrt{\\Delta}}{2a}$.",
+        "Bước 4 (Kết luận): Viết tập nghiệm $S = \\{x_1; x_2\\}$ và kiểm tra lại bằng tổng - tích nghiệm."
+      ],
+      worked_solution_steps: [
+        "Đề bài: Giải phương trình $x^2 - 2x - 3 = 0$ trên tập số thực $\\mathbb{R}$.",
+        "Bước 1: Xác định các hệ số $a = 1$, $b = -2$, $c = -3$.",
+        "Bước 2: Tính biệt thức $\\Delta = (-2)^2 - 4 \\cdot 1 \\cdot (-3) = 4 + 12 = 16 > 0 \\implies \\sqrt{\\Delta} = 4$.",
+        "Bước 3: Phương trình có 2 nghiệm phân biệt: $x_1 = \\frac{-(-2) - 4}{2 \\cdot 1} = -1$ và $x_2 = \\frac{-(-2) + 4}{2 \\cdot 1} = 3$.",
+        "Bước 4 (Kết luận): Vậy tập nghiệm của phương trình là $S = \\{-1; 3\\}$."
       ],
       main_definition_latex: "S = \\left\\{ \\frac{-b - \\sqrt{\\Delta}}{2a}; \\frac{-b + \\sqrt{\\Delta}}{2a} \\right\\}",
-      teacher_note: "Nhắc nhở học sinh bẫy sai lầm kinh điển: quên đổi dấu -b trong công thức nghiệm.",
+      teacher_note: "Slide bố cục 2 cột toàn màn hình (TWO_COLUMN): Cột trái chiếu phương pháp 4 bước, cột phải chiếu lời giải mẫu từng bước để học sinh trình bày chuẩn vào vở.",
       chart_spec: {
-        kind: "function_plot",
-        expression: "x**2 - 2*x - 3",
-        chart_title: "Đồ thị Parabol y = x² - 2x - 3 (Nghiệm x = -1 và x = 3)",
-        pedagogical_purpose: "Minh họa ví dụ giải phương trình cụ thể x² - 2x - 3 = 0."
+        kind: "none",
+        expression: null,
+        chart_title: null,
+        pedagogical_purpose: "Slide rèn luyện kỹ năng biến đổi đại số và trình bày lời giải tự luận từng bước, dành 100% diện tích màn hình cho phương pháp và bài giải mẫu."
       },
       has_3d: false
     },
@@ -87,20 +94,20 @@ const SAMPLE_QUADRATIC_DECK = {
       slide_number: 4,
       title: "3. Định Lý Vi-ét & Kỹ Thuật Nhẩm Nhanh Nghiệm",
       activity_type: "LUYỆN TẬP & MỞ RỘNG",
-      layout: "IMAGE_TEXT",
+      layout: "CONCEPT_HIGHLIGHT",
       bullet_points: [
-        "Hệ thức Vi-ét: Tổng 2 nghiệm $S = x_1 + x_2 = -\\frac{b}{a}$, Tích 2 nghiệm $P = x_1 x_2 = \\frac{c}{a}$.",
-        "Trường hợp đặc biệt 1: Nếu $a + b + c = 0 \\implies x_1 = 1, x_2 = \\frac{c}{a}$.",
-        "Trường hợp đặc biệt 2: Nếu $a - b + c = 0 \\implies x_1 = -1, x_2 = -\\frac{c}{a}$.",
-        "Phân tích đa thức thành nhân tử: $ax^2 + bx + c = a(x - x_1)(x - x_2)$."
+        "Hệ thức Vi-ét (khi $\\Delta \\geq 0$): Tổng hai nghiệm $S = x_1 + x_2 = -\\frac{b}{a}$ và Tích hai nghiệm $P = x_1 x_2 = \\frac{c}{a}$.",
+        "Trường hợp đặc biệt 1: Nếu $a + b + c = 0$ thì phương trình có một nghiệm $x_1 = 1$, nghiệm kia là $x_2 = \\frac{c}{a}$.",
+        "Trường hợp đặc biệt 2: Nếu $a - b + c = 0$ thì phương trình có một nghiệm $x_1 = -1$, nghiệm kia là $x_2 = -\\frac{c}{a}$.",
+        "Ví dụ nhẩm nhanh: Phương trình $x^2 - 5x + 6 = 0$ có $S = x_1 + x_2 = 5$ và $P = x_1 x_2 = 6 \\implies x_1 = 2, x_2 = 3$."
       ],
       main_definition_latex: "x_1 + x_2 = -\\frac{b}{a} \\quad | \\quad x_1 x_2 = \\frac{c}{a}",
-      teacher_note: "Tổ chức cho học sinh thi đua nhẩm nghiệm nhanh phương trình x² - 5x + 6 = 0 trong 10 giây.",
+      teacher_note: "Slide bố cục CONCEPT_HIGHLIGHT mở rộng 100% toàn màn hình: Tổ chức cho học sinh thi đua nhẩm nghiệm nhanh phương trình trong 10 giây.",
       chart_spec: {
-        kind: "function_plot",
-        expression: "x**2 - 5*x + 6",
-        chart_title: "Đồ thị y = x² - 5x + 6 (Nhẩm nghiệm x = 2, x = 3)",
-        pedagogical_purpose: "Trực quan hóa hai nghiệm x1 = 2 và x2 = 3 của định lý Vi-ét."
+        kind: "none",
+        expression: null,
+        chart_title: null,
+        pedagogical_purpose: "Slide nhấn mạnh định lý và quy tắc nhẩm nghiệm đại số, hiển thị toàn màn hình sắc nét như PowerPoint thực thụ."
       },
       has_3d: false
     },
@@ -215,83 +222,97 @@ const SAMPLE_QUADRATIC_PLAN = {
 };
 
 // ==============================================================================
-// 2. DỮ LIỆU BÀI MẪU: HÌNH LẬP PHƯƠNG (TOÁN 11)
+// 2. DỮ LIỆU BÀI MẪU: HÌNH HỌC KHÔNG GIAN 3D — KHỐI CHÓP & HÌNH LẬP PHƯƠNG (TOÁN 11)
+// Tích hợp Three.js WebGL vào layout IMAGE_TEXT + Bố cục 2 cột bài giải mẫu chuẩn PowerPoint
 // ==============================================================================
 const SAMPLE_CUBE_DECK = {
-  presentation_title: "Hình Lập Phương & Quan Hệ Vuông Góc Trong Không Gian",
+  presentation_title: "Hình Học Không Gian 3D • Khối Chóp S.ABC, S.ABCD & Hình Lập Phương",
   subject: "Toán học",
   grade: 11,
   slides: [
     {
       slide_number: 1,
-      title: "Hình Lập Phương ABCD.A'B'C'D' • Khối Đa Diện Đều",
-      activity_type: "KHỞI ĐỘNG & ĐẶT VẤN ĐỀ",
+      title: "Khởi Động • Hình Chóp Tứ Giác S.ABCD Có Cạnh Bên SA ⊥ Đáy",
+      activity_type: "KHỞI ĐỘNG & TRỰC QUAN 3D",
       layout: "IMAGE_TEXT",
       bullet_points: [
-        "Cho hình lập phương ABCD.A'B'C'D' có tất cả các cạnh bằng $a$.",
-        "Đáy dưới $ABCD$ và đáy trên $A'B'C'D'$ là hai hình vuông bằng nhau.",
-        "Các cạnh bên $AA', BB', CC', DD'$ vuông góc với hai mặt phẳng đáy.",
-        "Hình gồm 8 đỉnh, 12 cạnh bằng nhau và 6 mặt hình vuông đối xứng."
+        "Xét hình chóp tứ giác $S.ABCD$ có đáy $ABCD$ là hình vuông cạnh $a$ nằm trên mặt phẳng đáy $(Oxy)$.",
+        "Cạnh bên $SA \\perp (ABCD)$ và $SA = h$, do đó $A$ là hình chiếu vuông góc của đỉnh $S$ lên mặt phẳng đáy.",
+        "Hai đường chéo đáy $AC$ và $BD$ vuông góc với nhau tại tâm $O$ với $AC = BD = a\\sqrt{2}$.",
+        "Thể tích khối chóp được tính bởi công thức: $V_{S.ABCD} = \\frac{1}{3} S_{ABCD} \\cdot SA$."
       ],
-      main_definition_latex: "V = a^3 \\quad | \\quad S_{tp} = 6a^2",
-      teacher_note: "Chiếu mô hình 3D, yêu cầu học sinh quan sát các mặt phẳng song song và vuông góc.",
-      has_3d: true
+      main_definition_latex: "V_{S.ABCD} = \\frac{1}{3} S_{ABCD} \\cdot SA = \\frac{1}{3} a^2 h",
+      teacher_note: "Dùng chuột kéo xoay 360° mô hình hình chóp S.ABCD trên khung 3D bên phải để học sinh quan sát trực quan góc vuông tại chân đường cao A.",
+      has_3d: true,
+      polyhedron_type: "pyramid_square"
     },
     {
       slide_number: 2,
-      title: "1. Đường Chéo AC' & Góc Giữa Đường Thẳng Với Mặt Phẳng",
+      title: "1. Hình Chóp Tam Giác S.ABC & Định Lý Ba Đường Vuông Góc",
       activity_type: "HÌNH THÀNH KIẾN THỨC",
       layout: "IMAGE_TEXT",
       bullet_points: [
-        "Bước 1: Trong mặt phẳng đáy $(ABCD)$, $AC = \\sqrt{AB^2 + BC^2} = a\\sqrt{2}$.",
-        "Bước 2: Vì $CC' \\perp (ABCD)$ nên tam giác $ACC'$ vuông tại $C$.",
-        "Bước 3: Áp dụng định lý Pytago trong tam giác $ACC'$: $AC' = a\\sqrt{3}$."
+        "Cho hình chóp tam giác $S.ABC$ có đáy $\\triangle ABC$ nằm trong mặt phẳng $(Oxy)$ và $SA \\perp (ABC)$.",
+        "Trong mặt phẳng đáy $(ABC)$, kẻ đường cao $AH \\perp BC$ ($H \\in BC$).",
+        "Vì $BC \\perp SA$ và $BC \\perp AH$, suy ra $BC \\perp (SAH) \\implies BC \\perp SH$.",
+        "Góc giữa mặt bên $(SBC)$ và mặt phẳng đáy $(ABC)$ chính là góc phẳng nhị diện $\\widehat{SHA}$."
       ],
-      main_definition_latex: "AC' = \\sqrt{(a\\sqrt{2})^2 + a^2} = a\\sqrt{3}",
-      teacher_note: "Nhắc học sinh không nhầm giữa đường chéo sàn a√2 và đường chéo không gian a√3.",
-      has_3d: true
+      main_definition_latex: "\\frac{1}{d(A, (SBC))^2} = \\frac{1}{SA^2} + \\frac{1}{AH^2}",
+      teacher_note: "Xoay mô hình hình chóp tam giác S.ABC để học sinh thấy rõ tam giác vuông SAH và mặt phẳng (SAH) vuông góc với giao tuyến BC.",
+      has_3d: true,
+      polyhedron_type: "pyramid_triangle"
     },
     {
       slide_number: 3,
-      title: "2. Đoạn Vuông Góc Chung AH ⊥ B'D' & Khoảng Cách",
+      title: "2. Hình Lập Phương ABCD.A'B'C'D' & Đường Chéo Không Gian",
       activity_type: "HÌNH THÀNH KIẾN THỨC",
       layout: "IMAGE_TEXT",
       bullet_points: [
-        "Xét tam giác $AB'D'$ cân tại $A$ có $B'D' = a\\sqrt{2}$.",
-        "Kẻ $AH \\perp B'D'$ tại trung điểm $H$ của đoạn $B'D'$.",
-        "Độ dài khoảng cách: $AH = \\sqrt{AB'^2 - B'H^2} = a\\sqrt{3/2}$."
+        "Cho hình lập phương $ABCD.A'B'C'D'$ có tất cả các cạnh bằng $a$, các cạnh bên $AA', BB', CC', DD' \\perp (ABCD)$.",
+        "Bước 1: Trong mặt phẳng đáy $(ABCD)$, đường chéo đáy $AC = \\sqrt{AB^2 + BC^2} = a\\sqrt{2}$.",
+        "Bước 2: Vì $CC' \\perp (ABCD)$ nên $\\triangle ACC'$ vuông tại $C$.",
+        "Bước 3: Áp dụng định lý Pytago trong $\\triangle ACC'$: $AC' = \\sqrt{AC^2 + CC'^2} = a\\sqrt{3}$."
       ],
-      main_definition_latex: "AH = \\frac{a\\sqrt{6}}{2} \\approx 1.22a",
-      teacher_note: "Xoay mô hình sang góc nhìn trực diện để học sinh thấy rõ đoạn vuông góc đỏ AH.",
-      has_3d: true
+      main_definition_latex: "AC' = \\sqrt{(a\\sqrt{2})^2 + a^2} = a\\sqrt{3} \\quad | \\quad V = a^3",
+      teacher_note: "Nhắc học sinh phân biệt rõ đường chéo mặt đáy AC = a√2 (nét đứt) và đường chéo không gian AC' = a√3.",
+      has_3d: true,
+      polyhedron_type: "cube"
     },
     {
       slide_number: 4,
-      title: "3. Thiết Diện Mặt Phẳng (A'BD) & Diện Tích",
-      activity_type: "LUYỆN TẬP & CỦNG CỐ",
-      layout: "IMAGE_TEXT",
+      title: "3. Phương Pháp & Bài Giải Mẫu Tính Khoảng Cách Từ Chân Đường Cao",
+      activity_type: "LUYỆN TẬP & PHƯƠNG PHÁP GIẢI",
+      layout: "TWO_COLUMN",
       bullet_points: [
-        "Ba đoạn thẳng nối các đỉnh: $A'B = BD = DA' = a\\sqrt{2}$.",
-        "Thiết diện tạo bởi mặt phẳng $(A'BD)$ cắt hình lập phương là tam giác đều.",
-        "Diện tích thiết diện: $S = \\frac{(\\text{cạnh})^2 \\sqrt{3}}{4}$."
+        "Bài toán gốc: Tính khoảng cách từ chân đường cao $A$ đến mặt bên $(SBC)$ trong hình chóp $S.ABC$ có $SA \\perp (ABC)$.",
+        "Bước 1 (Dựng đường vuông góc ở đáy): Từ chân đường cao $A$, kẻ $AH \\perp BC$ tại $H$.",
+        "Bước 2 (Dựng đường cao trong tam giác đứng): Nối $SH$, trong $\\triangle SAH$ vuông tại $A$, kẻ $AK \\perp SH$ tại $K$.",
+        "Bước 3 (Chứng minh & Tính toán): Do $BC \\perp (SAH) \\implies BC \\perp AK$, suy ra $AK \\perp (SBC)$ hay $d(A, (SBC)) = AK$."
       ],
-      main_definition_latex: "S_{A'BD} = \\frac{(a\\sqrt{2})^2 \\sqrt{3}}{4} = \\frac{a^2\\sqrt{3}}{2}",
-      teacher_note: "Bật chế độ mặt phẳng cắt màu lam trong suốt để học sinh quan sát thiết diện.",
-      has_3d: true
+      worked_solution_steps: [
+        "Đề bài: Cho hình chóp $S.ABCD$ đáy là hình vuông cạnh $a$, $SA \\perp (ABCD)$ và $SA = a\\sqrt{3}$. Tính $d(A, (SBC))$.",
+        "Bước 1: Vì $BC \\perp AB$ (đáy là hình vuông) và $BC \\perp SA$ (do $SA \\perp (ABCD)$) nên $BC \\perp (SAB)$.",
+        "Bước 2: Trong mặt phẳng $(SAB)$, kẻ $AH \\perp SB$ tại $H$. Vì $BC \\perp (SAB)$ nên $BC \\perp AH$, suy ra $AH \\perp (SBC)$.",
+        "Bước 3: Áp dụng hệ thức lượng trong $\\triangle SAB$ vuông tại $A$: $\\frac{1}{AH^2} = \\frac{1}{SA^2} + \\frac{1}{AB^2} = \\frac{1}{3a^2} + \\frac{1}{a^2} = \\frac{4}{3a^2}$.",
+        "Bước 4 (Kết luận): Vậy khoảng cách cần tìm là $d(A, (SBC)) = AH = \\frac{a\\sqrt{3}}{2}$."
+      ],
+      main_definition_latex: "d(A, (SBC)) = AH = \\frac{SA \\cdot AB}{\\sqrt{SA^2 + AB^2}} = \\frac{a\\sqrt{3}}{2}",
+      teacher_note: "Slide TWO_COLUMN mở rộng 100% chiều ngang: Học sinh đối chiếu quy trình 3 bước bên trái với bài giải tự luận chuẩn SGK bên phải.",
+      has_3d: false
     },
     {
       slide_number: 5,
-      title: "4. Khảo Sát Nhanh Cả Lớp (Live Poll) • Góc Giữa AC & A'D",
+      title: "4. Khảo Sát Nhanh Cả Lớp (Live Poll) • Góc Giữa Hai Đường Thẳng",
       activity_type: "VẬN DỤNG & QUIZ TRỰC TIẾP",
       layout: "QUIZ_OPTION",
       bullet_points: [
-        "Trong hình lập phương $ABCD.A'B'C'D'$, góc giữa $AC$ và $A'D$ bằng bao nhiêu độ?"
+        "Trong hình lập phương $ABCD.A'B'C'D'$, góc giữa hai đường thẳng chéo nhau $AC$ và $A'D$ bằng bao nhiêu độ?"
       ],
       quiz_options: [
-        { label: "A", text: "$60^\\circ$", is_correct: true, distractor_rationale: "Chính xác! Do AC // A'C' nên góc(AC, A'D) = góc(A'C', A'D) = 60° (tam giác A'C'D đều)." },
-        { label: "B", text: "$90^\\circ$", is_correct: false, distractor_rationale: "Sai. Học sinh nhầm lẫn giữa hai đường chéo của cùng một mặt vuông." },
-        { label: "C", text: "$45^\\circ$", is_correct: false, distractor_rationale: "Sai. 45° là góc giữa đường chéo đáy và một cạnh đáy kề." },
-        { label: "D", text: "$120^\\circ$", is_correct: false, distractor_rationale: "Sai. Góc giữa hai đường thẳng trong không gian quy ước không vượt quá 90°." }
+        { label: "A", text: "$60^\\circ$", is_correct: true, distractor_rationale: "Chính xác! Do AC // A'C' nên góc(AC, A'D) = góc(A'C', A'D) = 60° (tam giác A'C'D đều cạnh a√2)." },
+        { label: "B", text: "$90^\\circ$", is_correct: false, distractor_rationale: "Sai. Học sinh nhầm lẫn giữa hai đường chéo của cùng một mặt hình vuông." },
+        { label: "C", text: "$45^\\circ$", is_correct: false, distractor_rationale: "Sai. 45° là góc giữa đường chéo mặt đáy AC và cạnh đáy AB." },
+        { label: "D", text: "$120^\\circ$", is_correct: false, distractor_rationale: "Sai. Góc giữa hai đường thẳng trong không gian luôn thuộc đoạn từ 0° đến 90°." }
       ],
       teacher_note: "Bấm nút bình chọn và mở phần giải thích bẫy sai lầm cho học sinh.",
       has_3d: false
@@ -398,7 +419,7 @@ export default function App() {
   const [edgeLength, setEdgeLength] = useState(4.0);
   const [showHiddenLines, setShowHiddenLines] = useState(true);
   const [showVertexLabels, setShowVertexLabels] = useState(true);
-  const [showAxes, setShowAxes] = useState(false);
+  const [showAxes, setShowAxes] = useState(true);
   const [cameraPreset, setCameraPreset] = useState('iso');
 
   // ================= CENTRAL STATE (ĐỒNG BỘ 2 CHIỀU VỚI BỘ NHỚ TRÌNH DUYỆT - TASK 9.2) =================
@@ -446,7 +467,7 @@ export default function App() {
     } else {
       setSlideDeck(SAMPLE_CUBE_DECK);
       setLessonPlan(SAMPLE_CUBE_PLAN);
-      setPolyhedronType('cube');
+      setPolyhedronType('pyramid_square');
       setCurrentSlide(0);
     }
   };
@@ -705,10 +726,12 @@ export default function App() {
               onToggleLeft={() => setIsLeftOpen(true)}
               onToggleRight={() => setIsRightOpen(true)}
               polyhedronType={polyhedronType}
+              setPolyhedronType={setPolyhedronType}
               edgeLength={edgeLength}
               showHiddenLines={showHiddenLines}
               showVertexLabels={showVertexLabels}
               showAxes={showAxes}
+              setShowAxes={setShowAxes}
               cameraPreset={cameraPreset}
               onSwitchSample={handleSwitchSample}
             />
