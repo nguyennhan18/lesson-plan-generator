@@ -35,9 +35,10 @@ def _extract_shapes_text(
             continue
 
         # 2. TRƯỜNG HỢP KHUNG VĂN BẢN (Text Frame)
-        if getattr(shape, "has_text_frame", False):
-            for para in shape.text_frame.paragraphs:
-                cleaned_para = clean_text(para.text)
+        tf = getattr(shape, "text_frame", None)
+        if tf is not None:
+            for para in getattr(tf, "paragraphs", []):
+                cleaned_para = clean_text(getattr(para, "text", ""))
                 if cleaned_para:
                     paragraphs.append(cleaned_para)
 
@@ -84,19 +85,19 @@ def _get_title(slide: Any) -> str:
     # 1. Kiểm tra Title Placeholder chuẩn của PowerPoint
     title_shape = getattr(slide.shapes, "title", None)
     if title_shape is not None and getattr(title_shape, "has_text_frame", False):
-        title_text = clean_text(title_shape.text)
+        title_text = clean_text(getattr(title_shape, "text", ""))
         if title_text:
             return title_text
 
     # 2. Fallback: Tìm trong các text shape có sẵn (sắp xếp theo tọa độ top từ trên xuống dưới)
     text_shapes = [
         shape for shape in slide.shapes
-        if getattr(shape, "has_text_frame", False) and clean_text(shape.text)
+        if getattr(shape, "has_text_frame", False) and clean_text(getattr(shape, "text", ""))
     ]
     if text_shapes:
         # Sắp xếp theo vị trí từ cao xuống thấp (top nhỏ nhất là nằm trên cùng của slide)
         text_shapes.sort(key=lambda s: (getattr(s, "top", 0) or 0))
-        first_text = clean_text(text_shapes[0].text)
+        first_text = clean_text(getattr(text_shapes[0], "text", ""))
         # Chỉ lấy dòng đầu tiên nếu hộp văn bản đó có nhiều dòng
         return first_text.split("\n")[0]
 
@@ -112,9 +113,11 @@ def _get_notes(slide: Any) -> str:
         return ""
 
     try:
-        notes_slide = slide.notes_slide
-        if notes_slide is not None and notes_slide.notes_text_frame is not None:
-            return clean_text(notes_slide.notes_text_frame.text)
+        notes_slide = getattr(slide, "notes_slide", None)
+        if notes_slide is not None:
+            notes_tf = getattr(notes_slide, "notes_text_frame", None)
+            if notes_tf is not None:
+                return clean_text(getattr(notes_tf, "text", ""))
     except Exception:
         # Phòng vệ trường hợp cấu trúc XML của notes_slide trong file cũ bị lỗi hỏng
         return ""

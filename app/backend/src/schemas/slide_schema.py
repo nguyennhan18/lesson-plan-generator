@@ -93,6 +93,10 @@ class SlideSchema(BaseModel):
         default=None,
         description="Loại khối đa diện 3D chuẩn SGK: 'pyramid_triangle' (Hình chóp tam giác S.ABC), 'pyramid_square' (Hình chóp tứ giác S.ABCD), 'cube' (Hình lập phương ABCD.A'B'C'D'), 'prism_triangle' (Lăng trụ đứng ABC.A'B'C')"
     )
+    snapshot_3d_base64: Optional[str] = Field(
+        default=None,
+        description="Task 14.2: Chuỗi Base64 Data URL (data:image/png;base64,...) chụp lại khung hình 3D WebGL hiện tại từ Frontend để xuất vào Slide PPTX"
+    )
     worked_solution_steps: List[str] = Field(
         default_factory=list,
         description="Các bước giải mẫu tự luận chi tiết chuẩn SGK (Đề bài -> Bước 1 -> Bước 2 -> Kết luận) hiển thị ở cột phải của layout TWO_COLUMN"
@@ -155,4 +159,8 @@ class SlideDeckSchema(BaseModel):
     grade: int = Field(description="Khối lớp")
     theme: Optional[ThemeType] = Field(default=ThemeType.MATH_ACADEMIC, description="Chủ đề màu sắc thiết kế")
     slides: List[SlideSchema] = Field(description="Danh sách các trang slide trong bài giảng")
+    snapshot_3d_base64: Optional[str] = Field(
+        default=None,
+        description="Task 14.2: Chuỗi Base64 Data URL dự phòng toàn cục cho cả bộ Slide"
+    )
 

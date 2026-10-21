@@ -4,8 +4,9 @@ import re
 import io
 import json
 import math
+import base64
 from enum import Enum
-from typing import Union, Dict, Any, List
+from typing import Union, Dict, Any, List, Optional
 import matplotlib.pyplot as plt
 import sympy as sp
 import numpy as np
@@ -21,6 +22,79 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from schemas.slide_schema import SlideDeckSchema, SlideType, ThemeType
 from exporters.graph_generator import generate_math_plot, is_plottable
+
+
+def decode_base64_data_url(data_url: Optional[str]) -> Optional[io.BytesIO]:
+    """
+    Task 14.3: Giải mã chuỗi Base64 Data URL (data:image/png;base64,...) thành byte stream io.BytesIO.
+    Xử lý:
+    - Bóc tách prefix nếu có (data:image/...;base64,)
+    - Bổ sung padding '=' nếu chuỗi Base64 chưa chia hết cho 4
+    - Kiểm tra magic bytes nhận diện đúng định dạng ảnh (PNG: \\x89PNG hoặc JPEG: \\xff\\xd8)
+    - Trả về io.BytesIO stream đã seek(0) sẵn sàng cho python-pptx add_picture
+    """
+    if not data_url or not isinstance(data_url, str):
+        return None
+
+    try:
+        clean_str = data_url.strip()
+        if "," in clean_str:
+            _, b64_data = clean_str.split(",", 1)
+        else:
+            b64_data = clean_str
+
+        b64_data = b64_data.strip()
+        # Bổ sung padding Base64 nếu thiếu
+        missing_padding = len(b64_data) % 4
+        if missing_padding:
+            b64_data += "=" * (4 - missing_padding)
+
+        image_bytes = base64.b64decode(b64_data)
+        if not image_bytes or len(image_bytes) < 8:
+            return None
+
+        # Kiểm tra magic bytes nhận diện đúng định dạng ảnh (PNG, JPEG, WebP)
+        is_png = image_bytes.startswith(b"\x89PNG\r\n\x1a\n")
+        is_jpeg = image_bytes.startswith(b"\xff\xd8")
+        is_webp = image_bytes.startswith(b"RIFF") and b"WEBP" in image_bytes[:16]
+        if not (is_png or is_jpeg or is_webp):
+            return None
+
+        stream = io.BytesIO(image_bytes)
+        stream.seek(0)
+        return stream
+    except Exception as e:
+        print(f"[slide_exporter] Lỗi giải mã Base64 Data URL: {e}")
+        return None
+
+
+def compute_aspect_preserving_fit(
+    img_px_w: int,
+    img_px_h: int,
+    box_left: float,
+    box_top: float,
+    box_w: float,
+    box_h: float
+) -> tuple:
+    """
+    Task 14.4: Thuật toán Box-Fit bảo toàn tỉ lệ khung hình (Aspect Ratio Preservation)
+    Tính toán tọa độ (left, top) và kích thước (width, height) tối ưu để nhúng ảnh
+    vào khung chứa 16:9 Widescreen mà không bị méo mó, co giãn hay biến dạng hình học.
+    """
+    aspect = float(img_px_w) / max(1.0, float(img_px_h))
+    box_aspect = float(box_w) / max(1e-6, float(box_h))
+
+    if aspect >= box_aspect:
+        fit_w = box_w
+        fit_h = box_w / aspect
+    else:
+        fit_h = box_h
+        fit_w = box_h * aspect
+
+    fit_left = box_left + (box_w - fit_w) / 2.0
+    fit_top = box_top + (box_h - fit_h) / 2.0
+
+    return fit_left, fit_top, fit_w, fit_h
 
 
 def clean_xml_string(s: str) -> str:
@@ -354,11 +428,16 @@ def build_content_slide(slide, slide_data: dict, slide_idx: int, total_slides: i
     chart_spec = slide_data.get('chart_spec')
     has_chart = is_plottable(chart_spec)
 
+    # Task 14.3: Nhận diện ảnh chụp mô hình 3D WebGL từ frontend
+    snapshot_3d_url = slide_data.get('snapshot_3d_base64')
+    snapshot_stream = decode_base64_data_url(snapshot_3d_url) if snapshot_3d_url else None
+    has_3d_snapshot = bool(snapshot_stream)
+
     bullets = [b for b in (slide_data.get('bullet_points') or []) if b]
     formula_latex = slide_data.get('main_definition_latex') or ''
 
     # TRƯỜNG HỢP 1: CÓ ĐỒ THỊ HÀM SỐ (BỐ CỤC 2 CỘT CHUẨN WEB STUDIO)
-    if has_chart:
+    if has_chart and not has_3d_snapshot:
         w_left = Inches(4.8)
 
         # Cột Trái: Bullet Points
@@ -447,7 +526,119 @@ def build_content_slide(slide, slide_data: dict, slide_idx: int, total_slides: i
             ct_r.font.size = Pt(8.5)
             ct_r.font.color.rgb = COLOR_TEXT_MUTED
 
-    # TRƯỜNG HỢP 2: KHÔNG CÓ ĐỒ THỊ (BỐ CỤC TOÀN CHIỀU RỘNG TRANG NHÃ)
+    # TRƯỜNG HỢP 2: CÓ ẢNH SNAPSHOT MÔ HÌNH HÌNH HỌC 3D (TASK 14.3)
+    elif has_3d_snapshot:
+        w_left = Inches(4.8)
+
+        # Cột Trái: Bullet Points
+        text_h = Inches(1.9) if formula_latex else Inches(3.2)
+        text_box = slide.shapes.add_textbox(Inches(0.6), content_top, w_left, text_h)
+        tf_c = text_box.text_frame
+        tf_c.word_wrap = True
+        for b_idx, b in enumerate(bullets):
+            p_b = tf_c.paragraphs[0] if b_idx == 0 else tf_c.add_paragraph()
+            p_b.space_after = Pt(4)
+            r_bullet = p_b.add_run()
+            r_bullet.text = '•  '
+            r_bullet.font.name = 'Arial'
+            r_bullet.font.bold = True
+            r_bullet.font.size = Pt(13)
+            r_bullet.font.color.rgb = COLOR_ROYAL_BLUE
+            r_txt = p_b.add_run()
+            r_txt.text = latex_to_unicode_math(b)
+            r_txt.font.name = 'Times New Roman'
+            r_txt.font.size = Pt(13)
+            r_txt.font.color.rgb = COLOR_TEXT_MAIN
+
+        # Cột Trái: Formula Card Box (nằm phía dưới bullets)
+        if formula_latex:
+            f_box = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.6), Inches(3.85), w_left, Inches(1.2))
+            f_box.fill.solid()
+            f_box.fill.fore_color.rgb = COLOR_BG_FORMULA
+            f_box.line.color.rgb = COLOR_BORDER_FORMULA
+            f_box.line.width = Pt(1)
+
+            f_accent = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.6), Inches(3.85), Inches(0.06), Inches(1.2))
+            f_accent.fill.solid()
+            f_accent.fill.fore_color.rgb = COLOR_ROYAL_BLUE
+            f_accent.line.fill.background()
+
+            try:
+                png_bytes = render_latex_to_bytes(formula_latex)
+                with Image.open(io.BytesIO(png_bytes)) as im:
+                    px_w, px_h = im.size
+                asp = px_w / max(px_h, 1)
+                img_h = Inches(0.7)
+                img_w = Inches(0.7 * asp)
+                if img_w > Inches(4.4):
+                    img_w = Inches(4.4)
+                    img_h = Inches(4.4 / asp)
+                img_left = Inches(0.6) + (w_left - img_w) / 2
+                img_top = Inches(3.85) + (Inches(1.2) - img_h) / 2
+                slide.shapes.add_picture(io.BytesIO(png_bytes), img_left, img_top, width=img_w, height=img_h)
+            except Exception as e:
+                print(f"Lỗi chèn ảnh công thức: {e}")
+
+        # Cột Phải: Card Khung Hình Học Không Gian 3D (Task 14.3 & 14.4)
+        card_right = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(5.6), content_top, Inches(3.8), Inches(3.4))
+        card_right.fill.solid()
+        card_right.fill.fore_color.rgb = COLOR_WHITE
+        card_right.line.color.rgb = COLOR_CARD_BORDER
+        card_right.line.width = Pt(1)
+
+        try:
+            # Task 14.4: Thuật toán Box-Fit bảo toàn tỉ lệ khung hình (Aspect Ratio) và căn giữa
+            with Image.open(snapshot_stream) as im:
+                px_w, px_h = im.size
+            snapshot_stream.seek(0)
+
+            box_l = Inches(5.7)
+            box_t = content_top + Inches(0.08)
+            box_w = Inches(3.6)
+            box_h = Inches(2.45)
+
+            fit_left, fit_top, fit_w, fit_h = compute_aspect_preserving_fit(
+                px_w, px_h, box_l, box_t, box_w, box_h
+            )
+
+            # Nhúng byte stream ảnh snapshot 3D WebGL vào slide PowerPoint theo đúng tỉ lệ
+            slide.shapes.add_picture(snapshot_stream, fit_left, fit_top, width=fit_w, height=fit_h)
+        except Exception as e:
+            print(f"Lỗi chèn ảnh snapshot 3D: {e}")
+
+        # Badge Mô hình Không gian 3D WebGL
+        p_badge = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(6.3), content_top + Inches(2.62), Inches(2.4), Inches(0.26))
+        p_badge.fill.solid()
+        p_badge.fill.fore_color.rgb = RGBColor(224, 242, 254)
+        p_badge.line.fill.background()
+        tf_pb = p_badge.text_frame
+        tf_pb.vertical_anchor = MSO_ANCHOR.MIDDLE
+        p_run = tf_pb.paragraphs[0].add_run()
+        p_run.text = 'Mô hình 3D WebGL (SGK)'
+        p_run.font.name = 'Arial'
+        p_run.font.size = Pt(8.5)
+        p_run.font.bold = True
+        p_run.font.color.rgb = RGBColor(3, 105, 161)
+
+        # Tiêu đề chú thích loại khối đa diện (nếu có)
+        poly_type = slide_data.get('polyhedron_type') or ''
+        poly_labels = {
+            'cube': 'Hình Lập Phương ABCD.A\'B\'C\'D\'',
+            'pyramid_square': 'Hình Chóp Tứ Giác S.ABCD',
+            'pyramid_triangle': 'Hình Chóp Tam Giác S.ABC',
+            'prism_triangle': 'Hình Lăng Trụ Đứng ABC.A\'B\'C\''
+        }
+        poly_title = poly_labels.get(poly_type, 'Hình học không gian trực quan')
+        pt_box = slide.shapes.add_textbox(Inches(5.7), content_top + Inches(2.9), Inches(3.6), Inches(0.35))
+        pt_p = pt_box.text_frame.paragraphs[0]
+        pt_p.alignment = PP_ALIGN.CENTER
+        pt_r = pt_p.add_run()
+        pt_r.text = poly_title
+        pt_r.font.name = 'Arial'
+        pt_r.font.size = Pt(8.5)
+        pt_r.font.color.rgb = COLOR_TEXT_MUTED
+
+    # TRƯỜNG HỢP 3: KHÔNG CÓ ĐỒ THỊ HOẶC ẢNH 3D (BỐ CỤC TOÀN CHIỀU RỘNG TRANG NHÃ)
     else:
         w_full = Inches(8.8)
         text_h = Inches(2.0) if formula_latex else Inches(3.3)
@@ -537,6 +728,8 @@ def export_slide_deck_to_pptx(data: Union[Dict[str, Any], SlideDeckSchema]) -> i
     prs.slide_width = Inches(10.0)
     prs.slide_height = Inches(5.625)
 
+    deck_snapshot = deck_dict.get("snapshot_3d_base64")
+
     for idx, slide_data in enumerate(slides_data):
         slide = prs.slides.add_slide(prs.slide_layouts[6])
 
@@ -554,14 +747,19 @@ def export_slide_deck_to_pptx(data: Union[Dict[str, Any], SlideDeckSchema]) -> i
         if is_title:
             build_title_slide(slide, slide_data, subject, grade)
         else:
+            # Task 14.3: Tự động kế thừa snapshot 3D từ deck_snapshot nếu slide có has_3d/polyhedron_type
+            if not slide_data.get("snapshot_3d_base64") and deck_snapshot and (slide_data.get("has_3d") or slide_data.get("polyhedron_type")):
+                slide_data["snapshot_3d_base64"] = deck_snapshot
             build_content_slide(slide, slide_data, idx + 1, total_slides, subject, grade)
 
         # 3. Kịch bản lời thoại giáo viên (Speaker Notes Pane trong PowerPoint)
         teacher_note = slide_data.get("teacher_note", "")
         if teacher_note:
-            notes_slide = slide.notes_slide
-            text_frame = notes_slide.notes_text_frame
-            text_frame.text = f"[Kịch bản giảng dạy dành cho Giáo viên]:\n{teacher_note}"
+            notes_slide = getattr(slide, "notes_slide", None)
+            if notes_slide is not None:
+                text_frame = getattr(notes_slide, "notes_text_frame", None)
+                if text_frame is not None:
+                    text_frame.text = f"[Kịch bản giảng dạy dành cho Giáo viên]:\n{teacher_note}"
 
     pptx_bytes = io.BytesIO()
     prs.save(pptx_bytes)

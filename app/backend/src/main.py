@@ -24,6 +24,15 @@ from services.ai_service import generate_lesson_plan, generate_slide_deck
 from services.chat_service import handle_copilot_chat, session_manager, apply_slide_patch
 from services.grade_classifier import classify_grade_sheet
 from services.validation import audit_slide_deck, DeckAuditResponse
+from services.geometry_service import (
+    calculate_parametric_geometry,
+    ParametricGeometryRequest,
+    ParametricGeometryResponse,
+    get_polyhedron_edge_topology,
+    get_unfolded_net_topology,
+    get_polyhedron_vertex_labels,
+    compute_hidden_surface_raycasting
+)
 from parsers.pptx_parser import parse_pptx
 from parsers.docx_parser import parse_docx
 from parsers.common import ParsedDocumentResponse
@@ -418,6 +427,128 @@ def audit_deck_endpoint(deck_payload: dict):
         )
 
 app.include_router(validation_router)
+
+# ================= 3D GEOMETRY PARAMETRIC MODELING ENDPOINTS (NGÀY 12) =================
+geometry_router = APIRouter(
+    prefix="/api/v1/geometry",
+    tags=["Geometry & 3D Parametric"]
+)
+
+@geometry_router.post("/parametric-coordinates", response_model=ParametricGeometryResponse)
+def get_parametric_coordinates_endpoint(req: ParametricGeometryRequest):
+    """
+    Task 12.2: Endpoint tính toán tọa độ đỉnh chóp S(0, 0, h) và các thông số hình học động
+    theo thời gian thực khi Giáo viên / Học sinh kéo các thanh trượt UI (Slider Controls).
+    """
+    try:
+        return calculate_parametric_geometry(
+            polyhedron_type=req.polyhedron_type,
+            height=req.height,
+            base_edge=req.base_edge
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Lỗi khi tính toán tọa độ hình học: {str(e)}"
+        )
+
+@geometry_router.get("/apex-coordinates", response_model=ParametricGeometryResponse)
+def get_apex_coordinates_get_endpoint(
+    polyhedron_type: str = "pyramid_square",
+    height: float = 4.0,
+    base_edge: float = 4.0
+):
+    """
+    Task 12.2: Endpoint GET hỗ trợ truy vấn nhanh tọa độ đỉnh S(0, 0, h) qua Query Params.
+    """
+    try:
+        return calculate_parametric_geometry(
+            polyhedron_type=polyhedron_type,
+            height=height,
+            base_edge=base_edge
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Lỗi khi tính toán tọa độ hình học: {str(e)}"
+        )
+
+@geometry_router.get("/edge-topology")
+def get_edge_topology_endpoint(polyhedron_type: str = "pyramid_square"):
+    """
+    Task 13.1: Endpoint truy vấn danh mục cạnh thấy (nét liền) và cạnh khuất (nét đứt) chuẩn SGK.
+    """
+    try:
+        return get_polyhedron_edge_topology(polyhedron_type)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Lỗi khi truy vấn cấu trúc cạnh: {str(e)}"
+        )
+
+@geometry_router.get("/unfolded-net")
+def get_unfolded_net_endpoint(
+    polyhedron_type: str = "pyramid_square",
+    height: float = 4.0,
+    base_edge: float = 4.0
+):
+    """
+    Task 13.3: Endpoint trả về cấu trúc bản vẽ Khai Triển Phẳng 2D (Unfolded Net)
+    phục vụ trực quan hóa diện tích xung quanh S_xq và diện tích toàn phần S_tp.
+    """
+    try:
+        return get_unfolded_net_topology(
+            polyhedron_type=polyhedron_type,
+            height=height,
+            base_edge=base_edge
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Lỗi khi tính toán hình khai triển phẳng: {str(e)}"
+        )
+
+@geometry_router.get("/vertex-labels")
+def get_vertex_labels_endpoint(polyhedron_type: str = "pyramid_square"):
+    """
+    Task 13.4: Endpoint truy vấn danh mục tên các đỉnh (S, A, B, C, D) và ý nghĩa hình học SGK.
+    """
+    try:
+        return get_polyhedron_vertex_labels(polyhedron_type)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Lỗi khi truy vấn danh sách đỉnh: {str(e)}"
+        )
+
+@geometry_router.get("/raycast-occlusion")
+def get_raycast_occlusion_endpoint(
+    polyhedron_type: str = "pyramid_square",
+    cam_x: float = 6.0,
+    cam_y: float = 7.0,
+    cam_z: float = 9.0,
+    height: float = 4.0,
+    base_edge: float = 4.0
+):
+    """
+    Task 13.5: Endpoint tính toán khử mặt khuất bằng giải thuật Raycasting (Möller–Trumbore)
+    xác định chính xác các cạnh khuất nét đứt từ tọa độ Camera quan sát.
+    """
+    try:
+        return compute_hidden_surface_raycasting(
+            polyhedron_type=polyhedron_type,
+            camera_position=(cam_x, cam_y, cam_z),
+            height=height,
+            base_edge=base_edge
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Lỗi khi tính toán Raycasting: {str(e)}"
+        )
+
+
+app.include_router(geometry_router)
 
 if __name__ == "__main__":
     import uvicorn
