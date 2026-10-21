@@ -478,7 +478,7 @@ def clean_latex_for_sympy(raw_latex: str) -> str:
     return s.strip()
 
 
-def latex_to_sympy_expr(latex_str: str) -> Optional[sp.Expr]:
+def latex_to_sympy_expr(latex_str: str) -> Optional[Any]:
     """
     Task 10.2: Phân tích chuỗi LaTeX đơn thành đối tượng biểu thức ký hiệu SymPy (sp.Expr).
     Trả về None nếu biểu thức chứa ký hiệu không thuộc phạm vi đại số cơ bản (tích phân, giới hạn, tập hợp...).
@@ -598,7 +598,7 @@ def check_algebraic_equality_chain(
         if not _is_algebraic_identity_candidate(raw_l, raw_r, expr_l, expr_r):
             continue
 
-        diff = sp.simplify(sp.expand(expr_l - expr_r))
+        diff = sp.simplify(sp.expand(sp.Add(expr_l, -expr_r)))
         if diff != 0:
             expanded_l = sp.expand(expr_l)
             expanded_r = sp.expand(expr_r)
@@ -674,8 +674,8 @@ def check_equation_equivalence_steps(
             l1, r1 = latex_to_sympy_expr(l1_raw), latex_to_sympy_expr(r1_raw)
             l2, r2 = latex_to_sympy_expr(l2_raw), latex_to_sympy_expr(r2_raw)
             if l1 is not None and r1 is not None and l2 is not None and r2 is not None:
-                p1 = sp.expand(l1 - r1)
-                p2 = sp.expand(l2 - r2)
+                p1 = sp.expand(sp.Add(l1, -r1))
+                p2 = sp.expand(sp.Add(l2, -r2))
                 common_vars = list(p1.free_symbols.union(p2.free_symbols))
                 if len(common_vars) == 1 and p1 != 0 and p2 != 0:
                     var = common_vars[0]
@@ -720,7 +720,7 @@ def check_equation_equivalence_steps(
             l1, r1 = latex_to_sympy_expr(l1_raw), latex_to_sympy_expr(r1_raw)
             l2, r2 = latex_to_sympy_expr(l2_raw), latex_to_sympy_expr(r2_raw)
             if l1 is not None and r1 is not None and l2 is not None and r2 is not None:
-                common_vars = list((l1 - r1).free_symbols.union((l2 - r2).free_symbols))
+                common_vars = list(sp.Add(l1, -r1).free_symbols.union(sp.Add(l2, -r2).free_symbols))
                 if len(common_vars) == 1:
                     var = common_vars[0]
                     op_map = {"<": sp.Lt, ">": sp.Gt, "<=": sp.Le, ">=": sp.Ge, r"\le": sp.Le, r"\ge": sp.Ge}
