@@ -1,12 +1,14 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { ChevronLeft, ChevronRight, MessageSquare, Wrench, HelpCircle, Check, Eye, LineChart, Box, FileText, Edit3, AlertTriangle, Layers, Compass, Sparkles, BookOpen } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { ChevronLeft, ChevronRight, MessageSquare, Wrench, HelpCircle, Check, Eye, LineChart, Box, FileText, Edit3, AlertTriangle, Layers, Compass, Sparkles, BookOpen, Sliders, MoveVertical, Maximize2, RotateCcw, Calculator, Zap, Tag } from 'lucide-react';
 import ThreeCanvas from './ThreeCanvas';
+import UnfoldedNetViewer from './UnfoldedNetViewer';
 import FunctionPlotter from './FunctionPlotter';
 import MathText from './MathText';
 import MathLiveModal from './MathLiveModal';
 import PedagogicalWarningModal from './PedagogicalWarningModal';
 import { updateSlideFormulaInDeck } from '../utils/slideDeckStorage';
 import { auditSlideDeckLocal, auditSlideDeckRemote } from '../utils/pedagogicalLinterClient';
+import { computeParametricCoordinatesLocal, fetchParametricCoordinatesRemote } from '../utils/geometryClient';
 
 export default function PresentationStage({
   slideDeck,
@@ -20,12 +22,23 @@ export default function PresentationStage({
   polyhedronType,
   setPolyhedronType,
   edgeLength,
+  geoHeight,
+  setGeoHeight,
+  geoBaseEdge,
+  setGeoBaseEdge,
   showHiddenLines,
+  setShowHiddenLines,
   showVertexLabels,
+  setShowVertexLabels,
   showAxes,
   setShowAxes,
   cameraPreset,
-  onSwitchSample
+  onCameraPreset,
+  showUnfoldedNet = false,
+  setShowUnfoldedNet,
+  onSwitchSample,
+  // Task 14.1: Cầu nối Snapshot 3D WebGL
+  onCaptureReady
 }) {
   const slides = slideDeck?.slides || [];
   const slide = slides[currentSlide] || {};
@@ -49,6 +62,107 @@ export default function PresentationStage({
 
   // Task 9.3: Trạng thái đánh dấu hiệu ứng Highlight xác nhận vị trí công thức vừa được render lại bằng KaTeX
   const [recentlyUpdatedFormula, setRecentlyUpdatedFormula] = useState(null);
+
+  // Task 13.3: Quản lý chế độ xem Song Song 3D + Hình Khai Triển Phẳng 2D (Unfolded Net)
+  const [localShowUnfoldedNet, setLocalShowUnfoldedNet] = useState(false);
+  const activeShowUnfoldedNet = typeof showUnfoldedNet === 'boolean' ? showUnfoldedNet : localShowUnfoldedNet;
+  const handleToggleUnfoldedNet = setShowUnfoldedNet || setLocalShowUnfoldedNet;
+
+  // Task 12.1 & 12.2: Quản lý tham số hình học động & Tọa độ đỉnh chóp S(0, 0, h)
+  const [localHeight, setLocalHeight] = useState(4.0);
+  const [localBaseEdge, setLocalBaseEdge] = useState(4.0);
+  const activeHeight = typeof geoHeight === 'number' ? geoHeight : localHeight;
+  const activeBaseEdge = typeof geoBaseEdge === 'number' ? geoBaseEdge : localBaseEdge;
+  const handleHeightChange = setGeoHeight || setLocalHeight;
+  const handleBaseEdgeChange = setGeoBaseEdge || setLocalBaseEdge;
+
+  // Tính toán tọa độ và các đại lượng hình học theo thời gian thực (0ms phản hồi tức thì)
+  const parametricMetrics = useMemo(() => {
+    return computeParametricCoordinatesLocal(polyhedronType, activeHeight, activeBaseEdge);
+  }, [polyhedronType, activeHeight, activeBaseEdge]);
+
+  // Task 14.1: Quản lý hàm chụp snapshot khung hình 3D từ ThreeCanvas
+  const threeCaptureRef = useRef(null);
+  const handleCaptureReady = (captureFn) => {
+    threeCaptureRef.current = captureFn;
+    if (typeof onCaptureReady === 'function') {
+      onCaptureReady(captureFn);
+    }
+  };
+
+  // Task 12.4: ID điều phối requestAnimationFrame cho thanh trượt h và a (60 FPS mượt mà)
+  const rafHeightRef = useRef(null);
+  const rafBaseRef = useRef(null);
+
+  // Bắt sự kiện oninput của slider và điều phối render mượt mà 60 FPS qua requestAnimationFrame
+  const handleHeightInput = (val) => {
+    const num = parseFloat(val);
+    if (!isNaN(num)) {
+      if (rafHeightRef.current) {
+        cancelAnimationFrame(rafHeightRef.current);
+      }
+      rafHeightRef.current = requestAnimationFrame(() => {
+        handleHeightChange?.(num);
+        fetchParametricCoordinatesRemote(polyhedronType, num, activeBaseEdge);
+      });
+    }
+  };
+
+  const handleBaseEdgeInput = (val) => {
+    const num = parseFloat(val);
+    if (!isNaN(num)) {
+      if (rafBaseRef.current) {
+        cancelAnimationFrame(rafBaseRef.current);
+      }
+      rafBaseRef.current = requestAnimationFrame(() => {
+        handleBaseEdgeChange?.(num);
+        fetchParametricCoordinatesRemote(polyhedronType, activeHeight, num);
+      });
+    }
+  };
+
+  // Dọn dẹp requestAnimationFrame khi component unmount
+  useEffect(() => {
+    return () => {
+      if (rafHeightRef.current) cancelAnimationFrame(rafHeightRef.current);
+      if (rafBaseRef.current) cancelAnimationFrame(rafBaseRef.current);
+    };
+  }, []);
+
+  // Task 12.3: Công thức và chuỗi KaTeX thể tích động tự động thay số theo slider
+  const volumeLatex = useMemo(() => {
+    const aVal = Number(activeBaseEdge).toFixed(1);
+    const hVal = Number(activeHeight).toFixed(1);
+    const sBaseVal = Number(parametricMetrics.measurements.base_area).toFixed(1);
+    const volVal = Number(parametricMetrics.measurements.volume).toFixed(1);
+
+    if (polyhedronType === 'prism_triangle') {
+      return {
+        name: "Lăng Trụ Đứng Tam Giác ABC.A'B'C'",
+        generalFormula: "V = S_{\\text{đáy}} \\cdot h",
+        substFormula: `V = ${sBaseVal} \\cdot ${hVal} = ${volVal}`
+      };
+    } else if (polyhedronType === 'cube') {
+      return {
+        name: "Hình Lập Phương ABCD.A'B'C'D'",
+        generalFormula: "V = a^3",
+        substFormula: `V = ${aVal}^3 = ${volVal}`
+      };
+    } else if (polyhedronType === 'pyramid_triangle') {
+      return {
+        name: "Hình Chóp Tam Giác S.ABC (SA \\bot \\text{đáy})",
+        generalFormula: "V = \\frac{1}{3} S_{\\text{đáy}} \\cdot h",
+        substFormula: `V = \\frac{1}{3} \\cdot ${sBaseVal} \\cdot ${hVal} = ${volVal}`
+      };
+    } else {
+      // Default: pyramid_square S.ABCD
+      return {
+        name: "Hình Chóp Tứ Giác S.ABCD (SA \\bot \\text{đáy})",
+        generalFormula: "V = \\frac{1}{3} S_{\\text{đáy}} \\cdot h = \\frac{1}{3} a^2 h",
+        substFormula: `V = \\frac{1}{3} \\cdot ${sBaseVal} \\cdot ${hVal} = ${volVal}`
+      };
+    }
+  }, [polyhedronType, activeBaseEdge, activeHeight, parametricMetrics]);
 
   // Task 10.4: Trạng thái Bộ lọc Kiểm duyệt Sư phạm (Danh sách Cảnh báo vàng — Human-in-the-Loop)
   const [deckWarnings, setDeckWarnings] = useState(() => auditSlideDeckLocal(slideDeck).warnings);
@@ -562,6 +676,7 @@ export default function PresentationStage({
                           />
                         </div>
                       </div>
+
                     );
                   })}
                 </div>
@@ -673,6 +788,73 @@ export default function PresentationStage({
                       </span>
                     </div>
                   )}
+
+                  {/* TASK 12.3: BẢNG THÔNG SỐ ĐỘNG BÊN CẠNH HÌNH & CÔNG THỨC THỂ TÍCH TỰ ĐỘNG NHẢY SỐ */}
+                  {effectiveVisual === '3d' && (
+                    <div className="p-3.5 rounded-xl bg-gradient-to-br from-slate-900/90 via-slate-950/90 to-indigo-950/40 border border-cyan-800/50 shadow-lg space-y-2.5">
+                      {/* Tiêu đề & Tên khối */}
+                      <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                        <div className="flex items-center gap-1.5">
+                          <Calculator size={14} className="text-cyan-400" />
+                          <span className="text-[11px] font-bold text-white uppercase tracking-wider">
+                            Bảng Thông Số Động & Thể Tích
+                          </span>
+                        </div>
+                        <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-950/70 border border-cyan-700/60 text-cyan-300 font-medium">
+                          {volumeLatex.name}
+                        </span>
+                      </div>
+
+                      {/* 4 Thẻ chỉ số nhảy số tự động theo Slider */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                        <div className="p-1.5 rounded-lg bg-slate-900/80 border border-emerald-900/40">
+                          <div className="text-[10px] text-slate-400 font-medium">Cạnh đáy a</div>
+                          <div className="text-sm font-bold font-mono text-emerald-400">
+                            {Number(activeBaseEdge).toFixed(1)}
+                          </div>
+                        </div>
+
+                        <div className="p-1.5 rounded-lg bg-slate-900/80 border border-cyan-900/40">
+                          <div className="text-[10px] text-slate-400 font-medium">Chiều cao h</div>
+                          <div className="text-sm font-bold font-mono text-cyan-400">
+                            {Number(activeHeight).toFixed(1)}
+                          </div>
+                        </div>
+
+                        <div className="p-1.5 rounded-lg bg-slate-900/80 border border-amber-900/40">
+                          <div className="text-[10px] text-slate-400 font-medium">Sđáy</div>
+                          <div className="text-sm font-bold font-mono text-amber-300">
+                            {Number(parametricMetrics.measurements.base_area).toFixed(1)}
+                          </div>
+                        </div>
+
+                        <div className="p-1.5 rounded-lg bg-indigo-950/50 border border-indigo-700/50 shadow-inner">
+                          <div className="text-[10px] text-indigo-300 font-bold">Thể tích V</div>
+                          <div className="text-sm font-black font-mono text-cyan-300">
+                            {Number(parametricMetrics.measurements.volume).toFixed(1)}
+                          </div>
+                        </div>
+                      </div>
+
+
+                      {/* Công thức KaTeX động: Công thức tổng quát & Thế số trực tiếp */}
+                      <div className="p-2 rounded-lg bg-slate-950/80 border border-slate-800/80 space-y-1 font-mono text-xs">
+                        <div className="flex items-center justify-between text-[11px] text-slate-400">
+                          <span className="text-slate-400">Công thức:</span>
+                          <span className="text-cyan-300 font-semibold">
+                            <MathText text={`$${volumeLatex.generalFormula}$`} />
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-800/60">
+                          <span className="text-emerald-400 font-semibold">Thế số tức thì:</span>
+                          <span className="text-amber-300 font-bold">
+                            <MathText text={`$${volumeLatex.substFormula}$`} />
+                          </span>
+                        </div>
+                      </div>
+
+                    </div>
+                  )}
                 </div>
 
                 {/* Cột phải: KHÔNG GIAN TRỰC QUAN ĐÚNG BẢN CHẤT BÀI TOÁN */}
@@ -695,6 +877,7 @@ export default function PresentationStage({
                           <span className="text-emerald-400">Đồng bộ 1:1 với file PowerPoint</span>
                         </div>
                       </div>
+
                     ) : (
                       <FunctionPlotter
                         defaultExpr={slide.chart_spec?.expression || 'x**2 - 4'}
@@ -758,6 +941,21 @@ export default function PresentationStage({
                           >
                             Lăng Trụ
                           </button>
+                          {setShowVertexLabels && (
+                            <button
+                              type="button"
+                              onClick={() => setShowVertexLabels?.(!showVertexLabels)}
+                              className={`px-2 py-0.5 rounded text-[10px] font-medium transition border flex items-center gap-1 ${
+                                showVertexLabels
+                                  ? 'bg-indigo-500/20 text-indigo-300 border-indigo-400/60 shadow-sm'
+                                  : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'
+                              }`}
+                              title="Bật/Tắt hiển thị tên các đỉnh (S, A, B, C, D) theo chuẩn SGK Toán"
+                            >
+                              <Tag size={10} className={showVertexLabels ? 'text-indigo-400' : 'text-slate-400'} />
+                              <span>Tên Đỉnh</span>
+                            </button>
+                          )}
                           {setShowAxes && (
                             <button
                               type="button"
@@ -772,21 +970,247 @@ export default function PresentationStage({
                               Oxyz
                             </button>
                           )}
+                          {setShowHiddenLines && (
+                            <button
+                              type="button"
+                              onClick={() => setShowHiddenLines?.(!showHiddenLines)}
+                              className={`px-2 py-0.5 rounded text-[10px] font-medium transition border ${
+                                showHiddenLines
+                                  ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400/60'
+                                  : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'
+                              }`}
+                              title="Bật/Tắt đường nét đứt (cạnh khuất chuẩn SGK)"
+                            >
+                              Nét Đứt
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleUnfoldedNet?.(!activeShowUnfoldedNet)}
+                            className={`px-2 py-0.5 rounded text-[10px] font-medium transition border flex items-center gap-1 ${
+                              activeShowUnfoldedNet
+                                ? 'bg-amber-500/25 text-amber-300 border-amber-400/70 shadow-sm font-semibold'
+                                : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'
+                            }`}
+                            title="Bật/Tắt chế độ xem song song Hình Khai Triển Phẳng 2D (Unfolded Net) để trực quan hóa Diện tích xung quanh S_xq"
+                          >
+                            <Layers size={10} className={activeShowUnfoldedNet ? 'text-amber-400' : 'text-slate-400'} />
+                            <span>Khai Triển 2D</span>
+                          </button>
                         </div>
                       </div>
 
-                      {/* Khung WebGL Canvas */}
-                      <div className="flex-1 w-full relative min-h-[210px] rounded-lg overflow-hidden">
-                        <ThreeCanvas
-                          slideIndex={currentSlide}
-                          polyhedronType={polyhedronType}
-                          edgeLength={edgeLength}
-                          showHiddenLines={showHiddenLines}
-                          showVertexLabels={showVertexLabels}
-                          showAxes={showAxes}
-                          cameraPreset={cameraPreset}
-                        />
+                      {/* Thanh công cụ chọn nhanh 4 góc nhìn chuẩn SGK (Task 13.2) */}
+                      <div className="flex items-center justify-between px-2 py-1 bg-slate-900/80 border border-slate-800 rounded-lg text-[10px] mb-1 z-10">
+                        <div className="flex items-center gap-1 text-slate-400 font-medium">
+                          <Compass size={12} className="text-cyan-400" />
+                          <span>Góc nhìn SGK:</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => onCameraPreset?.('iso')}
+                            className={`px-1.5 py-0.5 rounded transition ${
+                              cameraPreset === 'iso'
+                                ? 'bg-cyan-600 text-white font-semibold shadow-sm'
+                                : 'bg-slate-800 text-slate-300 hover:text-white'
+                            }`}
+                            title="Góc nhìn phối cảnh 3 chiều chuẩn SGK (Isometric)"
+                          >
+                            Phối Cảnh
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onCameraPreset?.('front')}
+                            className={`px-1.5 py-0.5 rounded transition ${
+                              cameraPreset === 'front'
+                                ? 'bg-cyan-600 text-white font-semibold shadow-sm'
+                                : 'bg-slate-800 text-slate-300 hover:text-white'
+                            }`}
+                            title="Hình chiếu đứng: Chiếu từ trước ra sau (Front View)"
+                          >
+                            Chiếu Đứng
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onCameraPreset?.('top')}
+                            className={`px-1.5 py-0.5 rounded transition ${
+                              cameraPreset === 'top'
+                                ? 'bg-cyan-600 text-white font-semibold shadow-sm'
+                                : 'bg-slate-800 text-slate-300 hover:text-white'
+                            }`}
+                            title="Hình chiếu bằng: Chiếu từ trên xuống đáy Oxy (Top View)"
+                          >
+                            Chiếu Bằng
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onCameraPreset?.('side')}
+                            className={`px-1.5 py-0.5 rounded transition ${
+                              cameraPreset === 'side'
+                                ? 'bg-cyan-600 text-white font-semibold shadow-sm'
+                                : 'bg-slate-800 text-slate-300 hover:text-white'
+                            }`}
+                            title="Hình chiếu cạnh: Chiếu vuông góc từ bên hông 90° (Side View)"
+                          >
+                            Chiếu Cạnh
+                          </button>
+                        </div>
                       </div>
+
+                      {/* Khung Hiển Thị Trực Quan: 3D Đơn hoặc Song Song 3D + 2D Net (Task 13.3) */}
+                      <div className={`flex-1 w-full relative min-h-[220px] rounded-lg overflow-hidden ${
+                        activeShowUnfoldedNet ? 'grid grid-cols-1 md:grid-cols-2 gap-2' : 'flex'
+                      }`}>
+                        {/* Cột 1: Khung WebGL Canvas 3D */}
+                        <div className="w-full h-full relative min-h-[210px] rounded-lg overflow-hidden bg-slate-950/70 border border-slate-800/80">
+                          <ThreeCanvas
+                            slideIndex={currentSlide}
+                            polyhedronType={polyhedronType}
+                            edgeLength={edgeLength}
+                            heightParam={activeHeight}
+                            baseParam={activeBaseEdge}
+                            showHiddenLines={showHiddenLines}
+                            showVertexLabels={showVertexLabels}
+                            showAxes={showAxes}
+                            cameraPreset={cameraPreset}
+                            onCaptureReady={handleCaptureReady}
+                          />
+                          {activeShowUnfoldedNet && (
+                            <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-slate-900/85 border border-slate-700/80 text-[9px] text-cyan-300 font-medium z-10 pointer-events-none">
+                              Mô hình 3D
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Cột 2: Bản vẽ Khai Triển Phẳng 2D (Side-by-Side Net) */}
+                        {activeShowUnfoldedNet && (
+                          <div className="w-full h-full relative min-h-[210px] rounded-lg overflow-hidden">
+                            <UnfoldedNetViewer
+                              polyhedronType={polyhedronType}
+                              heightParam={activeHeight}
+                              baseParam={activeBaseEdge}
+                              showVertexLabels={showVertexLabels}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* THANH ĐIỀU KHIỂN THAM SỐ HÌNH HỌC (TASK 12.1: SLIDER CONTROLS h & a) */}
+                      <div className="mt-2 p-2.5 bg-slate-950/85 backdrop-blur-md rounded-lg border border-slate-800/90 shadow-md">
+                        <div className="flex items-center justify-between mb-1.5 pb-1 border-b border-slate-800/70">
+                          <div className="flex items-center gap-1.5">
+                            <Sliders size={13} className="text-cyan-400" />
+                            <span className="text-[11px] font-bold text-slate-200 tracking-wide uppercase">
+                              Tham Số Hình Học
+                            </span>
+                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-950/80 border border-emerald-600/40 text-emerald-400 font-mono font-semibold flex items-center gap-0.5">
+                              <Zap size={9} /> 60 FPS rAF
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleHeightChange?.(4.0);
+                              handleBaseEdgeChange?.(4.0);
+                            }}
+                            className="px-1.5 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-[10px] text-cyan-300 hover:text-white border border-slate-700/60 flex items-center gap-1 transition"
+                            title="Đặt lại tham số chuẩn h = 4.0, a = 4.0"
+                          >
+                            <RotateCcw size={9} />
+                            <span>Mặc định (h=4, a=4)</span>
+                          </button>
+                        </div>
+
+                        {/* Task 12.3: Bảng thông số nhảy số động theo thời gian thực (Sđáy, h, V) */}
+                        <div className="grid grid-cols-3 gap-1.5 mb-2 py-1 px-2 rounded-md bg-slate-900/90 border border-slate-800/90 text-center font-mono">
+                          <div className="text-[10px]">
+                            <span className="text-slate-400">Sđáy: </span>
+                            <span className="text-amber-300 font-bold">{Number(parametricMetrics.measurements.base_area).toFixed(1)}</span>
+                          </div>
+                          <div className="text-[10px]">
+                            <span className="text-slate-400">h: </span>
+                            <span className="text-cyan-300 font-bold">{Number(activeHeight).toFixed(1)}</span>
+                          </div>
+                          <div className="text-[10px]">
+                            <span className="text-indigo-300 font-semibold">V: </span>
+                            <span className="text-emerald-300 font-black">{Number(parametricMetrics.measurements.volume).toFixed(1)}</span>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                          {/* Slider 1: Chiều cao h (1 đến 10) */}
+                          <div className="flex flex-col space-y-1 bg-slate-900/60 p-1.5 rounded border border-slate-800/60">
+                            <div className="flex items-center justify-between">
+                              <span className="text-slate-300 font-medium flex items-center gap-1">
+                                <MoveVertical size={11} className="text-cyan-400" />
+                                <span>Chiều cao <span className="font-mono text-cyan-300 font-bold">h</span>:</span>
+                              </span>
+                              <span className="px-1.5 py-0.2 rounded bg-cyan-950/80 border border-cyan-700/50 text-cyan-300 font-mono font-bold text-[10px]">
+                                {Number(activeHeight).toFixed(1)}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[9px] text-slate-500 font-mono">1</span>
+                              <input
+                                type="range"
+                                min="1"
+                                max="10"
+                                step="0.5"
+                                value={activeHeight}
+                                onInput={(e) => handleHeightInput(e.target.value)}
+                                onChange={(e) => handleHeightInput(e.target.value)}
+                                className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400 focus:outline-none"
+                              />
+                              <span className="text-[9px] text-slate-500 font-mono">10</span>
+                            </div>
+                          </div>
+
+                          {/* Slider 2: Cạnh đáy a (1 đến 8) */}
+                          <div className="flex flex-col space-y-1 bg-slate-900/60 p-1.5 rounded border border-slate-800/60">
+                            <div className="flex items-center justify-between">
+                              <span className="text-slate-300 font-medium flex items-center gap-1">
+                                <Maximize2 size={11} className="text-emerald-400" />
+                                <span>Cạnh đáy <span className="font-mono text-emerald-300 font-bold">a</span>:</span>
+                              </span>
+                              <span className="px-1.5 py-0.2 rounded bg-emerald-950/80 border border-emerald-700/50 text-emerald-300 font-mono font-bold text-[10px]">
+                                {Number(activeBaseEdge).toFixed(1)}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[9px] text-slate-500 font-mono">1</span>
+                              <input
+                                type="range"
+                                min="1"
+                                max="8"
+                                step="0.5"
+                                value={activeBaseEdge}
+                                onInput={(e) => handleBaseEdgeInput(e.target.value)}
+                                onChange={(e) => handleBaseEdgeInput(e.target.value)}
+                                className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-400 focus:outline-none"
+                              />
+                              <span className="text-[9px] text-slate-500 font-mono">8</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Hiển thị tọa độ đỉnh chóp S(0, 0, h) theo thời gian thực (Task 12.2) */}
+                        <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-slate-800/80 text-[10px]">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-slate-400">Tọa độ đỉnh chóp:</span>
+                            <span className="px-2 py-0.5 rounded bg-cyan-950/80 border border-cyan-800/70 text-cyan-300 font-mono font-bold tracking-wider">
+                              S(0.0, 0.0, {Number(activeHeight).toFixed(1)})
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-slate-400">
+                            <span>Gốc O:</span>
+                            <span className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300 font-mono">
+                              (0, 0, 0)
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
 
                       <div className="mt-1 px-2 py-0.5 bg-slate-900/80 backdrop-blur rounded text-[10px] text-slate-400 border border-slate-800 flex items-center justify-between">
                         <span>Chuột trái: Xoay 360° quanh Ox, Oy, Oz</span>
@@ -962,6 +1386,7 @@ export default function PresentationStage({
                           <MathText text={pt} />
                         </div>
                       </div>
+
                     );
                   })}
                 </div>

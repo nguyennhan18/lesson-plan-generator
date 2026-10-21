@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import HeaderNav from './components/HeaderNav';
 import PresentationStage from './components/PresentationStage';
 import TeacherChatDock from './components/TeacherChatDock';
@@ -414,13 +414,19 @@ export default function App() {
   const [isLeftOpen, setIsLeftOpen] = useState(true);
   const [isRightOpen, setIsRightOpen] = useState(false);
 
-  // 3D Geometry Shared Parameters
+  // 3D Geometry Shared Parameters & Parametric Modeling (Task 12.1)
   const [polyhedronType, setPolyhedronType] = useState('cube');
   const [edgeLength, setEdgeLength] = useState(4.0);
+  const [geoHeight, setGeoHeight] = useState(4.0);      // Task 12.1: Chiều cao h (1 đến 10)
+  const [geoBaseEdge, setGeoBaseEdge] = useState(4.0);  // Task 12.1: Cạnh đáy a (1 đến 8)
   const [showHiddenLines, setShowHiddenLines] = useState(true);
   const [showVertexLabels, setShowVertexLabels] = useState(true);
   const [showAxes, setShowAxes] = useState(true);
   const [cameraPreset, setCameraPreset] = useState('iso');
+  const [showUnfoldedNet, setShowUnfoldedNet] = useState(false);
+
+  // Task 14.1: Ref lưu trữ hàm capture3DSnapshot từ ThreeCanvas phục vụ xuất PPTX kèm ảnh chụp 3D
+  const threeCanvasCaptureRef = useRef(null);
 
   // ================= CENTRAL STATE (ĐỒNG BỘ 2 CHIỀU VỚI BỘ NHỚ TRÌNH DUYỆT - TASK 9.2) =================
   const [slideDeck, setSlideDeck] = useState(() =>
@@ -596,11 +602,51 @@ export default function App() {
       alert("Chưa có dữ liệu Slide để xuất PowerPoint!");
       return;
     }
+
+    // Task 14.2: Thu thập ảnh chụp mô hình không gian 3D dạng Base64 Data URL
+    let snapshot3d = null;
+    if (typeof threeCanvasCaptureRef.current === 'function') {
+      try {
+        snapshot3d = threeCanvasCaptureRef.current();
+      } catch (err) {
+        console.warn('[handleExportPptx] Không thể chụp snapshot qua ref:', err);
+      }
+    }
+    if (!snapshot3d && typeof window !== 'undefined' && typeof window.__threeCanvasCaptureSnapshot === 'function') {
+      try {
+        snapshot3d = window.__threeCanvasCaptureSnapshot();
+      } catch (err) {
+        console.warn('[handleExportPptx] Không thể chụp snapshot qua window:', err);
+      }
+    }
+
+    // Đóng gói chuỗi Base64 Data URL vào payload gửi tới backend
+    const payloadDeck = {
+      ...slideDeck,
+      slides: (slideDeck.slides || []).map((s, idx) => {
+        const slideCopy = { ...s };
+        if (snapshot3d) {
+          if (slideCopy.has_3d || slideCopy.polyhedron_type) {
+            if (idx === currentSlide || !slideCopy.snapshot_3d_base64) {
+              slideCopy.snapshot_3d_base64 = snapshot3d;
+            }
+          } else if (idx === currentSlide) {
+            slideCopy.snapshot_3d_base64 = snapshot3d;
+          }
+        }
+        return slideCopy;
+      })
+    };
+
+    if (snapshot3d) {
+      payloadDeck.snapshot_3d_base64 = snapshot3d;
+    }
+
     try {
       const res = await fetch('/api/v1/lesson-plan/export-slide', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(slideDeck)
+        body: JSON.stringify(payloadDeck)
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const blob = await res.blob();
@@ -728,12 +774,24 @@ export default function App() {
               polyhedronType={polyhedronType}
               setPolyhedronType={setPolyhedronType}
               edgeLength={edgeLength}
+              geoHeight={geoHeight}
+              setGeoHeight={setGeoHeight}
+              geoBaseEdge={geoBaseEdge}
+              setGeoBaseEdge={setGeoBaseEdge}
               showHiddenLines={showHiddenLines}
+              setShowHiddenLines={setShowHiddenLines}
               showVertexLabels={showVertexLabels}
+              setShowVertexLabels={setShowVertexLabels}
               showAxes={showAxes}
               setShowAxes={setShowAxes}
               cameraPreset={cameraPreset}
+              onCameraPreset={setCameraPreset}
+              showUnfoldedNet={showUnfoldedNet}
+              setShowUnfoldedNet={setShowUnfoldedNet}
               onSwitchSample={handleSwitchSample}
+              onCaptureReady={(fn) => {
+                threeCanvasCaptureRef.current = fn;
+              }}
             />
 
             <RightToolsDock
@@ -743,13 +801,20 @@ export default function App() {
               setPolyhedronType={setPolyhedronType}
               edgeLength={edgeLength}
               setEdgeLength={setEdgeLength}
+              geoHeight={geoHeight}
+              setGeoHeight={setGeoHeight}
+              geoBaseEdge={geoBaseEdge}
+              setGeoBaseEdge={setGeoBaseEdge}
               showHiddenLines={showHiddenLines}
               setShowHiddenLines={setShowHiddenLines}
               showVertexLabels={showVertexLabels}
               setShowVertexLabels={setShowVertexLabels}
               showAxes={showAxes}
               setShowAxes={setShowAxes}
+              cameraPreset={cameraPreset}
               onCameraPreset={setCameraPreset}
+              showUnfoldedNet={showUnfoldedNet}
+              setShowUnfoldedNet={setShowUnfoldedNet}
             />
           </div>
         )}

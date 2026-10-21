@@ -1,6 +1,36 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
-import { RotateCw, ZoomIn, ZoomOut, Compass, RefreshCw } from 'lucide-react';
+import { RotateCw, ZoomIn, ZoomOut, Compass, RefreshCw, Zap, Camera, Check } from 'lucide-react';
+
+/**
+ * Task 12.4: Bộ nhớ đệm CanvasTexture cho các nhãn đỉnh (A, B, C, S, Oxyz...)
+ * Tái sử dụng texture cố định trong bộ nhớ GPU, triệt tiêu 100% overhead tạo canvas/texture liên tục khi kéo slider ở 60 FPS.
+ */
+const labelTextureCache = new Map();
+
+function getOrCreateLabelTexture(name) {
+  if (labelTextureCache.has(name)) {
+    return labelTextureCache.get(name);
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = 128;
+  canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold italic 60px "Times New Roman", Times, Georgia, serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+  ctx.shadowBlur = 8;
+  ctx.shadowOffsetX = 2;
+  ctx.shadowOffsetY = 2;
+  ctx.fillText(name, 64, 64);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.needsUpdate = true;
+  labelTextureCache.set(name, tex);
+  return tex;
+}
 
 /**
  * ThreeCanvas - Interactive 3D WebGL Polyhedron Engine
@@ -15,7 +45,14 @@ export default function ThreeCanvas({
   showVertexLabels = true,
   showAxes = true,
   cameraPreset = 'iso',
-  onCameraChange
+  onCameraChange,
+  // Task 12.1: Parametric Modeling Props (Chiều cao h và Cạnh đáy a)
+  heightParam = 4.0,
+  baseParam = 4.0,
+  onParamChange,
+  // Task 14.1: Cầu nối Chụp ảnh Snapshot 3D WebGL
+  onCaptureReady,
+  captureRef
 }) {
   const mountRef = useRef(null);
   const sceneRef = useRef(null);
@@ -42,6 +79,69 @@ export default function ThreeCanvas({
     zoom: 1.15
   });
 
+  /**
+   * Task 14.1: Hàm JavaScript capture3DSnapshot()
+   * Sử dụng renderer.domElement.toDataURL('image/png', 1.0) chụp lại khung hình 3D hiện tại.
+   * Cơ chế Render-on-Demand cưỡng bức vẽ lại 1 frame đồng bộ ngay trước khi đọc bộ nhớ đệm
+   * kết hợp cùng preserveDrawingBuffer: true đảm bảo ảnh xuất ra luôn sắc nét, không bị đen/rỗng.
+   */
+  const capture3DSnapshot = useCallback(() => {
+    const renderer = rendererRef.current;
+    const scene = sceneRef.current;
+    const camera = cameraRef.current;
+    if (!renderer || !scene || !camera) {
+      console.warn('[ThreeCanvas] Không thể chụp snapshot: WebGL Context chưa sẵn sàng');
+      return null;
+    }
+
+    // Ép buộc render đồng bộ ngay lập tức để đồng bộ hóa buffer với khung hình hiện thời
+    renderer.render(scene, camera);
+
+    try {
+      const dataUrl = renderer.domElement.toDataURL('image/png', 1.0);
+      return dataUrl;
+    } catch (err) {
+      console.error('[ThreeCanvas] Lỗi khi trích xuất snapshot canvas:', err);
+      return null;
+    }
+  }, []);
+
+  // Task 14.1: Kết nối callback onCaptureReady và biến toàn cục window phục vụ chụp ảnh xuất PPTX
+  useEffect(() => {
+    if (typeof onCaptureReady === 'function') {
+      onCaptureReady(capture3DSnapshot);
+    }
+    if (captureRef && typeof captureRef === 'object') {
+      captureRef.current = { capture3DSnapshot };
+    }
+    if (typeof window !== 'undefined') {
+      window.__threeCanvasCaptureSnapshot = capture3DSnapshot;
+    }
+    return () => {
+      if (typeof window !== 'undefined' && window.__threeCanvasCaptureSnapshot === capture3DSnapshot) {
+        window.__threeCanvasCaptureSnapshot = undefined;
+      }
+    };
+  }, [onCaptureReady, captureRef, capture3DSnapshot]);
+
+  const [snapshotSaved, setSnapshotSaved] = useState(false);
+
+  const handleManualCapture = () => {
+    const dataUrl = capture3DSnapshot();
+    if (!dataUrl) return;
+
+    // Tạo thẻ a ảo tải nhanh file ảnh PNG về máy
+    const link = document.createElement('a');
+    link.download = `snapshot_3d_${polyhedronType}_${cameraPreset}.png`;
+    link.href = dataUrl;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    setSnapshotSaved(true);
+    setTimeout(() => setSnapshotSaved(false), 2000);
+  };
+
   useEffect(() => {
     const container = mountRef.current;
     if (!container) return;
@@ -57,7 +157,14 @@ export default function ThreeCanvas({
     camera.position.set(0, 0, 7);
     cameraRef.current = camera;
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+    // Task 14.1: Cấu hình preserveDrawingBuffer: true để lưu lại buffer khung hình sau render
+    // giúp canvas.toDataURL('image/png') chụp ảnh không bị đen hoặc rỗng.
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: true,
+      preserveDrawingBuffer: true,
+      powerPreference: 'high-performance'
+    });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
@@ -124,7 +231,7 @@ export default function ThreeCanvas({
     };
   }, []);
 
-  // Cập nhật góc nhìn Camera Preset chuẩn SGK
+  // Cập nhật góc nhìn Camera Preset chuẩn SGK (Task 13.2)
   useEffect(() => {
     if (cameraPreset === 'iso') {
       targetRotRef.current.rotX = -22 * (Math.PI / 180);
@@ -132,82 +239,104 @@ export default function ThreeCanvas({
       targetRotRef.current.rotZ = 0;
       targetRotRef.current.zoom = 1.15;
     } else if (cameraPreset === 'top') {
-      targetRotRef.current.rotX = -88 * (Math.PI / 180);
+      // Hình chiếu bằng: nhìn thẳng từ trên xuống đáy Oxy (-90 độ)
+      targetRotRef.current.rotX = -90 * (Math.PI / 180);
       targetRotRef.current.rotY = 0;
       targetRotRef.current.rotZ = 0;
-      targetRotRef.current.zoom = 1.25;
+      targetRotRef.current.zoom = 1.30;
     } else if (cameraPreset === 'front') {
+      // Hình chiếu đứng: nhìn trực diện từ trước ra sau (0 độ)
       targetRotRef.current.rotX = 0;
       targetRotRef.current.rotY = 0;
+      targetRotRef.current.rotZ = 0;
+      targetRotRef.current.zoom = 1.20;
+    } else if (cameraPreset === 'side') {
+      // Hình chiếu cạnh: nhìn từ bên hông vuông góc (+90 độ quanh Oy)
+      targetRotRef.current.rotX = 0;
+      targetRotRef.current.rotY = 90 * (Math.PI / 180);
       targetRotRef.current.rotZ = 0;
       targetRotRef.current.zoom = 1.20;
     }
   }, [cameraPreset]);
 
-  // Rebuild 3D Model when parameters change
+  // Task 12.4: ID điều phối requestAnimationFrame cho quá trình tái dựng mô hình 3D
+  const rafRebuildRef = useRef(null);
+
+  // Rebuild 3D Model when parameters change (Tối ưu hóa 60 FPS mượt mà bằng requestAnimationFrame)
   useEffect(() => {
-    const group = groupRef.current;
-    if (!group) return;
+    const rebuildModel = () => {
+      const group = groupRef.current;
+      if (!group) return;
 
-    // Clear previous children
-    while (group.children.length > 0) {
-      const obj = group.children[0];
-      group.remove(obj);
-      if (obj.geometry) obj.geometry.dispose();
-      if (obj.material) {
-        if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
-        else obj.material.dispose();
+      // Clear previous children
+      while (group.children.length > 0) {
+        const obj = group.children[0];
+        group.remove(obj);
+        if (obj.geometry) obj.geometry.dispose();
+        if (obj.material) {
+          if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+          else obj.material.dispose();
+        }
       }
-    }
 
-    const scale = (edgeLength / 4.0) * 1.5;
-    const a = scale;
+      const scale = (edgeLength / 4.0) * 1.5;
+      const a = scale;
 
-    // Helper: Tạo nhãn tên đỉnh dạng Billboard Canvas Sprite
-    const addVertexSprite = (name, pt, offset = new THREE.Vector3(0.12, 0.12, 0.12)) => {
-      if (!showVertexLabels) return;
-      const sphereGeo = new THREE.SphereGeometry(0.055, 16, 16);
-      const sphereMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-      const sphere = new THREE.Mesh(sphereGeo, sphereMat);
-      sphere.position.copy(pt);
-      group.add(sphere);
+      // Helper: Tạo nhãn tên đỉnh dạng Billboard Canvas Sprite (Task 13.4: Bật/tắt nhãn tên đỉnh S, A, B, C, D)
+      const addVertexSprite = (name, pt, offset = new THREE.Vector3(0.14, 0.14, 0.14)) => {
+        if (!showVertexLabels) return;
+        const sphereGeo = new THREE.SphereGeometry(0.065, 16, 16);
+        const sphereMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const sphere = new THREE.Mesh(sphereGeo, sphereMat);
+        sphere.position.copy(pt);
+        sphere.renderOrder = 4;
+        group.add(sphere);
 
-      const canvas = document.createElement('canvas');
-      canvas.width = 64;
-      canvas.height = 64;
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 36px sans-serif';
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-      ctx.shadowBlur = 4;
-      ctx.fillText(name, 12, 45);
+        const tex = getOrCreateLabelTexture(name);
+        const spriteMat = new THREE.SpriteMaterial({ map: tex, depthTest: false });
+        const sprite = new THREE.Sprite(spriteMat);
+        sprite.position.copy(pt).add(offset);
+        sprite.scale.set(0.44, 0.44, 1);
+        sprite.renderOrder = 5;
+        group.add(sprite);
+      };
 
-      const tex = new THREE.CanvasTexture(canvas);
-      const spriteMat = new THREE.SpriteMaterial({ map: tex, depthTest: false });
-      const sprite = new THREE.Sprite(spriteMat);
-      sprite.position.copy(pt).add(offset);
-      sprite.scale.set(0.42, 0.42, 1);
-      group.add(sprite);
-    };
+      // Helper: Nhãn trục tọa độ Oxyz riêng biệt phụ thuộc showAxes
+      const addAxisLabelSprite = (name, pt, offset = new THREE.Vector3(0, 0, 0)) => {
+        if (!showAxes) return;
+        const tex = getOrCreateLabelTexture(name);
+        const spriteMat = new THREE.SpriteMaterial({ map: tex, depthTest: false });
+        const sprite = new THREE.Sprite(spriteMat);
+        sprite.position.copy(pt).add(offset);
+        sprite.scale.set(0.38, 0.38, 1);
+        sprite.renderOrder = 5;
+        group.add(sprite);
+      };
 
-    // Helper: Tạo đoạn thẳng nét liền hoặc nét đứt chuẩn SGK
-    const addEdge = (p1, p2, color = 0x38bdf8, isDashed = false, linewidth = 2) => {
+    // Helper: Tạo đoạn thẳng nét liền hoặc nét đứt chuẩn SGK (Task 13.1)
+    const addEdge = (p1, p2, color = 0x38bdf8, isDashed = false, linewidth = 2.5) => {
       const geo = new THREE.BufferGeometry().setFromPoints([p1, p2]);
       if (isDashed && showHiddenLines) {
+        // Cạnh khuất (Hidden Line): Kết xuất nét đứt chuẩn SGK với tỉ lệ tương phản cao
         const mat = new THREE.LineDashedMaterial({
           color,
           linewidth,
-          dashSize: 0.14,
+          scale: 1,
+          dashSize: 0.16,
           gapSize: 0.10
         });
         const line = new THREE.Line(geo, mat);
         line.computeLineDistances();
+        line.renderOrder = 2; // Ưu tiên render sau khối kính để luôn hiển thị nét đứt sắc nét
         group.add(line);
       } else if (!isDashed) {
+        // Cạnh thấy (Visible Line): Kết xuất nét liền sắc nét
         const mat = new THREE.LineBasicMaterial({ color, linewidth });
         const line = new THREE.Line(geo, mat);
+        line.renderOrder = 3;
         group.add(line);
       }
+      // Nếu isDashed === true nhưng showHiddenLines === false: Cạnh khuất bị triệt tiêu hoàn toàn (Hidden Line Removal)
     };
 
     // Helper: Ký hiệu góc vuông 3D tại đỉnh (Right-Angle Symbol)
@@ -274,7 +403,7 @@ export default function ThreeCanvas({
       group.add(planeMesh);
 
       // Nhãn mặt phẳng đáy (Oxy)
-      addVertexSprite('(Oxy)', new THREE.Vector3(origin.x + floorSize * 0.48, floorY, origin.z + floorSize * 0.48), new THREE.Vector3(0, 0.12, 0));
+      addAxisLabelSprite('(Oxy)', new THREE.Vector3(origin.x + floorSize * 0.48, floorY, origin.z + floorSize * 0.48), new THREE.Vector3(0, 0.12, 0));
 
       // 2. Gốc tọa độ O (Điểm cầu màu trắng)
       const originSphereGeo = new THREE.SphereGeometry(0.065, 16, 16);
@@ -290,7 +419,7 @@ export default function ThreeCanvas({
         group.add(arrow);
 
         const tipPos = origin.clone().add(dirNorm.clone().multiplyScalar(length + 0.16));
-        addVertexSprite(labelText, tipPos, new THREE.Vector3(0, 0, 0));
+        addAxisLabelSprite(labelText, tipPos, new THREE.Vector3(0, 0, 0));
       };
 
       // Trục hoành Ox (Màu đỏ hồng #f43f5e) nằm trên mặt đáy hướng theo cạnh đáy
@@ -306,16 +435,23 @@ export default function ThreeCanvas({
     // Chuẩn hóa loại khối đa diện
     const normType = String(polyhedronType || 'pyramid_square').toLowerCase();
 
+    // Hệ số tỷ lệ tham số hình học động (Task 12.1: Parametric Slider Controls)
+    // baseParam: Cạnh đáy a (1.0 đến 8.0, mặc định 4.0)
+    // heightParam: Chiều cao h (1.0 đến 10.0, mặc định 4.0)
+    const sBase = Math.max(0.25, Math.min(2.5, (Number(baseParam) || 4.0) / 4.0));
+    const sHeight = Math.max(0.25, Math.min(2.8, (Number(heightParam) || 4.0) / 4.0));
+
     // =========================================================================
-    // 1. HÌNH CHÓP TỨ GIÁC S.ABCD (SA ⊥ Đáy ABCD) — TASK 11.2
+    // 1. HÌNH CHÓP TỨ GIÁC S.ABCD (SA ⊥ Đáy ABCD) — TASK 11.2 & TASK 12.1
     // =========================================================================
     if (normType === 'pyramid_square' || normType === 'rectangular_pyramid' || normType === 'pyramid4') {
       const yBase = -a * 0.9;
-      const yApex = a * 1.35;
-      const xA = -a * 0.95;
-      const zA = -a * 0.85;
-      const w = a * 1.85;
-      const d = a * 1.70;
+      const hNominal = a * 2.25;
+      const yApex = yBase + hNominal * sHeight;
+      const xA = -a * 0.95 * sBase;
+      const zA = -a * 0.85 * sBase;
+      const w = a * 1.85 * sBase;
+      const d = a * 1.70 * sBase;
 
       const v = {
         A: new THREE.Vector3(xA, yBase, zA),           // Chân đường cao, góc khuất sau-trái
@@ -365,23 +501,24 @@ export default function ThreeCanvas({
       addVertexSprite('S', v.S, new THREE.Vector3(0.0, 0.22, 0.0));
       addVertexSprite('O', midAC, new THREE.Vector3(0.0, -0.16, 0.0));
 
-      // 7. Cấu hình hệ trục tọa độ Oxyz & mặt phẳng đáy Oxy (Task 11.4)
-      addCartesianSystemAndFloor(v.A, a * 2.2, yBase, a * 3.8);
+      // 7. Cấu hình hệ trục tọa độ Oxyz & mặt phẳng đáy Oxy (Task 11.4 & 12.1)
+      addCartesianSystemAndFloor(v.A, a * 2.2 * Math.max(sBase, sHeight), yBase, a * 3.8 * sBase);
     }
 
     // =========================================================================
-    // 2. HÌNH CHÓP TAM GIÁC S.ABC (SA ⊥ Đáy ABC) — TASK 11.2
+    // 2. HÌNH CHÓP TAM GIÁC S.ABC (SA ⊥ Đáy ABC) — TASK 11.2 & TASK 12.1
     // =========================================================================
     else if (normType === 'pyramid_triangle' || normType === 'triangular_pyramid' || normType === 'pyramid3' || normType === 'tetrahedron') {
       const yBase = -a * 0.9;
-      const yApex = a * 1.35;
-      const xA = -a * 0.75;
-      const zA = -a * 0.65;
+      const hNominal = a * 2.25;
+      const yApex = yBase + hNominal * sHeight;
+      const xA = -a * 0.75 * sBase;
+      const zA = -a * 0.65 * sBase;
 
       const v = {
         A: new THREE.Vector3(xA, yBase, zA),            // Chân đường cao, sau-trái
-        B: new THREE.Vector3(xA - 0.2 * a, yBase, zA + a * 1.8), // Đáy trước-trái
-        C: new THREE.Vector3(xA + a * 1.9, yBase, zA + a * 0.7), // Đáy trước-phải
+        B: new THREE.Vector3(xA - 0.2 * a * sBase, yBase, zA + a * 1.8 * sBase), // Đáy trước-trái
+        C: new THREE.Vector3(xA + a * 1.9 * sBase, yBase, zA + a * 0.7 * sBase), // Đáy trước-phải
         S: new THREE.Vector3(xA, yApex, zA)             // Đỉnh S vuông góc với A: SA ⊥ (ABC)
       };
 
@@ -425,26 +562,27 @@ export default function ThreeCanvas({
       addVertexSprite('S', v.S, new THREE.Vector3(0.0, 0.22, 0.0));
       addVertexSprite('H', ptH, new THREE.Vector3(0.12, -0.14, 0.12));
 
-      // 7. Cấu hình hệ trục tọa độ Oxyz & mặt phẳng đáy Oxy (Task 11.4)
-      addCartesianSystemAndFloor(v.A, a * 2.2, yBase, a * 3.8);
+      // 7. Cấu hình hệ trục tọa độ Oxyz & mặt phẳng đáy Oxy (Task 11.4 & 12.1)
+      addCartesianSystemAndFloor(v.A, a * 2.2 * Math.max(sBase, sHeight), yBase, a * 3.8 * sBase);
     }
 
     // =========================================================================
-    // 3. LĂNG TRỤ ĐỨNG TAM GIÁC ABC.A'B'C' (TASK 11.2)
+    // 3. LĂNG TRỤ ĐỨNG TAM GIÁC ABC.A'B'C' (TASK 11.2 & TASK 12.1)
     // =========================================================================
     else if (normType === 'prism_triangle' || normType === 'triangular_prism' || normType === 'prism') {
-      const yBottom = -a * 1.0;
-      const yTop = a * 1.0;
-      const xA = -a * 0.75;
-      const zA = -a * 0.65;
+      const hPrism = a * 2.0 * sHeight;
+      const yBottom = -hPrism / 2;
+      const yTop = hPrism / 2;
+      const xA = -a * 0.75 * sBase;
+      const zA = -a * 0.65 * sBase;
 
       const v = {
         A: new THREE.Vector3(xA, yBottom, zA),
-        B: new THREE.Vector3(xA - 0.2 * a, yBottom, zA + a * 1.7),
-        C: new THREE.Vector3(xA + a * 1.8, yBottom, zA + a * 0.6),
+        B: new THREE.Vector3(xA - 0.2 * a * sBase, yBottom, zA + a * 1.7 * sBase),
+        C: new THREE.Vector3(xA + a * 1.8 * sBase, yBottom, zA + a * 0.6 * sBase),
         "A'": new THREE.Vector3(xA, yTop, zA),
-        "B'": new THREE.Vector3(xA - 0.2 * a, yTop, zA + a * 1.7),
-        "C'": new THREE.Vector3(xA + a * 1.8, yTop, zA + a * 0.6)
+        "B'": new THREE.Vector3(xA - 0.2 * a * sBase, yTop, zA + a * 1.7 * sBase),
+        "C'": new THREE.Vector3(xA + a * 1.8 * sBase, yTop, zA + a * 0.6 * sBase)
       };
 
       // 1. Mesh lăng trụ kính
@@ -474,27 +612,28 @@ export default function ThreeCanvas({
         addVertexSprite(name, pt, new THREE.Vector3(0.12, 0.12, 0.12));
       });
 
-      // 5. Cấu hình hệ trục tọa độ Oxyz & mặt phẳng đáy Oxy (Task 11.4)
-      addCartesianSystemAndFloor(v.A, a * 2.2, yBottom, a * 3.8);
+      // 5. Cấu hình hệ trục tọa độ Oxyz & mặt phẳng đáy Oxy (Task 11.4 & 12.1)
+      addCartesianSystemAndFloor(v.A, a * 2.2 * Math.max(sBase, sHeight), yBottom, a * 3.8 * sBase);
     }
 
     // =========================================================================
-    // 4. HÌNH LẬP PHƯƠNG ABCD.A'B'C'D' (TASK 11.2)
+    // 4. HÌNH LẬP PHƯƠNG ABCD.A'B'C'D' (TASK 11.2 & TASK 12.1)
     // =========================================================================
     else if (normType === 'cube' || normType === 'box') {
+      const sCube = a * sBase;
       const v = {
-        A: new THREE.Vector3(-a, -a, -a),
-        B: new THREE.Vector3(a, -a, -a),
-        C: new THREE.Vector3(a, -a, a),
-        D: new THREE.Vector3(-a, -a, a),
-        "A'": new THREE.Vector3(-a, a, -a),
-        "B'": new THREE.Vector3(a, a, -a),
-        "C'": new THREE.Vector3(a, a, a),
-        "D'": new THREE.Vector3(-a, a, a)
+        A: new THREE.Vector3(-sCube, -sCube, -sCube),
+        B: new THREE.Vector3(sCube, -sCube, -sCube),
+        C: new THREE.Vector3(sCube, -sCube, sCube),
+        D: new THREE.Vector3(-sCube, -sCube, sCube),
+        "A'": new THREE.Vector3(-sCube, sCube, -sCube),
+        "B'": new THREE.Vector3(sCube, sCube, -sCube),
+        "C'": new THREE.Vector3(sCube, sCube, sCube),
+        "D'": new THREE.Vector3(-sCube, sCube, sCube)
       };
 
       // 1. Semi-transparent Glass Mesh Body
-      const boxGeo = new THREE.BoxGeometry(a * 2, a * 2, a * 2);
+      const boxGeo = new THREE.BoxGeometry(sCube * 2, sCube * 2, sCube * 2);
       const glassMat = new THREE.MeshPhysicalMaterial({
         color: 0x38bdf8,
         transparent: true,
@@ -507,15 +646,21 @@ export default function ThreeCanvas({
       const cubeMesh = new THREE.Mesh(boxGeo, glassMat);
       group.add(cubeMesh);
 
-      // 2. Wireframe Edges
-      const edgeEdges = [
-        [v.A, v.B], [v.B, v.C], [v.C, v.D], [v.D, v.A],
+      // 2. Wireframe Edges chuẩn SGK (Task 13.1)
+      // Ba cạnh khuất xuất phát từ đỉnh A (sau-dưới-trái): AB, AD, AA' -> Nét đứt chuẩn SGK
+      addEdge(v.A, v.B, 0x38bdf8, true, 2.5);
+      addEdge(v.A, v.D, 0x38bdf8, true, 2.5);
+      addEdge(v.A, v["A'"], 0x34d399, true, 2.5);
+
+      // Chín cạnh nhìn thấy từ góc quan sát phối cảnh SGK -> Nét liền
+      const visibleCubeEdges = [
+        [v.B, v.C], [v.C, v.D],
         [v["A'"], v["B'"]], [v["B'"], v["C'"]], [v["C'"], v["D'"]], [v["D'"], v["A'"]],
-        [v.A, v["A'"]], [v.B, v["B'"]], [v.C, v["C'"]], [v.D, v["D'"]]
+        [v.B, v["B'"]], [v.C, v["C'"]], [v.D, v["D'"]]
       ];
 
-      edgeEdges.forEach(([p1, p2]) => {
-        addEdge(p1, p2, 0x38bdf8, false, 2);
+      visibleCubeEdges.forEach(([p1, p2]) => {
+        addEdge(p1, p2, 0x38bdf8, false, 2.5);
       });
 
       // 3. Vertex Spheres & Labels
@@ -530,10 +675,23 @@ export default function ThreeCanvas({
         addEdge(v.A, v.C, 0xfbbf24, true, 2.0);
       }
 
-      // 5. Cấu hình hệ trục tọa độ Oxyz & mặt phẳng đáy Oxy (Task 11.4)
-      addCartesianSystemAndFloor(v.A, a * 2.2, -a, a * 3.8);
+      // 5. Cấu hình hệ trục tọa độ Oxyz & mặt phẳng đáy Oxy (Task 11.4 & 12.1)
+      addCartesianSystemAndFloor(v.A, a * 2.2 * sBase, -sCube, a * 3.8 * sBase);
     }
-  }, [polyhedronType, edgeLength, slideIndex, showHiddenLines, showVertexLabels, showAxes]);
+  };
+
+    // Điều phối quá trình render đồng bộ theo tần số quét màn hình (60 FPS V-Sync)
+    if (rafRebuildRef.current) {
+      cancelAnimationFrame(rafRebuildRef.current);
+    }
+    rafRebuildRef.current = requestAnimationFrame(rebuildModel);
+
+    return () => {
+      if (rafRebuildRef.current) {
+        cancelAnimationFrame(rafRebuildRef.current);
+      }
+    };
+  }, [polyhedronType, edgeLength, slideIndex, showHiddenLines, showVertexLabels, showAxes, heightParam, baseParam]);
 
   // =========================================================================
   // TASK 11.3: ĐIỀU KHIỂN CHUỘT XOAY 360° QUANH 3 TRỤC Ox, Oy, Oz & CUỘN ZOOM
@@ -668,9 +826,20 @@ export default function ThreeCanvas({
         >
           <RefreshCw size={12} />
         </button>
+        <div className="w-[1px] h-3 bg-slate-700 mx-0.5" />
+        <button
+          type="button"
+          onClick={handleManualCapture}
+          className={`p-1 rounded bg-slate-900 hover:bg-slate-800 transition flex items-center justify-center ${
+            snapshotSaved ? 'text-emerald-400' : 'text-slate-300 hover:text-cyan-400'
+          }`}
+          title="Chụp ảnh Snapshot 3D (PNG)"
+        >
+          {snapshotSaved ? <Check size={12} /> : <Camera size={12} />}
+        </button>
       </div>
 
-      {/* Chú thích điều khiển trực quan */}
+      {/* Chú thích điều khiển trực quan & Trạng thái 60 FPS */}
       <div className="absolute bottom-2 left-2 px-2 py-0.5 bg-slate-950/80 backdrop-blur rounded text-[10px] text-slate-400 pointer-events-none border border-slate-800 flex items-center gap-2">
         <span className="flex items-center gap-1">
           <RotateCw size={10} className="text-cyan-400" />
@@ -680,6 +849,11 @@ export default function ThreeCanvas({
         <span>Shift + Chuột: Xoay Oz</span>
         <span className="text-slate-600">•</span>
         <span>Cuộn: Zoom</span>
+        <span className="text-slate-600">•</span>
+        <span className="flex items-center gap-0.5 text-emerald-400 font-mono font-semibold">
+          <Zap size={9} />
+          <span>60 FPS rAF</span>
+        </span>
       </div>
     </div>
   );
