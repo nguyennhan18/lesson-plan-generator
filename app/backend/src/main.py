@@ -23,6 +23,7 @@ from schemas.slide_schema import SlideDeckSchema
 from services.ai_service import generate_lesson_plan, generate_slide_deck
 from services.chat_service import handle_copilot_chat, session_manager, apply_slide_patch
 from services.grade_classifier import classify_grade_sheet
+from services.validation import audit_slide_deck, DeckAuditResponse
 from parsers.pptx_parser import parse_pptx
 from parsers.docx_parser import parse_docx
 from parsers.common import ParsedDocumentResponse
@@ -394,6 +395,30 @@ async def classify_grades_endpoint(
     finally:
         await file.close()
 app.include_router(ingest_router)
+
+# ================= PEDAGOGICAL LINTER & VALIDATION ENDPOINTS (NGÀY 10) =================
+validation_router = APIRouter(
+    prefix="/api/v1/validation",
+    tags=["Validation & Pedagogical Linter"]
+)
+
+@validation_router.post("/audit-deck", response_model=DeckAuditResponse)
+def audit_deck_endpoint(deck_payload: dict):
+    """
+    Task 10.1: Endpoint kiểm duyệt sư phạm toàn bộ bộ Slide (AI Linter & Proofreader).
+    Quét toàn bộ các trang slide để phát hiện lỗi chính tả tiếng Việt thường gặp
+    và trả về danh sách cảnh báo để Giáo viên chủ động rà soát (Human-in-the-loop).
+    """
+    try:
+        return audit_slide_deck(deck_payload)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Lỗi khi kiểm duyệt bộ Slide: {str(e)}"
+        )
+
+app.include_router(validation_router)
+
 if __name__ == "__main__":
     import uvicorn
     app_dir = os.path.dirname(os.path.abspath(__file__))

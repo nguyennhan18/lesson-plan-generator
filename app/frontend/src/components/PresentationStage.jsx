@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, MessageSquare, Wrench, HelpCircle, Check, Eye, LineChart, Box, FileText, Edit3 } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { ChevronLeft, ChevronRight, MessageSquare, Wrench, HelpCircle, Check, Eye, LineChart, Box, FileText, Edit3, AlertTriangle, Layers, Compass, Sparkles, BookOpen } from 'lucide-react';
 import ThreeCanvas from './ThreeCanvas';
 import FunctionPlotter from './FunctionPlotter';
 import MathText from './MathText';
 import MathLiveModal from './MathLiveModal';
+import PedagogicalWarningModal from './PedagogicalWarningModal';
 import { updateSlideFormulaInDeck } from '../utils/slideDeckStorage';
+import { auditSlideDeckLocal, auditSlideDeckRemote } from '../utils/pedagogicalLinterClient';
 
 export default function PresentationStage({
   slideDeck,
@@ -16,10 +18,12 @@ export default function PresentationStage({
   onToggleLeft,
   onToggleRight,
   polyhedronType,
+  setPolyhedronType,
   edgeLength,
   showHiddenLines,
   showVertexLabels,
   showAxes,
+  setShowAxes,
   cameraPreset,
   onSwitchSample
 }) {
@@ -45,6 +49,77 @@ export default function PresentationStage({
 
   // Task 9.3: Trạng thái đánh dấu hiệu ứng Highlight xác nhận vị trí công thức vừa được render lại bằng KaTeX
   const [recentlyUpdatedFormula, setRecentlyUpdatedFormula] = useState(null);
+
+  // Task 10.4: Trạng thái Bộ lọc Kiểm duyệt Sư phạm (Danh sách Cảnh báo vàng — Human-in-the-Loop)
+  const [deckWarnings, setDeckWarnings] = useState(() => auditSlideDeckLocal(slideDeck).warnings);
+  const [dismissedWarningKeys, setDismissedWarningKeys] = useState([]);
+  const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
+
+  // Đồng bộ kiểm duyệt tức thì (Local 0ms) + bất đồng bộ qua Backend SymPy (/api/v1/validation/audit-deck)
+  useEffect(() => {
+    let isCancelled = false;
+    const localAudit = auditSlideDeckLocal(slideDeck);
+    setDeckWarnings(localAudit.warnings);
+
+    auditSlideDeckRemote(slideDeck).then((remoteAudit) => {
+      if (!isCancelled && remoteAudit && Array.isArray(remoteAudit.warnings)) {
+        setDeckWarnings(remoteAudit.warnings);
+      }
+    });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [slideDeck]);
+
+  const getWarningKey = (w) => `${w.slide_index}::${w.field || ''}::${w.detected_token || w.message}`;
+
+  const activeWarnings = useMemo(
+    () => deckWarnings.filter((w) => !dismissedWarningKeys.includes(getWarningKey(w))),
+    [deckWarnings, dismissedWarningKeys]
+  );
+
+  const currentSlideWarnings = useMemo(
+    () => activeWarnings.filter((w) => Number(w.slide_index) === currentSlide + 1),
+    [activeWarnings, currentSlide]
+  );
+
+  const handleDismissWarning = (warningItem) => {
+    const key = getWarningKey(warningItem);
+    setDismissedWarningKeys((prev) => (prev.includes(key) ? prev : [...prev, key]));
+  };
+
+  // Mở trình chỉnh sửa để Giáo viên TỰ SỬA (tuyệt đối KHÔNG tự ý ghi đè bài của GV)
+  const handleOpenManualEditFromWarning = (warningItem) => {
+    const targetIdx = Math.max(0, Number(warningItem.slide_index || 1) - 1);
+    if (setCurrentSlide && targetIdx !== currentSlide) {
+      setCurrentSlide(targetIdx);
+    }
+    const targetSlideObj = slides[targetIdx] || {};
+    const field = String(warningItem.field || '');
+    setIsWarningModalOpen(false);
+
+    if (field === 'main_definition_latex') {
+      handleOpenMathModal(
+        'main_definition_latex',
+        targetSlideObj.main_definition_latex || '',
+        `Công thức trọng tâm (Slide ${targetIdx + 1})`
+      );
+      return;
+    }
+
+    const bulletMatch = field.match(/^bullet_points\[(\d+)\]/);
+    if (bulletMatch) {
+      const bIdx = Number(bulletMatch[1]);
+      const bulletVal = targetSlideObj.bullet_points?.[bIdx] || '';
+      handleOpenMathModal(
+        'bullet_point',
+        bulletVal,
+        `Ý trọng tâm #${bIdx + 1} (Slide ${targetIdx + 1})`,
+        bIdx
+      );
+    }
+  };
 
   const handleOpenMathModal = (targetField, initialValue, fieldLabel, bulletIndex = null) => {
     setMathModalState({
@@ -110,20 +185,60 @@ export default function PresentationStage({
 
   const totalVotes = Object.values(votes).reduce((a, b) => a + b, 0);
 
-  // Xác định ngữ cảnh bài học: Đại số / Phương trình (2D) hay Hình học không gian (3D)
+  // Task 11.1: Thuật toán nhận diện ngữ cảnh và Bố cục Trình chiếu Động chuẩn PowerPoint
   const fullContextText = `${slideDeck?.presentation_title || ''} ${slide.title || ''} ${slide.bullet_points?.join(' ') || ''}`.toLowerCase();
-  const is3DGeometry = /không gian|lập phương|khối chóp|lăng trụ|tứ diện|mặt phẳng|góc giữa|thiết diện|thể tích khối chóp/i.test(fullContextText) || slide.has_3d === true;
-  const hasChartData = Boolean(slide.has_chart || slide.chart_image_base64 || slide.chart_spec?.expression);
 
-  // Quyết định chế độ hiển thị hiệu dụng
+  // Kiểm tra đồ thị 2D thực sự
+  const hasValidChartSpec = Boolean(
+    slide.chart_spec &&
+    slide.chart_spec.kind &&
+    slide.chart_spec.kind !== 'none' &&
+    slide.chart_spec.expression &&
+    String(slide.chart_spec.expression).trim().length > 0
+  );
+  const hasChartData = Boolean(slide.has_chart === true || slide.chart_image_base64 || hasValidChartSpec);
+
+  // Kiểm tra hình học không gian 3D thực sự
+  const isExplicit3D = slide.has_3d === true || Boolean(slide.polyhedron_type);
+  const isContextual3D = /không gian|lập phương|khối chóp|hình chóp|lăng trụ|tứ diện|s\.abc|s\.abcd|mặt phẳng đáy|thiết diện/i.test(fullContextText);
+  const is3DGeometry = isExplicit3D || (isContextual3D && !hasChartData);
+
+  // Tự động nhận diện loại khối đa diện của slide (S.ABC, S.ABCD, Lập phương, Lăng trụ)
+  const targetPolyhedronFromSlide = useMemo(() => {
+    if (slide.polyhedron_type) return slide.polyhedron_type;
+    if (fullContextText.includes('s.abcd') || fullContextText.includes('chóp tứ giác')) return 'pyramid_square';
+    if (fullContextText.includes('s.abc') || fullContextText.includes('chóp tam giác') || fullContextText.includes('tứ diện')) return 'pyramid_triangle';
+    if (fullContextText.includes('lăng trụ')) return 'prism_triangle';
+    if (fullContextText.includes('lập phương')) return 'cube';
+    return polyhedronType || 'pyramid_square';
+  }, [slide.polyhedron_type, fullContextText, polyhedronType]);
+
+  // Tự động đồng bộ loại khối đa diện vào State khi chuyển slide
+  useEffect(() => {
+    if (setPolyhedronType && is3DGeometry && targetPolyhedronFromSlide && targetPolyhedronFromSlide !== polyhedronType) {
+      setPolyhedronType(targetPolyhedronFromSlide);
+    }
+  }, [currentSlide, targetPolyhedronFromSlide, is3DGeometry]);
+
+  // Quyết định chế độ hiển thị hiệu dụng (auto | 2d | 3d | pptx | text)
   let effectiveVisual = visualMode;
   if (visualMode === 'auto') {
-    if (hasChartData || !is3DGeometry) {
+    if (is3DGeometry) {
+      effectiveVisual = '3d';
+    } else if (hasChartData) {
       effectiveVisual = '2d';
     } else {
-      effectiveVisual = '3d';
+      effectiveVisual = 'text'; // Slide lý thuyết thuần túy -> Toàn màn hình 100%
     }
   }
+
+  // Quyết định xem có chia cột hiển thị Panel trực quan bên phải hay không
+  // CHỈ hiển thị panel bên phải khi:
+  // 1. Chế độ xem thủ công 2D/3D được bật, HOẶC
+  // 2. Chế độ 'auto' và slide thuộc layout 'IMAGE_TEXT' có đồ thị/3D thực sự, HOẶC slide có cờ has_3d/has_chart
+  const isExplicitVisualMode = visualMode === '2d' || visualMode === '3d';
+  const isVisualEligible = (slide.layout === 'IMAGE_TEXT' || slide.has_3d === true || hasChartData) && (hasChartData || is3DGeometry);
+  const shouldShowVisualPanel = visualMode === 'pptx' ? false : (isExplicitVisualMode || (visualMode === 'auto' && isVisualEligible));
 
   // Xác định badge hoạt động sư phạm
   const activityTag = slide.activity_type || `HOẠT ĐỘNG ${currentSlide + 1}`;
@@ -207,44 +322,68 @@ export default function PresentationStage({
               </h2>
             </div>
 
-            {/* Thanh chuyển đổi chế độ trực quan (Visual Mode Switcher) */}
+            {/* Thanh chuyển đổi chế độ trực quan (Visual Mode Switcher) & Cảnh báo Sư phạm ⚠️ */}
             <div className="flex items-center gap-2">
+              {currentSlideWarnings.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setIsWarningModalOpen(true)}
+                  className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400 text-amber-300 text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-amber-950/50 animate-pulse transition"
+                  title="Phát hiện cảnh báo chính tả hoặc công thức trên Slide này — Nhấn để xem gợi ý (Không tự động ghi đè)"
+                >
+                  <AlertTriangle size={14} className="text-amber-400" />
+                  <span>⚠️ {currentSlideWarnings.length} Cảnh báo</span>
+                </button>
+              )}
+
               <div className="flex items-center bg-slate-900 border border-slate-800 rounded-lg p-0.5 text-xs">
                 <button
-                  onClick={() => setVisualMode('2d')}
+                  onClick={() => setVisualMode('auto')}
                   className={`px-2.5 py-1 rounded-md flex items-center gap-1 transition ${
-                    effectiveVisual === '2d'
+                    visualMode === 'auto'
                       ? 'bg-gradient-to-r from-cyan-600 to-indigo-600 text-white font-semibold shadow-sm'
                       : 'text-slate-400 hover:text-white'
                   }`}
-                  title="Hiển thị đồ thị hàm số / Parabol 2D"
+                  title="Chế độ Tự động: Tự động điều chỉnh bố cục Toàn màn hình hoặc Chia đôi 2D/3D theo đúng chuẩn PowerPoint"
+                >
+                  <Eye size={13} />
+                  <span className="hidden sm:inline">Tự Động (Chuẩn PPT)</span>
+                </button>
+                <button
+                  onClick={() => setVisualMode('2d')}
+                  className={`px-2 py-1 rounded-md flex items-center gap-1 transition ${
+                    visualMode === '2d'
+                      ? 'bg-gradient-to-r from-cyan-600 to-indigo-600 text-white font-semibold shadow-sm'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                  title="Ép hiển thị đồ thị hàm số / Parabol 2D"
                 >
                   <LineChart size={13} />
-                  <span className="hidden sm:inline">Đồ Thị 2D</span>
+                  <span className="hidden sm:inline">2D</span>
                 </button>
                 <button
                   onClick={() => setVisualMode('3d')}
-                  className={`px-2.5 py-1 rounded-md flex items-center gap-1 transition ${
-                    effectiveVisual === '3d'
+                  className={`px-2 py-1 rounded-md flex items-center gap-1 transition ${
+                    visualMode === '3d'
                       ? 'bg-gradient-to-r from-cyan-600 to-indigo-600 text-white font-semibold shadow-sm'
                       : 'text-slate-400 hover:text-white'
                   }`}
-                  title="Hiển thị khối hình học không gian 3D"
+                  title="Ép hiển thị khối hình học không gian 3D"
                 >
                   <Box size={13} />
-                  <span className="hidden sm:inline">Không Gian 3D</span>
+                  <span className="hidden sm:inline">3D</span>
                 </button>
                 <button
                   onClick={() => setVisualMode('pptx')}
                   className={`px-2.5 py-1 rounded-md flex items-center gap-1 transition ${
-                    effectiveVisual === 'pptx'
+                    visualMode === 'pptx'
                       ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-white font-semibold shadow-sm'
                       : 'text-slate-400 hover:text-white'
                   }`}
                   title="Xem trước bản in PowerPoint 1:1"
                 >
                   <FileText size={13} />
-                  <span className="hidden sm:inline">Bản In PPTX 1:1</span>
+                  <span className="hidden sm:inline">Bản In PPTX</span>
                 </button>
               </div>
 
@@ -443,8 +582,8 @@ export default function PresentationStage({
                   </div>
                 )}
               </div>
-            ) : (
-              /* TRƯỜNG HỢP C: BÀI GIẢNG LÝ THUYẾT / ĐỒ THỊ 2D / HÌNH HỌC 3D */
+            ) : shouldShowVisualPanel ? (
+              /* TRƯỜNG HỢP C1: BỐ CỤC CHIA ĐÔI IMAGE_TEXT (LÝ THUYẾT BÊN TRÁI + KHUNG 2D/3D BÊN PHẢI) */
               <div className="grid grid-cols-12 gap-5 h-full items-center">
                 {/* Cột trái: Nội dung kiến thức & Công thức KaTeX */}
                 <div className="col-span-12 lg:col-span-6 space-y-3 text-xs leading-relaxed">
@@ -493,7 +632,7 @@ export default function PresentationStage({
                     </ul>
                   </div>
 
-                  {/* Hiển thị công thức toán trọng tâm dạng KaTeX chuẩn (Hỗ trợ Double-Click mở MathLive & Highlight Task 9.3) */}
+                  {/* Hiển thị công thức toán trọng tâm dạng KaTeX chuẩn */}
                   {slide.main_definition_latex && (
                     <div
                       onDoubleClick={() =>
@@ -537,7 +676,7 @@ export default function PresentationStage({
                 </div>
 
                 {/* Cột phải: KHÔNG GIAN TRỰC QUAN ĐÚNG BẢN CHẤT BÀI TOÁN */}
-                <div className="col-span-12 lg:col-span-6 h-full min-h-[250px] bg-slate-950/90 rounded-2xl border border-slate-800 p-3 flex flex-col justify-between relative overflow-hidden shadow-inner">
+                <div className="col-span-12 lg:col-span-6 h-full min-h-[260px] bg-slate-950/90 rounded-2xl border border-slate-800 p-2.5 flex flex-col justify-between relative overflow-hidden shadow-inner">
                   {effectiveVisual === '2d' ? (
                     /* 1. ĐỒ THỊ 2D / PARABOL CHO ĐẠI SỐ & PHƯƠNG TRÌNH */
                     slide.chart_image_base64 ? (
@@ -567,43 +706,315 @@ export default function PresentationStage({
                     )
                   ) : (
                     /* 2. THREE.JS 3D WEBGL CHO HÌNH HỌC KHÔNG GIAN */
-                    <div className="w-full h-full relative flex items-center justify-center">
-                      <ThreeCanvas
-                        slideIndex={currentSlide}
-                        polyhedronType={polyhedronType}
-                        edgeLength={edgeLength}
-                        showHiddenLines={showHiddenLines}
-                        showVertexLabels={showVertexLabels}
-                        showAxes={showAxes}
-                        cameraPreset={cameraPreset}
-                      />
-                      <div className="absolute bottom-2 left-2 bg-slate-900/80 backdrop-blur px-2.5 py-1 rounded-md text-[10px] text-slate-400 border border-slate-800">
-                        Chuột trái: Xoay 360° • Cuộn chuột: Thu phóng
+                    <div className="w-full h-full flex flex-col justify-between relative">
+                      {/* Thanh công cụ chọn nhanh mô hình 3D ngay trên khung hình */}
+                      <div className="flex items-center justify-between px-2 py-1 bg-slate-900/90 border border-slate-800 rounded-lg text-[11px] mb-1 z-10">
+                        <div className="flex items-center gap-1">
+                          <Box size={13} className="text-cyan-400" />
+                          <span className="text-white font-semibold">Khối 3D:</span>
+                        </div>
+                        <div className="flex items-center gap-1 overflow-x-auto">
+                          <button
+                            type="button"
+                            onClick={() => setPolyhedronType?.('pyramid_square')}
+                            className={`px-2 py-0.5 rounded text-[10px] font-medium transition ${
+                              polyhedronType === 'pyramid_square'
+                                ? 'bg-cyan-600 text-white shadow-sm'
+                                : 'bg-slate-800 text-slate-300 hover:text-white'
+                            }`}
+                          >
+                            S.ABCD
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPolyhedronType?.('pyramid_triangle')}
+                            className={`px-2 py-0.5 rounded text-[10px] font-medium transition ${
+                              polyhedronType === 'pyramid_triangle'
+                                ? 'bg-cyan-600 text-white shadow-sm'
+                                : 'bg-slate-800 text-slate-300 hover:text-white'
+                            }`}
+                          >
+                            S.ABC
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPolyhedronType?.('cube')}
+                            className={`px-2 py-0.5 rounded text-[10px] font-medium transition ${
+                              polyhedronType === 'cube'
+                                ? 'bg-cyan-600 text-white shadow-sm'
+                                : 'bg-slate-800 text-slate-300 hover:text-white'
+                            }`}
+                          >
+                            Lập Phương
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPolyhedronType?.('prism_triangle')}
+                            className={`px-2 py-0.5 rounded text-[10px] font-medium transition ${
+                              polyhedronType === 'prism_triangle'
+                                ? 'bg-cyan-600 text-white shadow-sm'
+                                : 'bg-slate-800 text-slate-300 hover:text-white'
+                            }`}
+                          >
+                            Lăng Trụ
+                          </button>
+                          {setShowAxes && (
+                            <button
+                              type="button"
+                              onClick={() => setShowAxes?.(!showAxes)}
+                              className={`px-2 py-0.5 rounded text-[10px] font-medium transition border ${
+                                showAxes
+                                  ? 'bg-amber-500/20 text-amber-300 border-amber-400/60'
+                                  : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-white'
+                              }`}
+                              title="Bật/Tắt hệ trục tọa độ Oxyz và mặt phẳng đáy Oxy"
+                            >
+                              Oxyz
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Khung WebGL Canvas */}
+                      <div className="flex-1 w-full relative min-h-[210px] rounded-lg overflow-hidden">
+                        <ThreeCanvas
+                          slideIndex={currentSlide}
+                          polyhedronType={polyhedronType}
+                          edgeLength={edgeLength}
+                          showHiddenLines={showHiddenLines}
+                          showVertexLabels={showVertexLabels}
+                          showAxes={showAxes}
+                          cameraPreset={cameraPreset}
+                        />
+                      </div>
+
+                      <div className="mt-1 px-2 py-0.5 bg-slate-900/80 backdrop-blur rounded text-[10px] text-slate-400 border border-slate-800 flex items-center justify-between">
+                        <span>Chuột trái: Xoay 360° quanh Ox, Oy, Oz</span>
+                        <span>Cuộn chuột: Thu phóng</span>
                       </div>
                     </div>
                   )}
                 </div>
+              </div>
+            ) : slide.layout === 'TWO_COLUMN' ? (
+              /* TRƯỜNG HỢP C2: BỐ CỤC TOÀN MÀN HÌNH 2 CỘT HỌC THUẬT (PHƯƠNG PHÁP + BÀI GIẢI MẪU TỪNG BƯỚC CHUẨN SGK) */
+              <div className="grid grid-cols-12 gap-5 h-full items-stretch">
+                {/* Cột 1: Quy trình & Phương pháp giải (Chiếm 50% toàn màn hình) */}
+                <div className="col-span-12 lg:col-span-6 flex flex-col justify-between space-y-3 p-4 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+                        <strong className="text-cyan-400 text-xs md:text-sm font-bold uppercase tracking-wider">
+                          Quy Trình & Phương Pháp Giải
+                        </strong>
+                      </div>
+                      <span className="text-[10px] text-slate-400">Lý thuyết trọng tâm</span>
+                    </div>
+
+                    <ul className="space-y-2.5 text-xs text-slate-200 leading-relaxed">
+                      {(slide.bullet_points || []).map((pt, i) => {
+                        const isUpdated = isFormulaRecentlyUpdated('bullet_point', i);
+                        return (
+                          <li
+                            key={i}
+                            onDoubleClick={() =>
+                              handleOpenMathModal(
+                                'bullet_point',
+                                pt,
+                                `Bước phương pháp #${i + 1} (Slide ${currentSlide + 1})`,
+                                i
+                              )
+                            }
+                            className={`flex items-start gap-2.5 p-2 rounded-xl border cursor-pointer transition-all ${
+                              isUpdated
+                                ? 'bg-emerald-950/40 border-emerald-400 ring-2 ring-emerald-500/60'
+                                : 'bg-slate-950/60 hover:bg-slate-800/80 border-slate-800/80 hover:border-cyan-700/60'
+                            }`}
+                          >
+                            <span className="w-5 h-5 rounded-full bg-cyan-950 border border-cyan-700 text-cyan-300 font-bold text-[11px] flex items-center justify-center shrink-0 mt-0.5">
+                              {i + 1}
+                            </span>
+                            <span className="flex-1"><MathText text={pt} /></span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+
+                  {slide.main_definition_latex && (
+                    <div
+                      onDoubleClick={() =>
+                        handleOpenMathModal(
+                          'main_definition_latex',
+                          slide.main_definition_latex,
+                          `Công thức tổng quát (Slide ${currentSlide + 1})`
+                        )
+                      }
+                      className="p-3 rounded-xl bg-gradient-to-r from-cyan-950/50 via-slate-900 to-indigo-950/40 border border-cyan-800/70 text-center font-mono text-cyan-300 text-sm md:text-base font-bold shadow-md cursor-pointer hover:border-cyan-400 transition"
+                    >
+                      <MathText text={slide.main_definition_latex} block={true} />
+                      <span className="text-[10px] font-sans font-normal text-cyan-400/80 block mt-1">
+                        Công thức tổng quát áp dụng
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Cột 2: Ví Dụ Minh Họa & Lời Giải Mẫu Từng Bước Chuẩn SGK (Chiếm 50% còn lại của toàn màn hình) */}
+                <div className="col-span-12 lg:col-span-6 flex flex-col justify-between space-y-3 p-4 rounded-2xl bg-gradient-to-br from-slate-900/90 to-slate-950 border border-indigo-900/60 shadow-xl">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between border-b border-indigo-900/60 pb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <strong className="text-emerald-400 text-xs md:text-sm font-bold uppercase tracking-wider flex items-center gap-1.5">
+                          <BookOpen size={14} /> Ví Dụ Minh Họa & Bài Giải Mẫu
+                        </strong>
+                      </div>
+                      <span className="text-[10px] text-emerald-300/80 font-mono">Chuẩn SGK GDPT 2018</span>
+                    </div>
+
+                    <div className="space-y-2 text-xs leading-relaxed max-h-[320px] overflow-y-auto pr-1">
+                      {Array.isArray(slide.worked_solution_steps) && slide.worked_solution_steps.length > 0 ? (
+                        slide.worked_solution_steps.map((step, idx) => (
+                          <div
+                            key={idx}
+                            className={`p-2.5 rounded-xl border ${
+                              idx === 0
+                                ? 'bg-amber-950/30 border-amber-800/60 text-amber-200 font-semibold'
+                                : idx === slide.worked_solution_steps.length - 1
+                                ? 'bg-emerald-950/40 border-emerald-700/70 text-emerald-200 font-semibold'
+                                : 'bg-slate-900/80 border-slate-800 text-slate-200'
+                            }`}
+                          >
+                            <MathText text={step} />
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-slate-400 space-y-2 text-center">
+                          <p>Chưa có các bước bài giải mẫu riêng biệt.</p>
+                          <p className="text-[11px] text-slate-500">Giáo viên có thể phân tích trực tiếp trên lớp hoặc nhờ Trợ Giảng AI soạn thêm bài tập giải mẫu chi tiết qua khung Chat Co-pilot.</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {slide.teacher_note && (
+                    <div className="p-2.5 rounded-xl bg-amber-950/20 border border-amber-900/40 text-[11px] text-amber-300 flex items-start gap-2">
+                      <span><strong>Lời nhắc sư phạm:</strong> <MathText text={slide.teacher_note} /></span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              /* TRƯỜNG HỢP C3: BỐ CỤC TOÀN MÀN HÌNH 100% CONCEPT_HIGHLIGHT / SINGLE_COLUMN (ĐỊNH NGHĨA & CÔNG THỨC RỘNG RÃI) */
+              <div className="h-full flex flex-col justify-between gap-3 p-1">
+                {/* Hero Formula Box: Công thức toán trọng tâm đặt chính giữa nổi bật */}
+                {slide.main_definition_latex && (
+                  <div
+                    onDoubleClick={() =>
+                      handleOpenMathModal(
+                        'main_definition_latex',
+                        slide.main_definition_latex,
+                        `Công thức cốt lõi (Slide ${currentSlide + 1})`
+                      )
+                    }
+                    title="Nhấp đúp (Double-Click) để chỉnh sửa công thức bằng MathLive"
+                    className={`p-4 md:p-5 rounded-2xl border font-mono text-cyan-300 text-center text-base md:text-xl font-bold shadow-2xl cursor-pointer transition-all duration-500 relative group ${
+                      isFormulaRecentlyUpdated('main_definition_latex')
+                        ? 'bg-emerald-950/60 border-emerald-400 ring-2 ring-emerald-400/80'
+                        : 'bg-gradient-to-r from-cyan-950/60 via-slate-900/90 to-indigo-950/60 border-cyan-700/80 hover:border-cyan-400'
+                    }`}
+                  >
+                    <MathText text={slide.main_definition_latex} block={true} />
+                    <div className="mt-2 flex items-center justify-center gap-2 text-xs font-sans font-medium text-cyan-400">
+                      <Sparkles size={14} className="text-amber-400" />
+                      <span>Định lý / Hệ thức trọng tâm bài học • Click đúp để sửa MathLive</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Grid các thẻ kiến thức trải rộng 100% màn hình */}
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3 overflow-y-auto">
+                  {(slide.bullet_points || []).map((pt, i) => {
+                    const isUpdated = isFormulaRecentlyUpdated('bullet_point', i);
+                    return (
+                      <div
+                        key={i}
+                        onDoubleClick={() =>
+                          handleOpenMathModal(
+                            'bullet_point',
+                            pt,
+                            `Ý kiến thức #${i + 1} (Slide ${currentSlide + 1})`,
+                            i
+                          )
+                        }
+                        className={`p-3.5 rounded-2xl border flex items-start gap-3 cursor-pointer transition-all leading-relaxed ${
+                          isUpdated
+                            ? 'bg-emerald-950/40 border-emerald-400 ring-2 ring-emerald-500/60 shadow-lg'
+                            : 'bg-slate-900/70 hover:bg-slate-800/80 border-slate-800 hover:border-cyan-700/60'
+                        }`}
+                      >
+                        <span className="w-6 h-6 rounded-lg bg-cyan-950 border border-cyan-800 text-cyan-400 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                          {i + 1}
+                        </span>
+                        <div className="flex-1 text-xs md:text-sm text-slate-100 font-medium">
+                          <MathText text={pt} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Footer lời nhắc sư phạm */}
+                {slide.teacher_note && (
+                  <div className="p-2.5 rounded-xl bg-amber-950/20 border border-amber-900/40 text-[11px] text-amber-300 flex items-start gap-2">
+                    <span><strong>Lời nhắc sư phạm cho Giáo viên:</strong> <MathText text={slide.teacher_note} /></span>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
           {/* Footer Điều Khiển Slide: Chuyển slide & Filmstrip Thumbnails */}
           <div className="pt-2.5 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3 shrink-0">
-            {/* Filmstrip thumbnails nhanh */}
+            {/* Filmstrip thumbnails nhanh (Kèm biểu tượng ⚠️ vàng nếu Slide có cảnh báo) */}
             <div className="flex items-center gap-1.5 overflow-x-auto max-w-xl py-0.5">
-              {slides.map((s, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setCurrentSlide(idx)}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap transition ${
-                    currentSlide === idx
-                      ? 'bg-cyan-600 text-white shadow-md shadow-cyan-950/50'
-                      : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
-                  }`}
-                >
-                  {idx + 1}. {s.title?.split('•')[0]?.slice(0, 16) || `Slide ${idx + 1}`}
-                </button>
-              ))}
+              {slides.map((s, idx) => {
+                const slideWarnsCount = activeWarnings.filter(
+                  (w) => Number(w.slide_index) === idx + 1
+                ).length;
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentSlide(idx)}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap transition flex items-center gap-1 ${
+                      currentSlide === idx
+                        ? 'bg-cyan-600 text-white shadow-md shadow-cyan-950/50'
+                        : slideWarnsCount > 0
+                        ? 'bg-amber-950/60 text-amber-200 border border-amber-500/70 hover:bg-amber-900/60'
+                        : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
+                    }`}
+                  >
+                    <span>
+                      {idx + 1}. {s.title?.split('•')[0]?.slice(0, 16) || `Slide ${idx + 1}`}
+                    </span>
+                    {slideWarnsCount > 0 && (
+                      <span
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCurrentSlide(idx);
+                          setIsWarningModalOpen(true);
+                        }}
+                        title={`Slide ${idx + 1} có ${slideWarnsCount} cảnh báo sư phạm — Nhấn để xem`}
+                        className="ml-0.5 px-1 rounded bg-amber-500/30 text-amber-300 text-[10px] font-bold"
+                      >
+                        ⚠️{slideWarnsCount}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
             {/* Nút Trước / Sau */}
@@ -636,6 +1047,17 @@ export default function PresentationStage({
         fieldLabel={mathModalState.fieldLabel}
         onClose={() => setMathModalState((prev) => ({ ...prev, isOpen: false }))}
         onSave={handleSaveMathModal}
+      />
+
+      {/* Task 10.4: Giao diện "Danh sách Cảnh báo Sư phạm" (Human-in-the-Loop) */}
+      <PedagogicalWarningModal
+        isOpen={isWarningModalOpen}
+        onClose={() => setIsWarningModalOpen(false)}
+        warnings={activeWarnings}
+        currentSlideIndex={currentSlide}
+        onJumpToSlide={(idx) => setCurrentSlide?.(idx)}
+        onOpenManualEdit={handleOpenManualEditFromWarning}
+        onDismissWarning={handleDismissWarning}
       />
     </div>
   );

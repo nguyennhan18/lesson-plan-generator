@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { Presentation, Download, Plus, Trash2, Edit3, HelpCircle, Save, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Presentation, Download, Plus, Trash2, Edit3, HelpCircle, Save, Sparkles, AlertTriangle } from 'lucide-react';
 import MathText from './MathText';
 import MathLiveModal from './MathLiveModal';
+import PedagogicalWarningModal from './PedagogicalWarningModal';
 import { updateSlideFormulaInDeck } from '../utils/slideDeckStorage';
 import { validateLatexSyntax } from '../utils/latexValidator';
+import { auditSlideDeckLocal, auditSlideDeckRemote, mergeAuditWarnings } from '../utils/pedagogicalLinterClient';
 
 export default function SlideEditorScreen({
   slideDeck,
@@ -27,6 +29,63 @@ export default function SlideEditorScreen({
 
   // Task 9.4: Trạng thái lưu lỗi kiểm tra cú pháp LaTeX tại Form Biên Tập
   const [editorLatexError, setEditorLatexError] = useState(null);
+
+  // Task 10.4: Trạng thái Danh sách Cảnh báo Sư phạm (Human-in-the-Loop)
+  const [remoteWarnings, setRemoteWarnings] = useState([]);
+  const [dismissedWarningKeys, setDismissedWarningKeys] = useState([]);
+  const [isWarningModalOpen, setIsWarningModalOpen] = useState(false);
+
+  // Bản nháp trực tiếp (Live Draft Deck) phản ánh tức thì những gì GV đang gõ trên Form mà chưa cần bấm Lưu
+  const liveDraftDeck = useMemo(() => {
+    const draftSlides = slides.map((s, idx) => {
+      if (idx !== selectedSlide) return s;
+      return {
+        ...s,
+        title,
+        bullet_points: String(bulletsText || '')
+          .split('\n')
+          .filter((line) => line.trim().length > 0),
+        main_definition_latex: latex,
+        teacher_note: teacherNote
+      };
+    });
+    return { ...slideDeck, slides: draftSlides };
+  }, [slideDeck, slides, selectedSlide, title, bulletsText, latex, teacherNote]);
+
+  const localWarnings = useMemo(
+    () => auditSlideDeckLocal(liveDraftDeck).warnings,
+    [liveDraftDeck]
+  );
+
+  // Đồng bộ thêm kết quả kiểm định đại số SymPy từ Backend (/api/v1/validation/audit-deck)
+  useEffect(() => {
+    let isCancelled = false;
+    auditSlideDeckRemote(liveDraftDeck).then((res) => {
+      if (!isCancelled && res && Array.isArray(res.warnings)) {
+        setRemoteWarnings(res.warnings);
+      }
+    });
+    return () => {
+      isCancelled = true;
+    };
+  }, [slideDeck]);
+
+  const getWarningKey = (w) => `${w.slide_index}::${w.field || ''}::${w.detected_token || w.message}`;
+
+  const activeWarnings = useMemo(() => {
+    const merged = mergeAuditWarnings(localWarnings, remoteWarnings);
+    return merged.filter((w) => !dismissedWarningKeys.includes(getWarningKey(w)));
+  }, [localWarnings, remoteWarnings, dismissedWarningKeys]);
+
+  const currentSlideWarnings = useMemo(
+    () => activeWarnings.filter((w) => Number(w.slide_index) === selectedSlide + 1),
+    [activeWarnings, selectedSlide]
+  );
+
+  const handleDismissWarning = (warningItem) => {
+    const key = getWarningKey(warningItem);
+    setDismissedWarningKeys((prev) => (prev.includes(key) ? prev : [...prev, key]));
+  };
 
   useEffect(() => {
     if (!isFormulaUpdated) return;
@@ -124,12 +183,32 @@ export default function SlideEditorScreen({
           </h2>
           <p className="text-xs text-slate-400">Chỉnh sửa trực tiếp từng slide bài giảng do AI sinh ra & Xuất file PowerPoint thật</p>
         </div>
-        <button
-          onClick={onExportPptx}
-          className="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold flex items-center gap-2 shadow-lg shadow-amber-950/40 transition"
-        >
-          <Download size={14} /> Xuất PowerPoint (.pptx)
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setIsWarningModalOpen(true)}
+            className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition ${
+              activeWarnings.length > 0
+                ? 'bg-amber-500/20 hover:bg-amber-500/30 border-amber-400 text-amber-300 shadow-lg shadow-amber-950/50 animate-pulse'
+                : 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-300'
+            }`}
+            title="Kiểm duyệt chính tả Tiếng Việt, biến đổi đại số SymPy và định lý SGK (Không tự động ghi đè)"
+          >
+            <AlertTriangle size={14} className={activeWarnings.length > 0 ? 'text-amber-400' : 'text-slate-400'} />
+            <span>
+              {activeWarnings.length > 0
+                ? `⚠️ Danh sách Cảnh báo (${activeWarnings.length})`
+                : 'Kiểm duyệt Sư phạm (0 lỗi)'}
+            </span>
+          </button>
+
+          <button
+            onClick={onExportPptx}
+            className="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold flex items-center gap-2 shadow-lg shadow-amber-950/40 transition"
+          >
+            <Download size={14} /> Xuất PowerPoint (.pptx)
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-12 gap-4">
@@ -146,29 +225,53 @@ export default function SlideEditorScreen({
           </div>
 
           <div className="space-y-2 max-h-[560px] overflow-y-auto pr-1">
-            {slides.map((s, idx) => (
-              <div
-                key={idx}
-                onClick={() => setSelectedSlide(idx)}
-                className={`p-2.5 rounded-xl border cursor-pointer transition text-xs flex items-start justify-between gap-2 ${
-                  selectedSlide === idx
-                    ? 'border-cyan-500 bg-slate-900 shadow-md shadow-cyan-950/30'
-                    : 'border-slate-800/80 bg-slate-900/40 hover:bg-slate-800/60'
-                }`}
-              >
-                <div className="truncate">
-                  <div className="font-semibold text-white truncate">Slide {idx + 1}: {s.title || `Trang ${idx + 1}`}</div>
-                  <div className="text-[11px] text-slate-400 truncate mt-0.5">{s.activity_type || 'Nội dung bài'}</div>
-                </div>
-                <button
-                  onClick={(e) => handleDeleteSlide(idx, e)}
-                  className="text-slate-500 hover:text-rose-400 p-0.5 rounded transition"
-                  title="Xóa slide này"
+            {slides.map((s, idx) => {
+              const slideWarnsCount = activeWarnings.filter(
+                (w) => Number(w.slide_index) === idx + 1
+              ).length;
+              return (
+                <div
+                  key={idx}
+                  onClick={() => setSelectedSlide(idx)}
+                  className={`p-2.5 rounded-xl border cursor-pointer transition text-xs flex items-start justify-between gap-2 ${
+                    selectedSlide === idx
+                      ? 'border-cyan-500 bg-slate-900 shadow-md shadow-cyan-950/30'
+                      : slideWarnsCount > 0
+                      ? 'border-amber-500/70 bg-amber-950/30 hover:bg-amber-950/50'
+                      : 'border-slate-800/80 bg-slate-900/40 hover:bg-slate-800/60'
+                  }`}
                 >
-                  <Trash2 size={13} />
-                </button>
-              </div>
-            ))}
+                  <div className="truncate flex-1">
+                    <div className="font-semibold text-white truncate flex items-center gap-1.5">
+                      <span>Slide {idx + 1}: {s.title || `Trang ${idx + 1}`}</span>
+                    </div>
+                    <div className="text-[11px] text-slate-400 truncate mt-0.5 flex items-center gap-1.5">
+                      <span>{s.activity_type || 'Nội dung bài'}</span>
+                      {slideWarnsCount > 0 && (
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedSlide(idx);
+                            setIsWarningModalOpen(true);
+                          }}
+                          className="px-1.5 py-0.2 rounded bg-amber-500/25 border border-amber-400/60 text-amber-300 text-[10px] font-bold"
+                          title="Nhấn để xem cảnh báo sư phạm của Slide này"
+                        >
+                          ⚠️ {slideWarnsCount} lỗi
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    onClick={(e) => handleDeleteSlide(idx, e)}
+                    className="text-slate-500 hover:text-rose-400 p-0.5 rounded transition"
+                    title="Xóa slide này"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -178,9 +281,21 @@ export default function SlideEditorScreen({
             <h3 className="font-bold text-white text-sm flex items-center gap-2">
               <Edit3 size={15} className="text-cyan-400" /> Biên Tập Slide {selectedSlide + 1}
             </h3>
-            <span className="text-[11px] text-cyan-400 font-mono">
-              Bố cục: {curSlide.layout || 'IMAGE_TEXT'}
-            </span>
+            <div className="flex items-center gap-2">
+              {currentSlideWarnings.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setIsWarningModalOpen(true)}
+                  className="px-2 py-0.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400 text-amber-300 text-[11px] font-bold flex items-center gap-1 transition"
+                >
+                  <AlertTriangle size={12} className="text-amber-400" />
+                  <span>⚠️ {currentSlideWarnings.length} Cảnh báo</span>
+                </button>
+              )}
+              <span className="text-[11px] text-cyan-400 font-mono">
+                Bố cục: {curSlide.layout || 'IMAGE_TEXT'}
+              </span>
+            </div>
           </div>
 
           <div>
@@ -336,6 +451,24 @@ export default function SlideEditorScreen({
             setSlideDeck(updatedDeck);
           }
         }}
+      />
+
+      {/* Task 10.4: Giao diện "Danh sách Cảnh báo Sư phạm" (Human-in-the-Loop) */}
+      <PedagogicalWarningModal
+        isOpen={isWarningModalOpen}
+        onClose={() => setIsWarningModalOpen(false)}
+        warnings={activeWarnings}
+        currentSlideIndex={selectedSlide}
+        onJumpToSlide={(idx) => setSelectedSlide(idx)}
+        onOpenManualEdit={(item) => {
+          const targetIdx = Math.max(0, Number(item.slide_index || 1) - 1);
+          setSelectedSlide(targetIdx);
+          setIsWarningModalOpen(false);
+          if (item.field === 'main_definition_latex') {
+            setIsMathModalOpen(true);
+          }
+        }}
+        onDismissWarning={handleDismissWarning}
       />
     </div>
   );
