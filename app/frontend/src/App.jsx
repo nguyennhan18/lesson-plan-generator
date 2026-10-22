@@ -10,6 +10,13 @@ import {
   loadSlideDeckFromBrowserMemory,
   saveSlideDeckToBrowserMemory
 } from './utils/slideDeckStorage';
+import {
+  isFullscreenActive,
+  requestPresentationFullscreen,
+  exitPresentationFullscreen,
+  togglePresentationFullscreen,
+  onFullscreenChange
+} from './utils/fullscreenHelper';
 
 // ==============================================================================
 // 1. DỮ LIỆU BÀI MẪU CHUẨN MỰC: PHƯƠNG TRÌNH BẬC HAI (TOÁN 10)
@@ -428,6 +435,22 @@ export default function App() {
   // Task 14.1: Ref lưu trữ hàm capture3DSnapshot từ ThreeCanvas phục vụ xuất PPTX kèm ảnh chụp 3D
   const threeCanvasCaptureRef = useRef(null);
 
+  // Task 15.1: Quản lý Chế độ Trình chiếu Toàn màn hình (Web Presentation Mode)
+  const [isPresentationMode, setIsPresentationMode] = useState(false);
+
+  // Task 15.3: Trạng thái Làm Tối Màn Hình (Blackout Mode - Phím B)
+  const [isBlackout, setIsBlackout] = useState(false);
+
+  useEffect(() => {
+    const unsub = onFullscreenChange((active) => {
+      setIsPresentationMode(active);
+      if (!active) {
+        setIsBlackout(false);
+      }
+    });
+    return unsub;
+  }, []);
+
   // ================= CENTRAL STATE (ĐỒNG BỘ 2 CHIỀU VỚI BỘ NHỚ TRÌNH DUYỆT - TASK 9.2) =================
   const [slideDeck, setSlideDeck] = useState(() =>
     loadSlideDeckFromBrowserMemory(SAMPLE_QUADRATIC_DECK)
@@ -478,35 +501,113 @@ export default function App() {
     }
   };
 
-  // Keyboard Shortcuts Handler
+  // Keyboard Shortcuts Handler (Task 15.3: ArrowLeft, ArrowRight, Space, PageUp, PageDown, Home, End, Escape, B, F5)
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (['INPUT', 'TEXTAREA', 'SELECT', 'MATH-FIELD'].includes(e.target.tagName)) return;
 
-      if (e.key === 'c' || e.key === 'C') {
-        setIsLeftOpen((prev) => !prev);
-      } else if (e.key === 't' || e.key === 'T') {
-        setIsRightOpen((prev) => !prev);
-      } else if (e.key === 'ArrowLeft') {
-        setCurrentSlide((prev) => Math.max(0, prev - 1));
-      } else if (e.key === 'ArrowRight') {
-        const maxIdx = (slideDeck.slides?.length || 1) - 1;
-        setCurrentSlide((prev) => Math.min(maxIdx, prev + 1));
-      } else if (e.key === 'f' || e.key === 'F' || e.key === 'F5') {
+      const maxIdx = (slideDeck.slides?.length || 1) - 1;
+
+      // 1. Phím B hoặc b: Làm tối màn hình (Blackout mode)
+      if (e.key === 'b' || e.key === 'B') {
+        if (activeScreen === 'presentation' || isPresentationMode) {
+          e.preventDefault();
+          setIsBlackout((prev) => !prev);
+          return;
+        }
+      }
+
+      // Nếu màn hình đang ở chế độ Blackout, ấn phím điều hướng hoặc Escape sẽ tắt Blackout
+      if (isBlackout) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          setIsBlackout(false);
+          return;
+        } else if (['ArrowLeft', 'ArrowRight', 'Space', ' ', 'PageUp', 'PageDown', 'Home', 'End', 'Enter'].includes(e.key)) {
+          setIsBlackout(false);
+        }
+      }
+
+      // 2. Phím Thoát Trình Chiếu (Escape)
+      if (e.key === 'Escape') {
+        if (isPresentationMode) {
+          e.preventDefault();
+          handleExitPresentation();
+          return;
+        }
+      }
+
+      // 3. Phím F / F5: Bật / Tắt Toàn Màn Hình
+      if (e.key === 'f' || e.key === 'F' || e.key === 'F5') {
         e.preventDefault();
         toggleFullscreen();
+        return;
+      }
+
+      // 4. Phím Lùi Slide (ArrowLeft, PageUp, hoặc Backspace khi không trong input)
+      if (e.key === 'ArrowLeft' || e.key === 'PageUp' || (isPresentationMode && (e.key === 'p' || e.key === 'P' || e.key === 'Backspace'))) {
+        e.preventDefault();
+        setCurrentSlide((prev) => Math.max(0, prev - 1));
+        return;
+      }
+
+      // 5. Phím Tiến Slide (ArrowRight, PageDown, Spacebar, hoặc 'n' khi presentation)
+      if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ' || e.code === 'Space' || (isPresentationMode && (e.key === 'n' || e.key === 'N'))) {
+        e.preventDefault();
+        setCurrentSlide((prev) => Math.min(maxIdx, prev + 1));
+        return;
+      }
+
+      // 6. Phím Home / End: Về slide đầu hoặc slide cuối
+      if (e.key === 'Home') {
+        e.preventDefault();
+        setCurrentSlide(0);
+        return;
+      }
+      if (e.key === 'End') {
+        e.preventDefault();
+        setCurrentSlide(maxIdx);
+        return;
+      }
+
+      // 7. Phím C: Đóng/Mở Trợ Giảng AI (khi không ở Chế độ Trình chiếu)
+      if ((e.key === 'c' || e.key === 'C') && !isPresentationMode) {
+        setIsLeftOpen((prev) => !prev);
+        return;
+      }
+
+      // 8. Phím T: Đóng/Mở Công Cụ 3D/Đồ Thị (khi không ở Chế độ Trình chiếu)
+      if ((e.key === 't' || e.key === 'T') && !isPresentationMode) {
+        setIsRightOpen((prev) => !prev);
+        return;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [slideDeck]);
+  }, [slideDeck, isPresentationMode, isBlackout, activeScreen]);
 
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
+  // Task 15.1: Xử lý kích hoạt Chế độ Trình Chiếu Toàn Màn Hình (Start Presentation)
+  const handleStartPresentation = async () => {
+    setActiveScreen('presentation');
+    setIsPresentationMode(true);
+    setIsBlackout(false);
+    await requestPresentationFullscreen(document.documentElement);
+  };
+
+  const handleExitPresentation = async () => {
+    setIsPresentationMode(false);
+    setIsBlackout(false);
+    if (isFullscreenActive()) {
+      await exitPresentationFullscreen();
+    }
+  };
+
+  const toggleFullscreen = async () => {
+    if (!isFullscreenActive()) {
+      await handleStartPresentation();
     } else {
-      document.exitFullscreen().catch(() => {});
+      await handleExitPresentation();
     }
   };
 
@@ -724,18 +825,23 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#050811] text-slate-100 select-none">
-      {/* 1. Header Navigation */}
-      <HeaderNav
-        activeScreen={activeScreen}
-        setActiveScreen={setActiveScreen}
-        currentSlide={currentSlide}
-        totalSlides={slideDeck.slides?.length || 1}
-        presentationTitle={slideDeck.presentation_title}
-        onExportDocx={handleExportDocx}
-        onExportPptx={handleExportPptx}
-        isAiGenerating={isAiGenerating}
-        generationStep={generationStep}
-      />
+      {/* 1. Header Navigation (Tự động ẩn hoàn toàn khi vào Chế độ Trình Chiếu Toàn Màn Hình - Task 15.2) */}
+      {!isPresentationMode && (
+        <HeaderNav
+          activeScreen={activeScreen}
+          setActiveScreen={setActiveScreen}
+          currentSlide={currentSlide}
+          totalSlides={slideDeck.slides?.length || 1}
+          presentationTitle={slideDeck.presentation_title}
+          onExportDocx={handleExportDocx}
+          onExportPptx={handleExportPptx}
+          onToggleFullscreen={toggleFullscreen}
+          onStartPresentation={handleStartPresentation}
+          isPresentationMode={isPresentationMode}
+          isAiGenerating={isAiGenerating}
+          generationStep={generationStep}
+        />
+      )}
 
       {/* Thông báo trạng thái đang gọi AI toàn màn hình */}
       {isAiGenerating && (
@@ -753,14 +859,17 @@ export default function App() {
       <main className="flex-1 flex overflow-hidden relative">
         {/* MÀN HÌNH 1: SÂN KHẤU TRÌNH CHIẾU GIẢNG DẠY (Ưu tiên số 1) */}
         {activeScreen === 'presentation' && (
-          <div className="w-full h-full flex overflow-hidden">
-            <TeacherChatDock
-              isOpen={isLeftOpen}
-              onToggle={() => setIsLeftOpen(false)}
-              currentSlide={currentSlide}
-              slideDeck={slideDeck}
-              onApplyPatch={handleApplySlidePatch}
-            />
+          <div className={`w-full h-full flex overflow-hidden ${isPresentationMode ? 'bg-black' : ''}`}>
+            {/* Ẩn bong bóng chat và dock trợ giảng AI khi trình chiếu - Task 15.2 */}
+            {!isPresentationMode && (
+              <TeacherChatDock
+                isOpen={isLeftOpen}
+                onToggle={() => setIsLeftOpen(false)}
+                currentSlide={currentSlide}
+                slideDeck={slideDeck}
+                onApplyPatch={handleApplySlidePatch}
+              />
+            )}
 
             <PresentationStage
               slideDeck={slideDeck}
@@ -792,30 +901,37 @@ export default function App() {
               onCaptureReady={(fn) => {
                 threeCanvasCaptureRef.current = fn;
               }}
+              isPresentationMode={isPresentationMode}
+              onExitPresentation={handleExitPresentation}
+              isBlackout={isBlackout}
+              onToggleBlackout={setIsBlackout}
             />
 
-            <RightToolsDock
-              isOpen={isRightOpen}
-              onToggle={() => setIsRightOpen(false)}
-              polyhedronType={polyhedronType}
-              setPolyhedronType={setPolyhedronType}
-              edgeLength={edgeLength}
-              setEdgeLength={setEdgeLength}
-              geoHeight={geoHeight}
-              setGeoHeight={setGeoHeight}
-              geoBaseEdge={geoBaseEdge}
-              setGeoBaseEdge={setGeoBaseEdge}
-              showHiddenLines={showHiddenLines}
-              setShowHiddenLines={setShowHiddenLines}
-              showVertexLabels={showVertexLabels}
-              setShowVertexLabels={setShowVertexLabels}
-              showAxes={showAxes}
-              setShowAxes={setShowAxes}
-              cameraPreset={cameraPreset}
-              onCameraPreset={setCameraPreset}
-              showUnfoldedNet={showUnfoldedNet}
-              setShowUnfoldedNet={setShowUnfoldedNet}
-            />
+            {/* Ẩn sidebar công cụ 3D/đồ thị khi trình chiếu - Task 15.2 */}
+            {!isPresentationMode && (
+              <RightToolsDock
+                isOpen={isRightOpen}
+                onToggle={() => setIsRightOpen(false)}
+                polyhedronType={polyhedronType}
+                setPolyhedronType={setPolyhedronType}
+                edgeLength={edgeLength}
+                setEdgeLength={setEdgeLength}
+                geoHeight={geoHeight}
+                setGeoHeight={setGeoHeight}
+                geoBaseEdge={geoBaseEdge}
+                setGeoBaseEdge={setGeoBaseEdge}
+                showHiddenLines={showHiddenLines}
+                setShowHiddenLines={setShowHiddenLines}
+                showVertexLabels={showVertexLabels}
+                setShowVertexLabels={setShowVertexLabels}
+                showAxes={showAxes}
+                setShowAxes={setShowAxes}
+                cameraPreset={cameraPreset}
+                onCameraPreset={setCameraPreset}
+                showUnfoldedNet={showUnfoldedNet}
+                setShowUnfoldedNet={setShowUnfoldedNet}
+              />
+            )}
           </div>
         )}
 

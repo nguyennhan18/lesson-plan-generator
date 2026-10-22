@@ -1,14 +1,18 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { ChevronLeft, ChevronRight, MessageSquare, Wrench, HelpCircle, Check, Eye, LineChart, Box, FileText, Edit3, AlertTriangle, Layers, Compass, Sparkles, BookOpen, Sliders, MoveVertical, Maximize2, RotateCcw, Calculator, Zap, Tag } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MessageSquare, Wrench, HelpCircle, Check, Eye, LineChart, Box, FileText, Edit3, AlertTriangle, Layers, Compass, Sparkles, BookOpen, Sliders, MoveVertical, Maximize2, Minimize2, RotateCcw, Calculator, Zap, Tag, Moon } from 'lucide-react';
 import ThreeCanvas from './ThreeCanvas';
 import UnfoldedNetViewer from './UnfoldedNetViewer';
 import FunctionPlotter from './FunctionPlotter';
 import MathText from './MathText';
 import MathLiveModal from './MathLiveModal';
 import PedagogicalWarningModal from './PedagogicalWarningModal';
-import { updateSlideFormulaInDeck } from '../utils/slideDeckStorage';
+import { updateSlideFormulaInDeck, loadSlideDrawingsFromStorage, saveSlideDrawingsToStorage } from '../utils/slideDeckStorage';
 import { auditSlideDeckLocal, auditSlideDeckRemote } from '../utils/pedagogicalLinterClient';
 import { computeParametricCoordinatesLocal, fetchParametricCoordinatesRemote } from '../utils/geometryClient';
+import PresentationFloatingBar from './PresentationFloatingBar';
+import InteractiveQuizCard from './InteractiveQuizCard';
+import AnnotationCanvas from './AnnotationCanvas';
+import WhiteboardOverlay from './WhiteboardOverlay';
 
 export default function PresentationStage({
   slideDeck,
@@ -38,7 +42,13 @@ export default function PresentationStage({
   setShowUnfoldedNet,
   onSwitchSample,
   // Task 14.1: Cầu nối Snapshot 3D WebGL
-  onCaptureReady
+  onCaptureReady,
+  // Task 15.2: Chế độ Trình chiếu Toàn màn hình 16:9 Cinema
+  isPresentationMode = false,
+  onExitPresentation,
+  // Task 15.3: Trạng thái Làm tối màn hình (Blackout Mode - Phím B)
+  isBlackout = false,
+  onToggleBlackout
 }) {
   const slides = slideDeck?.slides || [];
   const slide = slides[currentSlide] || {};
@@ -50,6 +60,212 @@ export default function PresentationStage({
 
   // Chế độ hiển thị trực quan bên phải: 'auto' | '2d' | '3d' | 'pptx'
   const [visualMode, setVisualMode] = useState('auto');
+
+  // Task 17.1 & Task 17.3 & Task 17.4: Quản lý Hệ thống Bút vẽ Chú thích, Undo/Redo & Lưu trữ theo Slide
+  const deckId = slideDeck?.id || 'default_deck';
+  const [isDrawingMode, setIsDrawingMode] = useState(false);
+  const [currentTool, setCurrentTool] = useState('pen'); // 'pen' | 'highlighter' | 'eraser'
+  const [drawingColor, setDrawingColor] = useState('#ef4444');
+  const [brushSize, setBrushSize] = useState(3);
+
+  // Khởi tạo slideDrawingsMap từ bộ nhớ lưu trữ browser (sessionStorage)
+  const [slideDrawingsMap, setSlideDrawingsMap] = useState(() => loadSlideDrawingsFromStorage(deckId));
+  const [slideUndoStacks, setSlideUndoStacks] = useState({});
+  const [slideRedoStacks, setSlideRedoStacks] = useState({});
+
+  // Tự động đồng bộ slideDrawingsMap vào storage mỗi khi có nét vẽ mới
+  useEffect(() => {
+    saveSlideDrawingsToStorage(slideDrawingsMap, deckId);
+  }, [slideDrawingsMap, deckId]);
+
+  // Task 17.4: Chế độ Bảng Viết Toàn Màn Hình (Whiteboard / Blackboard Mode)
+  const [isWhiteboardOpen, setIsWhiteboardOpen] = useState(false);
+  const [whiteboardStrokes, setWhiteboardStrokes] = useState([]);
+  const [whiteboardUndoStack, setWhiteboardUndoStack] = useState([]);
+  const [whiteboardRedoStack, setWhiteboardRedoStack] = useState([]);
+
+  const currentStrokes = slideDrawingsMap[currentSlide] || [];
+  const currentUndoStack = slideUndoStacks[currentSlide] || [];
+  const currentRedoStack = slideRedoStacks[currentSlide] || [];
+
+  const handleStrokesChange = (newStrokes, previousStrokes) => {
+    const prevState = previousStrokes !== undefined ? previousStrokes : (slideDrawingsMap[currentSlide] || []);
+    setSlideUndoStacks((prev) => ({
+      ...prev,
+      [currentSlide]: [...(prev[currentSlide] || []), prevState]
+    }));
+    setSlideRedoStacks((prev) => ({
+      ...prev,
+      [currentSlide]: []
+    }));
+    setSlideDrawingsMap((prev) => ({
+      ...prev,
+      [currentSlide]: newStrokes
+    }));
+  };
+
+  const handleUndoStrokes = useCallback(() => {
+    setSlideUndoStacks((prevUndo) => {
+      const currentUndo = prevUndo[currentSlide] || [];
+      if (currentUndo.length === 0) return prevUndo;
+
+      const previousState = currentUndo[currentUndo.length - 1];
+      const remainingUndo = currentUndo.slice(0, currentUndo.length - 1);
+
+      setSlideRedoStacks((prevRedo) => ({
+        ...prevRedo,
+        [currentSlide]: [...(prevRedo[currentSlide] || []), slideDrawingsMap[currentSlide] || []]
+      }));
+
+      setSlideDrawingsMap((prevMap) => ({
+        ...prevMap,
+        [currentSlide]: previousState
+      }));
+
+      return {
+        ...prevUndo,
+        [currentSlide]: remainingUndo
+      };
+    });
+  }, [currentSlide, slideDrawingsMap]);
+
+  const handleRedoStrokes = useCallback(() => {
+    setSlideRedoStacks((prevRedo) => {
+      const currentRedo = prevRedo[currentSlide] || [];
+      if (currentRedo.length === 0) return prevRedo;
+
+      const nextState = currentRedo[currentRedo.length - 1];
+      const remainingRedo = currentRedo.slice(0, currentRedo.length - 1);
+
+      setSlideUndoStacks((prevUndo) => ({
+        ...prevUndo,
+        [currentSlide]: [...(prevUndo[currentSlide] || []), slideDrawingsMap[currentSlide] || []]
+      }));
+
+      setSlideDrawingsMap((prevMap) => ({
+        ...prevMap,
+        [currentSlide]: nextState
+      }));
+
+      return {
+        ...prevRedo,
+        [currentSlide]: remainingRedo
+      };
+    });
+  }, [currentSlide, slideDrawingsMap]);
+
+  const handleClearAllStrokes = useCallback(() => {
+    const currentList = slideDrawingsMap[currentSlide] || [];
+    if (currentList.length === 0) return;
+
+    setSlideUndoStacks((prev) => ({
+      ...prev,
+      [currentSlide]: [...(prev[currentSlide] || []), currentList]
+    }));
+    setSlideRedoStacks((prev) => ({
+      ...prev,
+      [currentSlide]: []
+    }));
+    setSlideDrawingsMap((prev) => ({
+      ...prev,
+      [currentSlide]: []
+    }));
+  }, [currentSlide, slideDrawingsMap]);
+
+  // Quản lý Undo / Redo / Clear riêng biệt cho Bảng Viết Phụ (Whiteboard)
+  const handleWhiteboardStrokesChange = (newStrokes, previousStrokes) => {
+    const prevState = previousStrokes !== undefined ? previousStrokes : whiteboardStrokes;
+    setWhiteboardUndoStack((prev) => [...prev, prevState]);
+    setWhiteboardRedoStack([]);
+    setWhiteboardStrokes(newStrokes);
+  };
+
+  const handleWhiteboardUndo = useCallback(() => {
+    setWhiteboardUndoStack((prevUndo) => {
+      if (prevUndo.length === 0) return prevUndo;
+      const prevState = prevUndo[prevUndo.length - 1];
+      const remainingUndo = prevUndo.slice(0, prevUndo.length - 1);
+      setWhiteboardRedoStack((prevRedo) => [...prevRedo, whiteboardStrokes]);
+      setWhiteboardStrokes(prevState);
+      return remainingUndo;
+    });
+  }, [whiteboardStrokes]);
+
+  const handleWhiteboardRedo = useCallback(() => {
+    setWhiteboardRedoStack((prevRedo) => {
+      if (prevRedo.length === 0) return prevRedo;
+      const nextState = prevRedo[prevRedo.length - 1];
+      const remainingRedo = prevRedo.slice(0, prevRedo.length - 1);
+      setWhiteboardUndoStack((prevUndo) => [...prevUndo, whiteboardStrokes]);
+      setWhiteboardStrokes(nextState);
+      return remainingRedo;
+    });
+  }, [whiteboardStrokes]);
+
+  const handleWhiteboardClear = useCallback(() => {
+    if (whiteboardStrokes.length === 0) return;
+    setWhiteboardUndoStack((prev) => [...prev, whiteboardStrokes]);
+    setWhiteboardRedoStack([]);
+    setWhiteboardStrokes([]);
+  }, [whiteboardStrokes]);
+
+  // Task 17.2, 17.3, 17.4: Phím tắt Bút vẽ (P), Dạ quang (H), Tẩy (E), Bảng phụ (W), Hoàn tác (Ctrl+Z), Làm lại (Ctrl+Y)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (['INPUT', 'TEXTAREA', 'SELECT', 'MATH-FIELD'].includes(e.target.tagName)) return;
+
+      // Undo: Ctrl+Z / Cmd+Z (không kèm Shift)
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z') && !e.shiftKey) {
+        e.preventDefault();
+        if (isWhiteboardOpen) {
+          handleWhiteboardUndo();
+        } else {
+          handleUndoStrokes();
+        }
+        return;
+      }
+
+      // Redo: Ctrl+Y / Cmd+Shift+Z / Ctrl+Shift+Z
+      if (
+        ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) ||
+        ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'z' || e.key === 'Z'))
+      ) {
+        e.preventDefault();
+        if (isWhiteboardOpen) {
+          handleWhiteboardRedo();
+        } else {
+          handleRedoStrokes();
+        }
+        return;
+      }
+
+      // Bật/tắt Bảng phụ Whiteboard: Phím W
+      if (e.key === 'w' || e.key === 'W') {
+        e.preventDefault();
+        setIsWhiteboardOpen((prev) => !prev);
+        return;
+      }
+
+      if (e.key === 'p' || e.key === 'P') {
+        e.preventDefault();
+        setIsDrawingMode((prev) => {
+          if (!prev) setCurrentTool('pen');
+          return !prev;
+        });
+      } else if (e.key === 'h' || e.key === 'H') {
+        e.preventDefault();
+        setIsDrawingMode(true);
+        setCurrentTool('highlighter');
+      } else if (e.key === 'e' || e.key === 'E') {
+        e.preventDefault();
+        setIsDrawingMode(true);
+        setCurrentTool('eraser');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleUndoStrokes, handleRedoStrokes, isWhiteboardOpen, handleWhiteboardUndo, handleWhiteboardRedo]);
 
   // Task 8.2: Trạng thái Modal Popup chỉnh sửa công thức Toán (MathLive) khi click đúp
   const [mathModalState, setMathModalState] = useState({
@@ -359,79 +575,117 @@ export default function PresentationStage({
   const isQuizLayout = slide.layout === 'QUIZ_OPTION' || Boolean(slide.quiz_options?.length);
 
   return (
-    <div className="flex-1 flex flex-col justify-between h-full p-3 overflow-hidden bg-slate-950/40 relative">
-      {/* 1. Thanh Top Điều Khiển Nhanh */}
-      <div className="flex items-center justify-between mb-2 shrink-0">
-        <div className="flex items-center gap-2">
-          {!isLeftOpen && (
-            <button
-              onClick={onToggleLeft}
-              className="px-3 py-1 bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-cyan-800/80 rounded-lg text-xs flex items-center gap-1.5 shadow-lg transition"
-              title="Mở Trợ Giảng AI Co-pilot (Phím C)"
-            >
-              <MessageSquare size={13} />
-              <span>Hiện Trợ Giảng AI (C)</span>
-            </button>
-          )}
-
-          {/* Nút chuyển nhanh bài mẫu (Quick Topic Switcher) */}
-          {onSwitchSample && (
-            <div className="hidden lg:flex items-center gap-1 bg-slate-900/90 border border-slate-800 rounded-lg p-0.5 text-[11px]">
-              <span className="text-slate-400 px-1.5">Mẫu:</span>
+    <div
+      className={`flex flex-col justify-between overflow-hidden relative ${
+        isPresentationMode
+          ? 'fixed inset-0 z-50 bg-black flex items-center justify-center p-0 md:p-3 w-screen h-screen select-none'
+          : 'flex-1 h-full p-3 bg-slate-950/40'
+      }`}
+    >
+      {/* 1. Thanh Top Điều Khiển Nhanh (Ẩn hoàn toàn trong Chế độ Trình Chiếu - Task 15.2) */}
+      {!isPresentationMode && (
+        <div className="flex items-center justify-between mb-2 shrink-0">
+          <div className="flex items-center gap-2">
+            {!isLeftOpen && (
               <button
-                onClick={() => onSwitchSample('quadratic')}
-                className={`px-2 py-0.5 rounded transition ${
-                  fullContextText.includes('bậc hai') || fullContextText.includes('phương trình')
-                    ? 'bg-cyan-600 text-white font-semibold'
-                    : 'text-slate-300 hover:text-white'
-                }`}
+                onClick={onToggleLeft}
+                className="px-3 py-1 bg-slate-900 hover:bg-slate-800 text-cyan-400 border border-cyan-800/80 rounded-lg text-xs flex items-center gap-1.5 shadow-lg transition"
+                title="Mở Trợ Giảng AI Co-pilot (Phím C)"
               >
-                PT Bậc Hai (Toán 10)
+                <MessageSquare size={13} />
+                <span>Hiện Trợ Giảng AI (C)</span>
               </button>
+            )}
+
+            {/* Nút chuyển nhanh bài mẫu (Quick Topic Switcher) */}
+            {onSwitchSample && (
+              <div className="hidden lg:flex items-center gap-1 bg-slate-900/90 border border-slate-800 rounded-lg p-0.5 text-[11px]">
+                <span className="text-slate-400 px-1.5">Mẫu:</span>
+                <button
+                  onClick={() => onSwitchSample('quadratic')}
+                  className={`px-2 py-0.5 rounded transition ${
+                    fullContextText.includes('bậc hai') || fullContextText.includes('phương trình')
+                      ? 'bg-cyan-600 text-white font-semibold'
+                      : 'text-slate-300 hover:text-white'
+                  }`}
+                >
+                  PT Bậc Hai (Toán 10)
+                </button>
+                <button
+                  onClick={() => onSwitchSample('cube')}
+                  className={`px-2 py-0.5 rounded transition ${
+                    fullContextText.includes('lập phương')
+                      ? 'bg-cyan-600 text-white font-semibold'
+                      : 'text-slate-300 hover:text-white'
+                  }`}
+                >
+                  Hình Lập Phương (Toán 11)
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="text-[11px] text-slate-400 tracking-wide font-mono hidden md:flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>SÂN KHẤU 16:9 • TOÁN HỌC CHUẨN KaTeX • CÔNG VĂN 5512</span>
+          </div>
+
+          <div>
+            {!isRightOpen && (
               <button
-                onClick={() => onSwitchSample('cube')}
-                className={`px-2 py-0.5 rounded transition ${
-                  fullContextText.includes('lập phương')
-                    ? 'bg-cyan-600 text-white font-semibold'
-                    : 'text-slate-300 hover:text-white'
-                }`}
+                onClick={onToggleRight}
+                className="px-3 py-1 bg-slate-900 hover:bg-slate-800 text-amber-400 border border-amber-800/80 rounded-lg text-xs flex items-center gap-1.5 shadow-lg transition"
+                title="Mở Công Cụ 3D/Đồ Thị (Phím T)"
               >
-                Hình Lập Phương (Toán 11)
+                <span>Công Cụ Giảng Dạy (T)</span>
+                <Wrench size={13} />
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
+      )}
 
-        <div className="text-[11px] text-slate-400 tracking-wide font-mono hidden md:flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span>SÂN KHẤU 16:9 • TOÁN HỌC CHUẨN KaTeX • CÔNG VĂN 5512</span>
-        </div>
-
-        <div>
-          {!isRightOpen && (
-            <button
-              onClick={onToggleRight}
-              className="px-3 py-1 bg-slate-900 hover:bg-slate-800 text-amber-400 border border-amber-800/80 rounded-lg text-xs flex items-center gap-1.5 shadow-lg transition"
-              title="Mở Công Cụ 3D/Đồ Thị (Phím T)"
-            >
-              <span>Công Cụ Giảng Dạy (T)</span>
-              <Wrench size={13} />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* 2. SÂN KHẤU CHÍNH 16:9 CINEMA (Không gian trọng tâm của Giáo viên) */}
-      <div className="flex-1 flex items-center justify-center min-h-0">
-        <div className="w-full h-full max-w-6xl aspect-video glass-panel rounded-2xl p-5 flex flex-col justify-between border-slate-800 shadow-2xl relative overflow-hidden bg-[#090d1c]/90">
+      {/* 2. SÂN KHẤU CHÍNH 16:9 CINEMA (Không gian trọng tâm của Giáo viên - Task 15.2) */}
+      <div
+        className={`flex items-center justify-center min-h-0 ${
+          isPresentationMode ? 'w-full h-full' : 'flex-1'
+        }`}
+      >
+        <div
+          className={`glass-panel flex flex-col justify-between shadow-2xl relative overflow-hidden bg-[#090d1c] transition-all duration-300 ${
+            isPresentationMode
+              ? 'w-full aspect-[16/9] max-h-screen rounded-none md:rounded-2xl p-4 md:p-6 lg:p-7 border border-slate-800/90'
+              : 'w-full h-full max-w-6xl aspect-video rounded-2xl p-5 border-slate-800 bg-[#090d1c]/90'
+          }`}
+          style={
+            isPresentationMode
+              ? {
+                  maxWidth: 'calc(100vh * 16 / 9)',
+                  maxHeight: '100vh'
+                }
+              : undefined
+          }
+        >
 
           {/* Header của Slide */}
           <div className="pb-2.5 border-b border-slate-800/80 flex items-center justify-between shrink-0">
             <div>
-              <span className="text-[10px] font-bold px-2.5 py-0.5 rounded border border-cyan-800 bg-cyan-950/70 text-cyan-300 uppercase tracking-wider">
-                {activityTag}
-              </span>
-              <h2 className="text-base md:text-xl font-bold text-white mt-1 flex items-center gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] md:text-xs font-bold px-2.5 py-0.5 rounded border border-cyan-800 bg-cyan-950/70 text-cyan-300 uppercase tracking-wider">
+                  {activityTag}
+                </span>
+                {isPresentationMode && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-700/80 bg-emerald-950/80 text-emerald-300 uppercase tracking-wider flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    16:9 Cinema
+                  </span>
+                )}
+              </div>
+              <h2
+                className={`font-bold text-white flex items-center gap-2 ${
+                  isPresentationMode ? 'text-lg md:text-2xl lg:text-3xl mt-1.5' : 'text-base md:text-xl mt-1'
+                }`}
+              >
                 <MathText text={slide.title || "Tiêu đề bài giảng"} />
               </h2>
             </div>
@@ -504,6 +758,36 @@ export default function PresentationStage({
               <div className="px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-xs font-mono text-cyan-400 shadow-inner">
                 Slide {currentSlide + 1} / {slides.length || 1}
               </div>
+
+              {/* Task 15.3: Nút Tối Màn Hình (Blackout Mode - Phím B) */}
+              {isPresentationMode && (
+                <button
+                  onClick={() => onToggleBlackout?.(!isBlackout)}
+                  className={`px-2.5 py-1 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition shadow-sm ml-1 ${
+                    isBlackout
+                      ? 'bg-amber-500/30 border-amber-500 text-amber-200'
+                      : 'bg-slate-800/90 hover:bg-slate-700 border-slate-700 text-slate-300'
+                  }`}
+                  title="Làm tối màn hình để học sinh tập trung vào lời giảng (Phím B)"
+                >
+                  <Moon size={13} />
+                  <span className="hidden sm:inline">Tối màn hình</span>
+                  <kbd className="hidden md:inline px-1 py-0.2 bg-slate-900 border border-slate-700 rounded text-[9px] font-mono">B</kbd>
+                </button>
+              )}
+
+              {/* Task 15.2: Nút Thoát Trình Chiếu Toàn Màn Hình */}
+              {isPresentationMode && onExitPresentation && (
+                <button
+                  onClick={onExitPresentation}
+                  className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/60 text-rose-300 text-xs font-semibold flex items-center gap-1.5 transition shadow-sm ml-1"
+                  title="Thoát Chế độ Trình chiếu (Phím Esc hoặc F5)"
+                >
+                  <Minimize2 size={13} />
+                  <span className="hidden sm:inline">Thoát</span>
+                  <kbd className="hidden md:inline px-1 py-0.2 bg-rose-950/80 border border-rose-700/60 rounded text-[9px] font-mono">Esc</kbd>
+                </button>
+              )}
             </div>
           </div>
 
@@ -618,72 +902,26 @@ export default function PresentationStage({
                 </div>
               </div>
             ) : isQuizLayout ? (
-              /* TRƯỜNG HỢP B: QUIZ TRẮC NGHIỆM TƯƠNG TÁC (LIVE POLL) */
-              <div className="h-full flex flex-col justify-between gap-3">
-                <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1.5">
-                  <div className="flex items-center justify-between text-xs text-slate-400">
-                    <span className="font-semibold text-amber-400 flex items-center gap-1.5">
-                      <HelpCircle size={15} /> CÂU HỎI VẬN DỤNG & CỦNG CỐ NHANH
-                    </span>
-                    <span className="font-mono text-cyan-400">Đã bình chọn: {totalVotes} HS</span>
-                  </div>
-                  <p className="text-sm md:text-base text-white font-medium leading-relaxed">
-                    <MathText text={slide.bullet_points?.[0] || "Chọn khẳng định đúng trong các phương án sau:"} />
-                  </p>
-                </div>
-
-                {/* 4 Phương án A, B, C, D */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                  {(slide.quiz_options || [
-                    { label: "A", text: "Phương án A", is_correct: true, distractor_rationale: "Đáp án chuẩn xác." },
-                    { label: "B", text: "Phương án B", is_correct: false, distractor_rationale: "Học sinh dễ nhầm dấu." },
-                    { label: "C", text: "Phương án C", is_correct: false, distractor_rationale: "Quên áp dụng điều kiện." },
-                    { label: "D", text: "Phương án D", is_correct: false, distractor_rationale: "Nhầm công thức." }
-                  ]).map((opt) => {
-                    const isSelected = votedOption === opt.label;
-                    const optVote = votes[opt.label] || 0;
-                    const pct = Math.round((optVote / (totalVotes || 1)) * 100);
-
-                    return (
-                      <div
-                        key={opt.label}
-                        onClick={() => handleVote(opt.label)}
-                        className={`p-3 rounded-xl border cursor-pointer transition text-xs space-y-1.5 relative overflow-hidden ${
-                          isSelected
-                            ? opt.is_correct
-                              ? 'border-emerald-500 bg-emerald-950/40 text-emerald-200'
-                              : 'border-rose-500 bg-rose-950/40 text-rose-200'
-                            : 'border-slate-800 bg-slate-900/60 hover:border-slate-700 text-slate-200'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between font-semibold">
-                          <span className="text-sm">
-                            <strong>{opt.label}.</strong> <MathText text={opt.text} />
-                          </span>
-                          {isSelected && (
-                            <span className="text-[11px] font-bold">
-                              {opt.is_correct ? 'CHÍNH XÁC' : 'CHƯA ĐÚNG'}
-                            </span>
-                          )}
-                          <span className="font-mono text-slate-400">{pct}%</span>
-                        </div>
-
-                        {/* Thanh phần trăm tiến trình */}
-                        <div className="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full transition-all duration-500 ${opt.is_correct ? 'bg-emerald-500' : 'bg-slate-600'}`}
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
-                      </div>
-
-                    );
-                  })}
-                </div>
+              /* TRƯỜNG HỢP B: QUIZ TRẮC NGHIỆM TƯƠNG TÁC (TASK 16.1) */
+              <div className="h-full flex flex-col justify-between">
+                <InteractiveQuizCard
+                  slide={slide}
+                  currentSlide={currentSlide}
+                  votedOption={votedOption}
+                  onVote={handleVote}
+                  votes={votes}
+                  onResetVotes={() => {
+                    setVotedOption(null);
+                    setShowExplanation(false);
+                  }}
+                  showExplanation={showExplanation}
+                  onToggleExplanation={() => setShowExplanation((prev) => !prev)}
+                  isPresentationMode={isPresentationMode}
+                />
 
                 {/* Hộp thoại phân tích bẫy sai lầm sư phạm (Distractor Rationale) */}
                 {showExplanation && (
-                  <div className="p-3 rounded-xl bg-slate-900/95 border border-slate-700 text-xs space-y-1">
+                  <div className="p-3 mt-2 rounded-xl bg-slate-900/95 border border-slate-700 text-xs space-y-1">
                     <strong className="text-amber-400 flex items-center gap-1.5 font-bold">
                       Phân Tích Sư Phạm & Bẫy Sai Lầm (Distractor Analysis):
                     </strong>
@@ -1444,24 +1682,45 @@ export default function PresentationStage({
 
             {/* Nút Trước / Sau */}
             <div className="flex items-center gap-2">
+              {isPresentationMode && (
+                <span className="text-[11px] font-mono text-slate-500 hidden xl:inline mr-2">
+                  [← / → / Space]: Chuyển slide • [B]: Tối màn hình • [Esc / F5]: Thoát
+                </span>
+              )}
               <button
                 onClick={() => setCurrentSlide(Math.max(0, currentSlide - 1))}
                 disabled={currentSlide === 0}
-                className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 disabled:opacity-40 text-slate-300 hover:text-white border border-slate-800 text-xs font-semibold flex items-center gap-1 transition"
+                className={`rounded-lg bg-slate-900 hover:bg-slate-800 disabled:opacity-40 text-slate-300 hover:text-white border border-slate-800 font-semibold flex items-center gap-1 transition ${
+                  isPresentationMode ? 'px-3.5 py-2 text-xs md:text-sm' : 'px-3 py-1.5 text-xs'
+                }`}
                 title="Phím ←"
               >
-                <ChevronLeft size={16} /> Trước
+                <ChevronLeft size={isPresentationMode ? 18 : 16} /> Trước
               </button>
               <button
                 onClick={() => setCurrentSlide(Math.min(slides.length - 1, currentSlide + 1))}
                 disabled={currentSlide >= slides.length - 1}
-                className="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 disabled:opacity-40 text-white text-xs font-semibold flex items-center gap-1 shadow-lg shadow-cyan-950/40 transition"
+                className={`rounded-lg bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 disabled:opacity-40 text-white font-semibold flex items-center gap-1 shadow-lg shadow-cyan-950/40 transition ${
+                  isPresentationMode ? 'px-4 py-2 text-xs md:text-sm' : 'px-3.5 py-1.5 text-xs'
+                }`}
                 title="Phím →"
               >
-                Sau <ChevronRight size={16} />
+                Sau <ChevronRight size={isPresentationMode ? 18 : 16} />
               </button>
             </div>
           </div>
+
+          {/* Task 17.1: Lớp Canvas Vẽ Chú Thích Phủ Tràn Khung Hình 16:9 */}
+          <AnnotationCanvas
+            isActive={isDrawingMode}
+            tool={currentTool}
+            color={drawingColor}
+            size={brushSize}
+            slideIndex={currentSlide}
+            strokes={currentStrokes}
+            onStrokesChange={handleStrokesChange}
+            isPresentationMode={isPresentationMode}
+          />
         </div>
       </div>
 
@@ -1483,6 +1742,83 @@ export default function PresentationStage({
         onJumpToSlide={(idx) => setCurrentSlide?.(idx)}
         onOpenManualEdit={handleOpenManualEditFromWarning}
         onDismissWarning={handleDismissWarning}
+      />
+
+      {/* Task 15.3: Màn Hình Tối Blackout Curtain (Phím B) */}
+      {isBlackout && (
+        <div
+          onClick={() => onToggleBlackout?.(false)}
+          className="fixed inset-0 z-[60] bg-black flex flex-col items-center justify-center cursor-pointer transition-opacity duration-300 select-none"
+          title="Nhấp chuột hoặc ấn phím B để tiếp tục bài giảng"
+        >
+          <div className="text-center space-y-3 opacity-40 hover:opacity-90 transition duration-300">
+            <div className="w-14 h-14 rounded-full border border-slate-700 mx-auto flex items-center justify-center text-slate-400 bg-slate-950/80 shadow-2xl">
+              <Moon size={28} />
+            </div>
+            <p className="text-slate-300 text-base font-medium tracking-wide">
+              Màn hình tạm tắt để tập trung bài giảng
+            </p>
+            <div className="flex items-center justify-center gap-2 text-xs font-mono text-slate-500">
+              <kbd className="px-2 py-0.5 bg-slate-900 border border-slate-700 rounded text-slate-300 font-bold">B</kbd>
+              <span>hoặc click chuột / ấn phím bất kỳ để tiếp tục</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Task 15.4: Thanh Điều Khiển Mờ Nổi (Floating Control Bar HUD) với Đồng Hồ 45 Phút */}
+      {isPresentationMode && (
+        <PresentationFloatingBar
+          currentSlide={currentSlide}
+          totalSlides={slides.length || 1}
+          onPrevSlide={() => setCurrentSlide(Math.max(0, currentSlide - 1))}
+          onNextSlide={() => setCurrentSlide(Math.min(slides.length - 1, currentSlide + 1))}
+          onSelectSlide={(idx) => setCurrentSlide?.(idx)}
+          slides={slides}
+          isBlackout={isBlackout}
+          onToggleBlackout={onToggleBlackout}
+          onExitPresentation={onExitPresentation}
+          visualMode={visualMode}
+          onSelectVisualMode={setVisualMode}
+          // Task 17.2: Quản lý Công cụ Bút vẽ Sư phạm
+          isDrawingMode={isDrawingMode}
+          onToggleDrawingMode={setIsDrawingMode}
+          currentTool={currentTool}
+          onSelectTool={setCurrentTool}
+          drawingColor={drawingColor}
+          onSelectColor={setDrawingColor}
+          brushSize={brushSize}
+          onSelectBrushSize={setBrushSize}
+          // Task 17.3: Quản lý Hoàn tác (Undo), Làm lại (Redo), Tẩy nét & Xóa toàn bộ
+          canUndo={currentUndoStack.length > 0}
+          canRedo={currentRedoStack.length > 0}
+          onUndo={handleUndoStrokes}
+          onRedo={handleRedoStrokes}
+          onClearCanvas={handleClearAllStrokes}
+          hasStrokes={currentStrokes.length > 0}
+          // Task 17.4: Chế độ Bảng trắng Toàn màn hình & Đồng bộ trạng thái nét vẽ
+          isWhiteboardOpen={isWhiteboardOpen}
+          onToggleWhiteboard={setIsWhiteboardOpen}
+          slideDrawingsMap={slideDrawingsMap}
+        />
+      )}
+
+      {/* Task 17.4: Chế độ Bảng Viết Toàn Màn Hình (Whiteboard / Blackboard Mode) */}
+      <WhiteboardOverlay
+        isOpen={isWhiteboardOpen}
+        onClose={() => setIsWhiteboardOpen(false)}
+        tool={currentTool}
+        color={drawingColor}
+        size={brushSize}
+        onSelectTool={setCurrentTool}
+        onSelectColor={setDrawingColor}
+        strokes={whiteboardStrokes}
+        onStrokesChange={handleWhiteboardStrokesChange}
+        canUndo={whiteboardUndoStack.length > 0}
+        canRedo={whiteboardRedoStack.length > 0}
+        onUndo={handleWhiteboardUndo}
+        onRedo={handleWhiteboardRedo}
+        onClear={handleWhiteboardClear}
       />
     </div>
   );

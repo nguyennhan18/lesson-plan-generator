@@ -101,3 +101,55 @@ export function updateSlideFormulaInDeck(
   saveSlideDeckToBrowserMemory(updatedDeck);
   return updatedDeck;
 }
+
+// ================= TASK 17.4: LƯU TRỮ VÀ ĐỒNG BỘ TRẠNG THÁI VẼ THEO TỪNG SLIDE =================
+export const SLIDE_DRAWINGS_STORAGE_KEY = 'lessonai_slide_drawings_v1';
+
+/**
+ * Đọc toàn bộ dữ liệu nét vẽ (slideDrawingsMap) của bộ bài giảng từ bộ nhớ trình duyệt.
+ * @param {string} deckId - Mã định danh của bộ bài giảng
+ * @returns {Object} Bản đồ các nét vẽ { [slideIndex]: Stroke[] }
+ */
+export function loadSlideDrawingsFromStorage(deckId = 'default') {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = window.sessionStorage.getItem(`${SLIDE_DRAWINGS_STORAGE_KEY}_${deckId}`);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        return parsed;
+      }
+    }
+  } catch {
+    // Bỏ qua lỗi parse
+  }
+  return {};
+}
+
+/**
+ * Lưu trữ trạng thái nét vẽ hiện thời theo từng slide vào bộ nhớ trình duyệt.
+ * @param {Object} drawingsMap - Bản đồ các nét vẽ { [slideIndex]: Stroke[] }
+ * @param {string} deckId - Mã định danh của bộ bài giảng
+ */
+export function saveSlideDrawingsToStorage(drawingsMap, deckId = 'default') {
+  if (typeof window === 'undefined' || !drawingsMap) return;
+  try {
+    window.sessionStorage.setItem(`${SLIDE_DRAWINGS_STORAGE_KEY}_${deckId}`, JSON.stringify(drawingsMap));
+  } catch {
+    // Bỏ qua lỗi quota
+  }
+}
+
+/**
+ * Xóa sạch dữ liệu vẽ lưu trữ của bộ bài giảng.
+ * @param {string} deckId - Mã định danh của bộ bài giảng
+ */
+export function clearSlideDrawingsFromStorage(deckId = 'default') {
+  if (typeof window === 'undefined') return;
+  try {
+    window.sessionStorage.removeItem(`${SLIDE_DRAWINGS_STORAGE_KEY}_${deckId}`);
+  } catch {
+    // Bỏ qua
+  }
+}
+

@@ -8,7 +8,9 @@ export default function HeaderNav({
   setIsLeftOpen,
   isRightOpen,
   setIsRightOpen,
-  onToggleFullscreen
+  onToggleFullscreen,
+  onStartPresentation,
+  isPresentationMode
 }) {
   const tabs = [
     { key: 'presentation', label: 'Trình Chiếu Giảng Dạy', icon: Play },
@@ -56,6 +58,17 @@ export default function HeaderNav({
 
       {/* Right Controls */}
       <div className="flex items-center gap-2 text-xs">
+        {/* Task 15.1: Nút "Bắt đầu Tiết học" (Start Presentation Mode) */}
+        <button
+          onClick={onStartPresentation}
+          className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-lg shadow-emerald-950/50 border border-emerald-400/40 transition active:scale-95 cursor-pointer"
+          title="Bắt đầu Tiết học: Trình chiếu Toàn màn hình (F5)"
+        >
+          <Play size={13} className="fill-white" />
+          <span className="font-bold tracking-wide">Bắt đầu Tiết học</span>
+          <span className="hidden xl:inline text-[10px] px-1 py-0.2 rounded bg-emerald-900/80 border border-emerald-400/30 text-emerald-200 font-mono">F5</span>
+        </button>
+
         {/* Timer */}
         <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-cyan-400 font-mono text-xs">
           <Clock size={13} className="text-amber-400 animate-pulse" />
