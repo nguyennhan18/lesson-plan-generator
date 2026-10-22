@@ -2,17 +2,20 @@ import csv
 import math
 import os
 from dataclasses import dataclass, field
-from io import StringIO
+from io import StringIO, BytesIO
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union, BinaryIO, TypeAlias
 
 from openpyxl import load_workbook
 
+# Định nghĩa bí danh kiểu dữ liệu đầu vào cho file bảng điểm (PEP 613 TypeAlias)
+Source: TypeAlias = Union[str, Path, bytes, BinaryIO, BytesIO]
+
 try:
-    from parsers.common import Source, read_source
+    from parsers.common import read_source
     from schemas.slide_schema import ClassProficiency
 except ImportError:
-    from ..parsers.common import Source, read_source
+    from ..parsers.common import read_source
     from ..schemas.slide_schema import ClassProficiency
 
 

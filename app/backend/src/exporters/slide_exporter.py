@@ -1271,7 +1271,7 @@ def load_manifest_config() -> dict:
     return {}
 
 
-def select_template_presentation(theme_id: str = "math_academic") -> tuple[Presentation, dict]:
+def select_template_presentation(theme_id: str = "math_academic") -> tuple[Any, dict]:
     """Tạo Presentation 16:9 widescreen đồng bộ với giao diện web"""
     prs = Presentation()
     prs.slide_width = Inches(10.0)

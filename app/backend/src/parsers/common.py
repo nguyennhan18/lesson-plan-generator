@@ -1,9 +1,9 @@
 import re
 from io import BytesIO
 from pathlib import Path
-from typing import BinaryIO, Union, List, Any, Optional, Dict
+from typing import BinaryIO, Union, List, Any, Optional, Dict, TypeAlias
 from pydantic import BaseModel, Field
-Source = Union[str, Path, bytes, BinaryIO, BytesIO]
+Source: TypeAlias = Union[str, Path, bytes, BinaryIO, BytesIO]
 
 def read_source(source: Source) -> BytesIO:
     if isinstance(source, (str, Path)):

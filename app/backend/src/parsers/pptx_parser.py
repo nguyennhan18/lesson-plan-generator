@@ -1,11 +1,16 @@
-from typing import List, Tuple, Any, Dict
+from io import BytesIO
+from pathlib import Path
+from typing import List, Tuple, Any, Dict, Union, BinaryIO, TypeAlias
 from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 
+# Định nghĩa bí danh kiểu dữ liệu đầu vào cho file PowerPoint (PEP 613 TypeAlias)
+Source: TypeAlias = Union[str, Path, bytes, BinaryIO, BytesIO]
+
 try:
-    from .common import Source, read_source, clean_text
+    from .common import read_source, clean_text
 except ImportError:
-    from parsers.common import Source, read_source, clean_text
+    from parsers.common import read_source, clean_text
 
 
 def _extract_shapes_text(
@@ -123,6 +128,8 @@ def _get_notes(slide: Any) -> str:
         return ""
 
     return ""
+
+
 def parse_pptx(source: Source) -> Dict[str, Any]:
     """
     Hàm chính bóc tách toàn bộ nội dung file PowerPoint (.pptx):

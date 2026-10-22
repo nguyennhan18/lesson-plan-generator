@@ -1,17 +1,20 @@
-from typing import List, Dict, Any
-from docx import Document
-
-from typing import List, Dict, Any, Iterator, Union
+from io import BytesIO
+from pathlib import Path
+from typing import List, Dict, Any, Iterator, Union, BinaryIO, TypeAlias
 from docx import Document
 from docx.document import Document as _Document
 from docx.oxml.text.paragraph import CT_P
 from docx.oxml.table import CT_Tbl
 from docx.table import _Cell, Table
 from docx.text.paragraph import Paragraph
+
+# Định nghĩa bí danh kiểu dữ liệu đầu vào cho file Word (PEP 613 TypeAlias)
+Source: TypeAlias = Union[str, Path, bytes, BinaryIO, BytesIO]
+
 try:
-    from .common import Source, read_source, clean_text
+    from .common import read_source, clean_text
 except ImportError:
-    from parsers.common import Source, read_source, clean_text
+    from parsers.common import read_source, clean_text
 
 
 def _dedupe_row_cells(row: Any) -> List[str]:
@@ -123,6 +126,7 @@ def _iter_block_items(parent: Any) -> Iterator[Union[Paragraph, Table]]:
             yield Paragraph(child, parent)
         elif isinstance(child, CT_Tbl):
             yield Table(child, parent)
+
 
 def parse_docx(source: Source) -> Dict[str, Any]:
     """
