@@ -1,0 +1,962 @@
+[
+  {
+    "doc_id": "KNTT12-01",
+    "file_id": "1YtSNTm5ArdI9YVKpX-LcfcF1qlqz3Fpg",
+    "source_file": "Chương 1. Bài 1 Tính đơn điệu và cực trị của hàm số.pdf",
+    "lesson_id": "M12-C1-B1",
+    "chapter": 1,
+    "kntt_lesson_number": 1,
+    "lesson_title": "Bài 1: Tính đơn điệu và cực trị của hàm số",
+    "category": "core_lesson",
+    "total_slides": 82,
+    "non_empty_slides": 82,
+    "activity_distribution": {
+      "khoi_dong": 3,
+      "hinh_thanh_kien_thuc": 39,
+      "luyen_tap": 39,
+      "van_dung": 1
+    },
+    "sample_titles": [
+      "CHÀO MỪNG CÁC EM",
+      "KHỞI ĐỘNG",
+      "CHƯƠNG I. ỨNG DỤNG ĐẠO HÀM",
+      "NỘI DUNG",
+      "01",
+      "a) Khái niệm tính đơn điệu của hàm số",
+      "Quan sát đồ thị H1.2, và trả lời câu hỏi:",
+      "Quan sát đồ thị H1.2, và trả lời câu hỏi:",
+      "Ghi nhớ",
+      "CHÚ Ý"
+    ]
+  },
+  {
+    "doc_id": "KNTT12-02",
+    "file_id": "1mDJV1axt_t31LKsW6VHMoKxB8ysuBom0",
+    "source_file": "Chương 1. Bài 2 Giá trị lớn nhất và giá trị nhỏ nhất của hàm số.pdf",
+    "lesson_id": "M12-C1-B2",
+    "chapter": 1,
+    "kntt_lesson_number": 2,
+    "lesson_title": "Bài 2: Giá trị lớn nhất và giá trị nhỏ nhất của hàm số",
+    "category": "core_lesson",
+    "total_slides": 56,
+    "non_empty_slides": 55,
+    "activity_distribution": {
+      "khoi_dong": 4,
+      "hinh_thanh_kien_thuc": 16,
+      "luyen_tap": 34,
+      "van_dung": 1
+    },
+    "sample_titles": [
+      "CHÀO MỪNG TẤT CẢ",
+      "KHỞI ĐỘNG",
+      "CHƯƠNG I. ỨNG DỤNG ĐẠO HÀM ĐỂ",
+      "NỘI DUNG BÀI HỌC",
+      "1. ĐỊNH NGHĨA",
+      "❑ HĐ1: Cho hàm số y = f x = x",
+      "Định nghĩa",
+      "Chú ý",
+      "Ví dụ 1.",
+      "Ví dụ 1. Tìm giá trị lớn nhất và giá trị nhỏ nhất của hàm số y = f x = 1 − x"
+    ]
+  },
+  {
+    "doc_id": "KNTT12-03",
+    "file_id": "1OgSj-u36YQBtYDhFDoM19xQVbNeApsNP",
+    "source_file": "Chương 1. Bài 3 Đường tiệm cận của đồ thị hàm số.pdf",
+    "lesson_id": "M12-C1-B3",
+    "chapter": 1,
+    "kntt_lesson_number": 3,
+    "lesson_title": "Bài 3: Đường tiệm cận của đồ thị hàm số",
+    "category": "core_lesson",
+    "total_slides": 51,
+    "non_empty_slides": 51,
+    "activity_distribution": {
+      "khoi_dong": 3,
+      "hinh_thanh_kien_thuc": 19,
+      "luyen_tap": 28,
+      "van_dung": 1
+    },
+    "sample_titles": [
+      "CHÀO MỪNG CẢ LỚP",
+      "KHỞI ĐỘNG",
+      "CHƯƠNG I. ỨNG DỤNG ĐẠO HÀM",
+      "NỘI DUNG BÀI HỌC",
+      "1. ĐƯỜNG TIỆM CẬN NGANG",
+      "2x + 1",
+      "Giải:",
+      "Ghi nhớ",
+      "3x − 2",
+      "Ví dụ 2. Tìm các tiệm cận ngang của đồ thị hàm số y = f x ="
+    ]
+  },
+  {
+    "doc_id": "KNTT12-04",
+    "file_id": "1EfbRoyw1VhZ6zIh8GjwRqX7JhCvoN1cT",
+    "source_file": "Chương 1. Bài 4 Khảo sát sự biến thiên và vẽ đồ thị của hàm số.pdf",
+    "lesson_id": "M12-C1-B4",
+    "chapter": 1,
+    "kntt_lesson_number": 4,
+    "lesson_title": "Bài 4: Khảo sát sự biến thiên và vẽ đồ thị của hàm số",
+    "category": "core_lesson",
+    "total_slides": 74,
+    "non_empty_slides": 71,
+    "activity_distribution": {
+      "khoi_dong": 2,
+      "hinh_thanh_kien_thuc": 20,
+      "luyen_tap": 46,
+      "van_dung": 3
+    },
+    "sample_titles": [
+      "THÂN MẾN CHÀO ĐÓN CẢ LỚP",
+      "KHỞI ĐỘNG",
+      "CHƯƠNG I. ỨNG DỤNG ĐẠO HÀM ĐỂ",
+      "NỘI DUNG BÀI HỌC",
+      "1. SƠ ĐỒ KHẢO SÁT HÀM SỐ",
+      "Giải:",
+      "Giải:",
+      "Giải:",
+      "Ghi nhớ",
+      "Chú ý:"
+    ]
+  },
+  {
+    "doc_id": "KNTT12-05",
+    "file_id": "1dpTzcQsfJ8UZq21Z27n4JHQX3eHckXNb",
+    "source_file": "Chương 1. Bài 5 Ứng dụng đạo hàm để giải quyết một số vấn đề liên quan đến thực tiễn.pdf",
+    "lesson_id": "M12-C1-B5",
+    "chapter": 1,
+    "kntt_lesson_number": 5,
+    "lesson_title": "Bài 5: Ứng dụng đạo hàm để giải quyết một số vấn đề liên quan đến thực tiễn",
+    "category": "core_lesson",
+    "total_slides": 68,
+    "non_empty_slides": 68,
+    "activity_distribution": {
+      "khoi_dong": 3,
+      "hinh_thanh_kien_thuc": 33,
+      "luyen_tap": 30,
+      "van_dung": 2
+    },
+    "sample_titles": [
+      "CHÀO MỪNG CÁC EM",
+      "KHỞI ĐỘNG",
+      "CHƯƠNG I. ỨNG DỤNG ĐẠO HÀM ĐỂ",
+      "NỘI DUNG BÀI HỌC",
+      "1. TỐC ĐỘ THAY ĐỔI",
+      "Giả sử y là một hàm số của x và ta viết y = f(x). Nếu x thay đổi từ x1 đến x2,",
+      "Như vậy, đạo hàm f",
+      "• Nếu P = P t là số lượng cá thể trong một quần thể động vật hoặc thực vật",
+      "Ví dụ 1.",
+      "Giải:"
+    ]
+  },
+  {
+    "doc_id": "KNTT12-06",
+    "file_id": "1-imx5oSQ54usEc4sGLtrKzjw5xHo0rLL",
+    "source_file": "Chương 1. Bài tập cuối chương I.pdf",
+    "lesson_id": "M12-C1-BT",
+    "chapter": 1,
+    "kntt_lesson_number": null,
+    "lesson_title": "Bài tập cuối chương 1",
+    "category": "chapter_review",
+    "total_slides": 55,
+    "non_empty_slides": 51,
+    "activity_distribution": {
+      "khoi_dong": 2,
+      "hinh_thanh_kien_thuc": 11,
+      "luyen_tap": 37,
+      "van_dung": 1
+    },
+    "sample_titles": [
+      "CHÀO MỪNG CÁC EM",
+      "KHỞI ĐỘNG",
+      "Giải:",
+      "Giải:",
+      "Giải:",
+      "CHƯƠNG I. ỨNG DỤNG ĐẠO HÀM ĐỂ",
+      "ÔN TẬP KIẾN THỨC",
+      "BÀI TẬP TRẮC NGHIỆM",
+      "BÀI TẬP TRẮC NGHIỆM",
+      "BÀI TẬP TRẮC NGHIỆM"
+    ]
+  },
+  {
+    "doc_id": "KNTT12-07",
+    "file_id": "1aYwpFHsBxNVVUQ_kBcvyD4yTP-clRvMk",
+    "source_file": "Chương 2. Bài 6 Vectơ trong không gian.pdf",
+    "lesson_id": "M12-C2-B1",
+    "chapter": 2,
+    "kntt_lesson_number": 6,
+    "lesson_title": "Bài 6: Vectơ trong không gian",
+    "category": "core_lesson",
+    "total_slides": 106,
+    "non_empty_slides": 106,
+    "activity_distribution": {
+      "khoi_dong": 2,
+      "hinh_thanh_kien_thuc": 42,
+      "luyen_tap": 59,
+      "van_dung": 3
+    },
+    "sample_titles": [
+      "CHÀO MỪNG CÁC EM",
+      "KHỞI ĐỘNG",
+      "CHƯƠNG II. VECTƠ VÀ HỆ TRỤC",
+      "NỘI DUNG BÀI HỌC",
+      "1. VECTƠ TRONG",
+      "❑ HĐ1: Trong Hình 2.2, lực căng dây (được tạo ra bởi sức nặng của kiện hàng)",
+      "Định nghĩa",
+      "Hình 2.3 cho ta ví dụ",
+      "Chú ý: Tương tự như vectơ trong mặt phẳng, đối với vectơ trong không gian",
+      "Ví dụ 1."
+    ]
+  },
+  {
+    "doc_id": "KNTT12-08",
+    "file_id": "1HOTjDtJLBdciUt0s497nhLUYC4pwNErS",
+    "source_file": "Chương 2. Bài 7 Hệ trục toạ độ trong không gian.pdf",
+    "lesson_id": "M12-C2-B2",
+    "chapter": 2,
+    "kntt_lesson_number": 7,
+    "lesson_title": "Bài 7: Hệ trục toạ độ trong không gian",
+    "category": "core_lesson",
+    "total_slides": 60,
+    "non_empty_slides": 59,
+    "activity_distribution": {
+      "khoi_dong": 3,
+      "hinh_thanh_kien_thuc": 25,
+      "luyen_tap": 28,
+      "van_dung": 3
+    },
+    "sample_titles": [
+      "CHÀO MỪNG CÁC EM",
+      "KHỞI ĐỘNG",
+      "CHƯƠNG II.",
+      "NỘI DUNG BÀI HỌC",
+      "HỆ TRỤC TOẠ ĐỘ",
+      "❑ HĐ1: Hình thành khái niệm hệ trục toạ độ trong không gian",
+      "Trả lời:",
+      "KẾT LUẬN",
+      "Góc căn phòng trong Hình 2.34 có gợi lên hình ảnh về hệ toạ độ",
+      "Ví dụ 1: Cho hình lập phương ABCD. A′B′C′D′ có độ dài mỗi cạnh bằng 1 (H.2.36). Có thể"
+    ]
+  },
+  {
+    "doc_id": "KNTT12-09",
+    "file_id": "1hZbA2ZL-WgiDpl3KjD-QfXeoO-tIpdx8",
+    "source_file": "Chương 2. Bài 8 Biểu thức tọa độ của các phép toán vectơ.pdf",
+    "lesson_id": "M12-C2-B2",
+    "chapter": 2,
+    "kntt_lesson_number": 8,
+    "lesson_title": "Bài 8: Biểu thức tọa độ của các phép toán vectơ",
+    "category": "core_lesson",
+    "total_slides": 61,
+    "non_empty_slides": 60,
+    "activity_distribution": {
+      "khoi_dong": 4,
+      "hinh_thanh_kien_thuc": 21,
+      "luyen_tap": 32,
+      "van_dung": 3
+    },
+    "sample_titles": [
+      "CHÀO MỪNG TẤT CẢ",
+      "KHỞI ĐỘNG",
+      "CHƯƠNG II. VECTƠ VÀ",
+      "NỘI DUNG BÀI HỌC",
+      "1. BIỂU THỨC TỌA ĐỘ CỦA PHÉP CỘNG",
+      "❑ HĐ1: Trong không gian Oxyz, cho hai vectơ aԦ = 1; 0; 5 và b = 1; 3; 9 .",
+      "Ghi nhớ:",
+      "Nếu tọa độ của vectơ a",
+      "o Nhận xét",
+      "Trong không gian Oxyz, cho hai vectơ aԦ = (2; 1; 5) và b = (2; 2; 1)."
+    ]
+  },
+  {
+    "doc_id": "KNTT12-10",
+    "file_id": "1kQNE6nISV4t2QWrdHRDt6YXezZMzLooW",
+    "source_file": "Chương 2. Bài tập cuối chương II 12 kntt.pdf",
+    "lesson_id": "M12-C2-BT",
+    "chapter": 2,
+    "kntt_lesson_number": null,
+    "lesson_title": "Bài tập cuối chương 2",
+    "category": "chapter_review",
+    "total_slides": 43,
+    "non_empty_slides": 40,
+    "activity_distribution": {
+      "khoi_dong": 2,
+      "hinh_thanh_kien_thuc": 19,
+      "luyen_tap": 18,
+      "van_dung": 1
+    },
+    "sample_titles": [
+      "CHÀO MỪNG CÁC EM",
+      "KHỞI ĐỘNG",
+      "CHƯƠNG II. VECTƠ VÀ HỆ TRỤC",
+      "Hệ thống hóa kiến thức",
+      "BÀI TẬP TRẮC NGHIỆM",
+      "Bài 2.26 (SGK-tr73) Cho hình hộp ABCD. A′B′C′D′. Gọi M là trung",
+      "Bài 2.27 (SGK-tr73) Cho hình hộp ABCD. A′B′C′D′. Khẳng định nào",
+      "Bài 2.28 (SGK-tr73) Cho tứ diện đều ABCD có độ dài cạnh bằng a,",
+      "Bài 2.29 (SGK-tr73) Trong không gian Oxyz, cho a",
+      "Bài 2.30 (SGK-tr73) Trong không gian Oxyz, cho hình bình hành"
+    ]
+  },
+  {
+    "doc_id": "KNTT12-11",
+    "file_id": "1sTToB3Lckgu6jgvk5FYjjO3VgkexHjIv",
+    "source_file": "Chương 3. Bài 9 Khoảng biến thiên và khoảng tứ phân vị 12 kntt.pdf",
+    "lesson_id": "M12-C3-B1",
+    "chapter": 3,
+    "kntt_lesson_number": 9,
+    "lesson_title": "Bài 9: Khoảng biến thiên và khoảng tứ phân vị của mẫu số liệu ghép nhóm",
+    "category": "core_lesson",
+    "total_slides": 53,
+    "non_empty_slides": 53,
+    "activity_distribution": {
+      "khoi_dong": 6,
+      "hinh_thanh_kien_thuc": 27,
+      "luyen_tap": 19,
+      "van_dung": 1
+    },
+    "sample_titles": [
+      "CHÀO MỪNG CẢ LỚP",
+      "KHỞI ĐỘNG",
+      "CHƯƠNG III. CÁC SỐ ĐẶC TRƯNG",
+      "NỘI DUNG BÀI HỌC",
+      "1.",
+      "❑ HĐ1: Trong tình huống mở đầu, gọi x1, x2, ... , x30 là nhiệt độ cao nhất trong ngày",
+      "❑ HĐ1: Trong tình huống mở đầu, gọi x1, x2, ... , x30 là nhiệt độ cao nhất trong ngày",
+      "Ghi nhớ",
+      "Chỉ ra rằng khoảng biến thiên của mẫu số liệu ghép nhóm trong",
+      "Ý nghĩa:"
+    ]
+  },
+  {
+    "doc_id": "KNTT12-12",
+    "file_id": "1XSa2CY0kpGGTg2cVlCvqEJSoUzbgUzdu",
+    "source_file": "Chương 3. Bài 10 Phương sai và độ lệch chuẩn.pdf",
+    "lesson_id": "M12-C3-B2",
+    "chapter": 3,
+    "kntt_lesson_number": 10,
+    "lesson_title": "Bài 10: Phương sai và độ lệch chuẩn của mẫu số liệu ghép nhóm",
+    "category": "core_lesson",
+    "total_slides": 52,
+    "non_empty_slides": 50,
+    "activity_distribution": {
+      "khoi_dong": 2,
+      "hinh_thanh_kien_thuc": 28,
+      "luyen_tap": 19,
+      "van_dung": 1
+    },
+    "sample_titles": [
+      "KHỞI ĐỘNG",
+      "CHƯƠNG III. CÁC SỐ ĐẶC TRƯNG",
+      "NỘI DUNG BÀI HỌC",
+      "1. PHƯƠNG SAI VÀ",
+      "HĐ1. Trở lại bài toán trong tình huống mở đầu. Gọi x1, ... , x20 là các kết quả đo (mẫu số liệu gốc).",
+      "Ghi nhớ",
+      "Nhận xét",
+      "Ý nghĩa",
+      "Chú ý",
+      "Ví dụ 1. Người ta theo dõi sự thay đổi cân nặng, được tính bằng hiệu"
+    ]
+  },
+  {
+    "doc_id": "KNTT12-13",
+    "file_id": "1nDGdPOmNg_J8TpCbkyeUmdVydc1-KTsP",
+    "source_file": "Chương 3. Bài tập cuối chương III.pdf",
+    "lesson_id": "M12-C3-BT",
+    "chapter": 3,
+    "kntt_lesson_number": null,
+    "lesson_title": "Bài tập cuối chương 3",
+    "category": "chapter_review",
+    "total_slides": 41,
+    "non_empty_slides": 40,
+    "activity_distribution": {
+      "khoi_dong": 2,
+      "hinh_thanh_kien_thuc": 29,
+      "luyen_tap": 8,
+      "van_dung": 1
+    },
+    "sample_titles": [
+      "CHÀO MỪNG CÁC EM",
+      "KHỞI ĐỘNG",
+      "Giải: a) Ta có bảng sau:",
+      "Tứ phân vị thứ ba của mẫu số liệu gốc là x15 nên nhóm chứa",
+      "c) Chọn giá trị đại diện cho các nhóm số liệu, ta có:",
+      "CHƯƠNG III. CÁC SỐ ĐẶC TRƯNG",
+      "Hệ thống hóa kiến thức",
+      "BÀI TẬP TRẮC NGHIỆM",
+      "Một vườn thú ghi lại tuổi thọ của 20 con hổ và thu được kết quả như sau:",
+      "Một vườn thú ghi lại tuổi thọ của 20 con hổ và thu được kết quả như sau:"
+    ]
+  },
+  {
+    "doc_id": "KNTT12-14",
+    "file_id": "1k62q9QzPhZFlHOaZrCBZyez9naNz2mNA",
+    "source_file": "Chương 4. Bài 11 Nguyên hàm.pdf",
+    "lesson_id": "M12-C4-B1",
+    "chapter": 4,
+    "kntt_lesson_number": 11,
+    "lesson_title": "Bài 11: Nguyên hàm",
+    "category": "core_lesson",
+    "total_slides": 86,
+    "non_empty_slides": 85,
+    "activity_distribution": {
+      "khoi_dong": 5,
+      "hinh_thanh_kien_thuc": 51,
+      "luyen_tap": 27,
+      "van_dung": 2
+    },
+    "sample_titles": [
+      "CHÀO MỪNG CẢ LỚP",
+      "KHỞI ĐỘNG",
+      "KHỞI ĐỘNG",
+      "CHƯƠNG IV: NGUYÊN HÀM",
+      "NỘI DUNG BÀI HỌC",
+      "01",
+      "❑ HĐ1. Nhận biết khái niệm nguyên hàm^1",
+      "KẾT LUẬN",
+      "Ví dụ 1. Cho hàm số f x = x",
+      "Hàm số nào dưới đây là một nguyên hàm của"
+    ]
+  },
+  {
+    "doc_id": "KNTT12-15",
+    "file_id": "15k10AyhMH3n2RBpWO3XPAP_NHau7Q2vL",
+    "source_file": "Chương 4. Bài 12 Tích phân.pdf",
+    "lesson_id": "M12-C4-B2",
+    "chapter": 4,
+    "kntt_lesson_number": 12,
+    "lesson_title": "Bài 12: Tích phân",
+    "category": "core_lesson",
+    "total_slides": 86,
+    "non_empty_slides": 86,
+    "activity_distribution": {
+      "khoi_dong": 3,
+      "hinh_thanh_kien_thuc": 48,
+      "luyen_tap": 34,
+      "van_dung": 1
+    },
+    "sample_titles": [
+      "CHÀO MỪNG CẢ LỚP ĐẾN",
+      "KHỞI ĐỘNG",
+      "BÀI 12: TÍCH PHÂN",
+      "NỘI DUNG BÀI HỌC",
+      "1.",
+      "a) Diện tích hình thang cong",
+      "Ví dụ 1. Những hình phẳng được tô màu dưới đây có phải",
+      "Giải",
+      "❑ HĐ1. Diện tích của hình thang",
+      "Giải"
+    ]
+  },
+  {
+    "doc_id": "KNTT12-16",
+    "file_id": "1uO1pvzVYq8sVPRFvXkxe9Ir_xpxbwRHb",
+    "source_file": "Chương 4. Bài 13 Ứng dụng hình học của tích phân.pdf",
+    "lesson_id": "M12-C4-B3",
+    "chapter": 4,
+    "kntt_lesson_number": 13,
+    "lesson_title": "Bài 13: Ứng dụng hình học của tích phân",
+    "category": "core_lesson",
+    "total_slides": 89,
+    "non_empty_slides": 89,
+    "activity_distribution": {
+      "khoi_dong": 4,
+      "hinh_thanh_kien_thuc": 45,
+      "luyen_tap": 37,
+      "van_dung": 3
+    },
+    "sample_titles": [
+      "CHÀO MỪNG CÁC EM",
+      "KHỞI ĐỘNG",
+      "KHỞI ĐỘNG Trong phần Hình học ở Trung học",
+      "KHỞI ĐỘNG Bài học này sẽ cung cấp một phương",
+      "BÀI 13.",
+      "NỘI DUNG",
+      "01",
+      "a) Hình phẳng giới hạn bởi một đồ thị hàm số, trục hoành và",
+      "Trả lời:",
+      "Trả lời:"
+    ]
+  },
+  {
+    "doc_id": "KNTT12-17",
+    "file_id": "14hkHGyXwdnq3pr6eqjN2TCVXRv9aT9ir",
+    "source_file": "Chương 4. Bài tập cuối chương IV.pdf",
+    "lesson_id": "M12-C4-BT",
+    "chapter": 4,
+    "kntt_lesson_number": null,
+    "lesson_title": "Bài tập cuối chương 4",
+    "category": "chapter_review",
+    "total_slides": 33,
+    "non_empty_slides": 32,
+    "activity_distribution": {
+      "khoi_dong": 1,
+      "hinh_thanh_kien_thuc": 15,
+      "luyen_tap": 15,
+      "van_dung": 1
+    },
+    "sample_titles": [
+      "CHÀO MỪNG CẢ LỚP",
+      "TRÒ CHƠI TRẮC NGHIỆM",
+      "TRÒ CHƠI TRẮC NGHIỆM",
+      "TRÒ CHƠI TRẮC NGHIỆM",
+      "TRÒ CHƠI TRẮC NGHIỆM",
+      "TRÒ CHƠI TRẮC NGHIỆM",
+      "TRÒ CHƠI TRẮC NGHIỆM",
+      "TRÒ CHƠI TRẮC NGHIỆM",
+      "TRÒ CHƠI TRẮC NGHIỆM",
+      "BÀI TẬP CUỐI"
+    ]
+  },
+  {
+    "doc_id": "KNTT12-18",
+    "file_id": "1V2CyRsIKkXTEmWUrzY311C3xyazlguIv",
+    "source_file": "Chương 5. Bài 14 Phương trình mặt phẳng (P2).pdf",
+    "lesson_id": "M12-C5-B1",
+    "chapter": 5,
+    "kntt_lesson_number": 14,
+    "lesson_title": "Bài 14: Phương trình mặt phẳng",
+    "category": "core_lesson",
+    "total_slides": 75,
+    "non_empty_slides": 75,
+    "activity_distribution": {
+      "khoi_dong": 2,
+      "hinh_thanh_kien_thuc": 45,
+      "luyen_tap": 22,
+      "van_dung": 6
+    },
+    "sample_titles": [
+      "CHÀO MỪNG CẢ LỚP",
+      "KHỞI ĐỘNG",
+      "CHƯƠNG V: PHƯƠNG PHÁP",
+      "NỘI DUNG BÀI HỌC",
+      "4",
+      "❑ HĐ8: Tìm điều kiện để hai mặt phẳng song song hoặc trùng nhau",
+      "Giải:",
+      "KẾT LUẬN",
+      "Ví dụ 9: Trong không gian Oxyz, chứng minh rằng hai mặt phẳng",
+      "Trong không gian Oxyz, hai mặt phẳng sau đây có vuông"
+    ]
+  },
+  {
+    "doc_id": "KNTT12-19",
+    "file_id": "1eeAp5c_vl_5sWVcemddnHI0qi2gJaLx_",
+    "source_file": "Chương 5. Bài 14 Phương trình mặt phẳng.pdf",
+    "lesson_id": "M12-C5-B1",
+    "chapter": 5,
+    "kntt_lesson_number": 14,
+    "lesson_title": "Bài 14: Phương trình mặt phẳng",
+    "category": "core_lesson",
+    "total_slides": 61,
+    "non_empty_slides": 61,
+    "activity_distribution": {
+      "khoi_dong": 3,
+      "hinh_thanh_kien_thuc": 23,
+      "luyen_tap": 34,
+      "van_dung": 1
+    },
+    "sample_titles": [
+      "CHÀO MỪNG CẢ LỚP",
+      "KHỞI ĐỘNG",
+      "CHƯƠNG V: PHƯƠNG PHÁP",
+      "NỘI DUNG BÀI HỌC",
+      "1",
+      "❑ HĐ1: Hình thành khái niệm vectơ pháp tuyến",
+      "KẾT LUẬN",
+      "Ví dụ 1: Cho hình lập phương ABCD. A’B’C’D’ (H.5.3).",
+      "Giải",
+      "Luyện tập 1"
+    ]
+  },
+  {
+    "doc_id": "KNTT12-20",
+    "file_id": "1ORZjMHO7LpsP3i5hEeBClGQtObUX7-77",
+    "source_file": "Chương 5. Bài 15 Phương trình đường thẳng trong không gian.pdf",
+    "lesson_id": "M12-C5-B2",
+    "chapter": 5,
+    "kntt_lesson_number": 15,
+    "lesson_title": "Bài 15: Phương trình đường thẳng trong không gian",
+    "category": "core_lesson",
+    "total_slides": 97,
+    "non_empty_slides": 97,
+    "activity_distribution": {
+      "khoi_dong": 4,
+      "hinh_thanh_kien_thuc": 63,
+      "luyen_tap": 27,
+      "van_dung": 3
+    },
+    "sample_titles": [
+      "CHÀO MỪNG CÁC EM",
+      "KHỞI ĐỘNG",
+      "BÀI 15: PHƯƠNG TRÌNH",
+      "NỘI DUNG BÀI HỌC",
+      "1.",
+      "a) Vectơ chỉ phương của đường thẳng",
+      "KẾT LUẬN",
+      "Chú ý",
+      "Ví dụ 1. Cho hình hộp ABCD. A′B′C′D′. Hãy chỉ",
+      "Luyện tập 1"
+    ]
+  },
+  {
+    "doc_id": "KNTT12-21",
+    "file_id": "1hwSglZOqsAjkvet4W6dYtdY3aybKjJGI",
+    "source_file": "Chương 5. Bài 16 Công thức tính góc trong không gian.pdf",
+    "lesson_id": "M12-C5-B3",
+    "chapter": 5,
+    "kntt_lesson_number": 16,
+    "lesson_title": "Bài 16: Công thức tính góc trong không gian",
+    "category": "core_lesson",
+    "total_slides": 54,
+    "non_empty_slides": 54,
+    "activity_distribution": {
+      "khoi_dong": 5,
+      "hinh_thanh_kien_thuc": 36,
+      "luyen_tap": 13,
+      "van_dung": 0
+    },
+    "sample_titles": [
+      "CHÀO MỪNG CẢ LỚP",
+      "KHỞI ĐỘNG",
+      "CHƯƠNG V. PHƯƠNG PHÁP",
+      "NỘI DUNG BÀI HỌC",
+      "1",
+      "HĐ1. Trong không gian Oxyz, cho hai đường thẳng ∆ và ∆′ tương ứng có các",
+      "HĐ1. Trong không gian Oxyz, cho hai đường thẳng ∆ và ∆′ tương ứng có các",
+      "KẾT LUẬN",
+      "Ví dụ 1: Trong không gian Oxyz, tính góc giữa hai đường thẳng:",
+      "Luyện tập 1. Trong không gian Oxyz, tính góc giữa trục Oz và đường thẳng"
+    ]
+  },
+  {
+    "doc_id": "KNTT12-22",
+    "file_id": "1PoDNuhyO0_7vPelpGV6ui8m4LDDE6AQ1",
+    "source_file": "Chương 5. Bài 17 Phương trình mặt cầu.pdf",
+    "lesson_id": "M12-C5-B3",
+    "chapter": 5,
+    "kntt_lesson_number": 17,
+    "lesson_title": "Bài 17: Phương trình mặt cầu",
+    "category": "core_lesson",
+    "total_slides": 56,
+    "non_empty_slides": 56,
+    "activity_distribution": {
+      "khoi_dong": 2,
+      "hinh_thanh_kien_thuc": 32,
+      "luyen_tap": 21,
+      "van_dung": 1
+    },
+    "sample_titles": [
+      "CHÀO MỪNG CÁC EM",
+      "KHỞI ĐỘNG",
+      "CHƯƠNG V. PHƯƠNG PHÁP",
+      "NỘI DUNG BÀI HỌC",
+      "1.",
+      "Nhắc lại kiến thức",
+      "HĐ1. Tìm phương trình mặt cầu biết tâm và bán kính",
+      "KẾT LUẬN",
+      "Ví dụ 1: Trong không gian Oxyz, cho mặt cầu (S) có phương trình",
+      "Luyện tập 1. Trong không gian Oxyz, cho mặt cầu (S) có phương trình"
+    ]
+  },
+  {
+    "doc_id": "KNTT12-23",
+    "file_id": "1eTQCVx1YkWwvU6y0PLTJG9VkH6Q-oC4g",
+    "source_file": "Chương 5. Bài tập cuối chương V (2).pdf",
+    "lesson_id": "M12-C5-BT",
+    "chapter": 5,
+    "kntt_lesson_number": null,
+    "lesson_title": "Bài tập cuối chương 5",
+    "category": "chapter_review",
+    "total_slides": 48,
+    "non_empty_slides": 46,
+    "activity_distribution": {
+      "khoi_dong": 2,
+      "hinh_thanh_kien_thuc": 34,
+      "luyen_tap": 10,
+      "van_dung": 0
+    },
+    "sample_titles": [
+      "CHÀO MỪNG CÁC EM",
+      "KHỞI ĐỘNG",
+      "Trả lời các câu hỏi trắc nghiệm (SGK – tr.61,62)",
+      "Trả lời các câu hỏi trắc nghiệm (SGK – tr.61,62)",
+      "Trả lời các câu hỏi trắc nghiệm (SGK – tr.61,62)",
+      "Trả lời các câu hỏi trắc nghiệm (SGK – tr.61,62)",
+      "Trả lời các câu hỏi trắc nghiệm (SGK – tr.61,62)",
+      "Trả lời các câu hỏi trắc nghiệm (SGK – tr.61,62)",
+      "Trả lời các câu hỏi trắc nghiệm (SGK – tr.61,62)",
+      "Trả lời các câu hỏi trắc nghiệm (SGK – tr.61,62)"
+    ]
+  },
+  {
+    "doc_id": "KNTT12-24",
+    "file_id": "1p7n2VJl9M_KlsFH0HgmxcAvd4rEeVHTI",
+    "source_file": "Chương 6. Bài 18 Xác suất có điều kiện.pdf",
+    "lesson_id": "M12-C6-B1",
+    "chapter": 6,
+    "kntt_lesson_number": 18,
+    "lesson_title": "Bài 18: Xác suất có điều kiện",
+    "category": "core_lesson",
+    "total_slides": 73,
+    "non_empty_slides": 72,
+    "activity_distribution": {
+      "khoi_dong": 4,
+      "hinh_thanh_kien_thuc": 52,
+      "luyen_tap": 16,
+      "van_dung": 0
+    },
+    "sample_titles": [
+      "CHÀO MỪNG CÁC EM",
+      "KHỞI ĐỘNG",
+      "KHỞI ĐỘNG",
+      "CHƯƠNG VI.",
+      "NỘI DUNG BÀI HỌC",
+      "1.",
+      "HĐ1. Trong một hộp kín có 7 chiếc bút bi xanh và 5 chiếc bút bi đen,",
+      "Định nghĩa",
+      "Ví dụ 1: Một hộp có 20 viên bi trắng và 10 viên bi đen, các viên bi có cùng",
+      "Giải"
+    ]
+  },
+  {
+    "doc_id": "KNTT12-25",
+    "file_id": "180bV4wQSEZCxWRjPo_5LCGki23VqbSTG",
+    "source_file": "Chương 6. Bài 19 Công thức xác suất toàn phần và công thức Bayes.pdf",
+    "lesson_id": "M12-C6-B2",
+    "chapter": 6,
+    "kntt_lesson_number": 19,
+    "lesson_title": "Bài 19: Công thức xác suất toàn phần và công thức Bayes",
+    "category": "core_lesson",
+    "total_slides": 72,
+    "non_empty_slides": 72,
+    "activity_distribution": {
+      "khoi_dong": 7,
+      "hinh_thanh_kien_thuc": 49,
+      "luyen_tap": 13,
+      "van_dung": 3
+    },
+    "sample_titles": [
+      "CHÀO MỪNG CÁC EM",
+      "KHỞI ĐỘNG",
+      "CHƯƠNG VI.",
+      "NỘI DUNG BÀI HỌC",
+      "1. CÔNG THỨC",
+      "HĐ1.",
+      "KẾT LUẬN",
+      "Ví dụ 1: Ông An hằng ngày đi làm bằng xe máy hoặc xe buýt. Nếu hôm nay",
+      "Giải",
+      "Giải"
+    ]
+  },
+  {
+    "doc_id": "KNTT12-26",
+    "file_id": "1_ZA5KiLF4qv9NWK3i6oyJrwMUYbHIQ1k",
+    "source_file": "Chương 6. Bài tập cuối chương VI (2).pdf",
+    "lesson_id": "M12-C6-BT",
+    "chapter": 6,
+    "kntt_lesson_number": null,
+    "lesson_title": "Bài tập cuối chương 6",
+    "category": "chapter_review",
+    "total_slides": 29,
+    "non_empty_slides": 28,
+    "activity_distribution": {
+      "khoi_dong": 2,
+      "hinh_thanh_kien_thuc": 19,
+      "luyen_tap": 7,
+      "van_dung": 0
+    },
+    "sample_titles": [
+      "CHÀO MỪNG CÁC EM",
+      "KHỞI ĐỘNG",
+      "Sử dụng dữ kiện sau để trả lời các câu từ 6.12 đến 6.14 (SGK-tr79):",
+      "Sử dụng dữ kiện sau để trả lời các câu từ 6.12 đến 6.14 (SGK-tr79):",
+      "Sử dụng dữ kiện sau để trả lời các câu từ 6.15 đến 6.17(SGK-tr79):",
+      "Sử dụng dữ kiện sau để trả lời các câu từ 6.15 đến 6.17(SGK-tr79):",
+      "Sử dụng dữ kiện sau để trả lời các câu từ 6.15 đến 6.17(SGK-tr79):",
+      "CHƯƠNG VI.",
+      "Ôn tập lại",
+      "HOẠT ĐỘNG"
+    ]
+  },
+  {
+    "doc_id": "KNTT12-27",
+    "file_id": "1zNi_huKdv_3omR5nDtZSo90yOkMYkG6W",
+    "source_file": "HĐTH TN Độ dài gang tay (gang tay của bạn dài bao nhiêu).pdf",
+    "lesson_id": "M12-HDTN",
+    "chapter": 0,
+    "kntt_lesson_number": null,
+    "lesson_title": "HĐTH TN Độ dài gang tay (gang tay của bạn dài bao nhiêu)",
+    "category": "experiential_activity",
+    "total_slides": 23,
+    "non_empty_slides": 23,
+    "activity_distribution": {
+      "khoi_dong": 2,
+      "hinh_thanh_kien_thuc": 21,
+      "luyen_tap": 0,
+      "van_dung": 0
+    },
+    "sample_titles": [
+      "CHÀO MỪNG CÁC EM",
+      "KHỞI ĐỘNG",
+      "Trả lời:",
+      "HOẠT ĐỘNG THỰC HÀNH VÀ",
+      "1. Thu thập dữ liệu",
+      "b) Thu thập dữ liệu",
+      "❑ HĐ1. Lưu dữ liệu thu được vào bảng theo mẫu sau:",
+      "2. Tóm tắt và phân tích dữ liệu",
+      "• Biểu đồ tần số.",
+      "❑ HĐ3. Sử dụng bảng tần số thu được ở HĐ2, em hãy:"
+    ]
+  },
+  {
+    "doc_id": "KNTT12-28",
+    "file_id": "1T0L3NqtQEoLg-wx8RI0mXNWdgKOSL5pO",
+    "source_file": "HĐTH TN Khảo sát và vẽ đồ thị hàm số với phần mềm GeoGebra.pdf",
+    "lesson_id": "M12-HDTN",
+    "chapter": 0,
+    "kntt_lesson_number": null,
+    "lesson_title": "HĐTH TN Khảo sát và vẽ đồ thị hàm số với phần mềm GeoGebra",
+    "category": "experiential_activity",
+    "total_slides": 59,
+    "non_empty_slides": 58,
+    "activity_distribution": {
+      "khoi_dong": 3,
+      "hinh_thanh_kien_thuc": 32,
+      "luyen_tap": 23,
+      "van_dung": 0
+    },
+    "sample_titles": [
+      ")",
+      "KHỞI ĐỘNG",
+      ")",
+      "NỘI DUNG BÀI HỌC",
+      ")",
+      ")",
+      "Hãy thực hành với hàm số f x = x",
+      "b) Tính đạo hàm của hàm số tại một điểm",
+      "Hãy thực hành với hàm số f x = x",
+      ")"
+    ]
+  },
+  {
+    "doc_id": "KNTT12-29",
+    "file_id": "1NJdNjMevRHACE3WQ1QWibDHYN_1PBjO3",
+    "source_file": "HĐTH TN Vẽ vectơ tổng của ba vectơ trong không gian bằng phần mềm GeoGebra.pdf",
+    "lesson_id": "M12-HDTN",
+    "chapter": 0,
+    "kntt_lesson_number": null,
+    "lesson_title": "HĐTH TN Vẽ vectơ tổng của ba vectơ trong không gian bằng phần mềm GeoGebra",
+    "category": "experiential_activity",
+    "total_slides": 16,
+    "non_empty_slides": 16,
+    "activity_distribution": {
+      "khoi_dong": 2,
+      "hinh_thanh_kien_thuc": 14,
+      "luyen_tap": 0,
+      "van_dung": 0
+    },
+    "sample_titles": [
+      "CHÀO MỪNG CÁC EM",
+      "KHỞI ĐỘNG",
+      "Trả lời: Bài 1.",
+      "Trả lời:",
+      "HOẠT ĐỘNG THỰC HÀNH VÀ",
+      "Hoạt động: Lấy bốn điểm A, B, C,D trong không gian ba chiều và vẽ vectơ",
+      "Bước 2: Chọn công cụ “Điểm mới” để vẽ các",
+      "Bước 3. Sử dụng công cụ “Vectơ qua 2",
+      "Bước 4: Sử dụng công cụ “Đường",
+      "Xác định giao điểm E của hai đường thẳng đó bằng công cụ “Giao điểm"
+    ]
+  },
+  {
+    "doc_id": "KNTT12-30",
+    "file_id": "1kR9bgjxa-x9-SqGA3dJknmGKEqLK9esd",
+    "source_file": "HĐTN. Tính nguyên hàm và tích phân với phần mềm GeoGebra..pdf",
+    "lesson_id": "M12-HDTN",
+    "chapter": 0,
+    "kntt_lesson_number": null,
+    "lesson_title": "HĐTN. Tính nguyên hàm và tích phân với phần mềm GeoGebra.",
+    "category": "experiential_activity",
+    "total_slides": 23,
+    "non_empty_slides": 23,
+    "activity_distribution": {
+      "khoi_dong": 2,
+      "hinh_thanh_kien_thuc": 16,
+      "luyen_tap": 2,
+      "van_dung": 3
+    },
+    "sample_titles": [
+      "CHÀO MỪNG CẢ LỚP",
+      "KHỞI ĐỘNG",
+      "TÍNH NGUYÊN HÀM VÀ TÍCH PHÂN",
+      "NỘI DUNG BÀI HỌC",
+      "1.",
+      "Chọn Complex Adaptive System (CAS) để thực hiện tính toán",
+      "Chú ý: Dùng giao diện tiếng Việt",
+      "Sử dụng phần mềm GeoGebra, tính:",
+      "2.",
+      "Phương pháp hình thang"
+    ]
+  },
+  {
+    "doc_id": "KNTT12-31",
+    "file_id": "18Rc5J23bMW-AzHZlst0Y1EhupI1ed3Nd",
+    "source_file": "HĐTN. Vẽ đồ hoạ 3D với phần mềm.pdf",
+    "lesson_id": "M12-HDTN",
+    "chapter": 0,
+    "kntt_lesson_number": null,
+    "lesson_title": "HĐTN. Vẽ đồ hoạ 3D với phần mềm",
+    "category": "experiential_activity",
+    "total_slides": 19,
+    "non_empty_slides": 19,
+    "activity_distribution": {
+      "khoi_dong": 3,
+      "hinh_thanh_kien_thuc": 14,
+      "luyen_tap": 1,
+      "van_dung": 1
+    },
+    "sample_titles": [
+      "CHÀO MỪNG CÁC EM",
+      "KHỞI ĐỘNG Các em quan sát hình sau:",
+      "KHỞI ĐỘNG",
+      ")",
+      "1. Vẽ tam giác Penrose",
+      "Bước 2. Trong Khung nhập lệnh, lần lượt sử dụng các đoạn lệnh sau:",
+      ")",
+      "Bước 4. Di chuyển con trỏ vào mục Hình đa giác trong khung",
+      "Bước 5. Trong khung Hiển thị danh sách đối tượng, di chuyển con trỏ đến ô",
+      "Bước 6. Di chuyển con trỏ vào khoảng trắng trong khung"
+    ]
+  },
+  {
+    "doc_id": "KNTT12-32",
+    "file_id": "1obWhmTV0oZCSOjxfOcBu_O700N-Ovt1Q",
+    "source_file": "ôn tập cuối năm.pdf",
+    "lesson_id": "M12-ONTAP",
+    "chapter": 0,
+    "kntt_lesson_number": null,
+    "lesson_title": "ôn tập cuối năm",
+    "category": "year_review",
+    "total_slides": 69,
+    "non_empty_slides": 69,
+    "activity_distribution": {
+      "khoi_dong": 17,
+      "hinh_thanh_kien_thuc": 13,
+      "luyen_tap": 39,
+      "van_dung": 0
+    },
+    "sample_titles": [
+      "MATHS",
+      "KHỞI ĐỘNG",
+      "KHỞI ĐỘNG",
+      "KHỞI ĐỘNG",
+      "KHỞI ĐỘNG",
+      "KHỞI ĐỘNG",
+      "KHỞI ĐỘNG",
+      "KHỞI ĐỘNG",
+      "KHỞI ĐỘNG",
+      "KHỞI ĐỘNG"
+    ]
+  }
+]

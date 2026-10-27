@@ -223,7 +223,7 @@ class LLMGateway:
             excluded_keywords = (
                 "embedding", "aqa", "tts", "image", "imagen", "veo",
                 "vision", "audio", "live", "robotics", "computer-use",
-                "learnlm", "2.5-flash", "2.5-pro", "2.0-flash-exp", "1.5-", "1.0-"
+                "learnlm", "2.0-flash", "2.5-flash", "2.5-pro", "2.0-flash-exp", "1.5-", "1.0-"
             )
             models = []
             for m in self.google_client.models.list():
@@ -234,11 +234,11 @@ class LLMGateway:
 
             def _google_priority(model_id: str) -> int:
                 ml = model_id.lower()
-                if ml == "gemini-flash-latest":
+                if "3.8-flash" in ml:
                     return 0
-                if "gemini-3" in ml and "flash" in ml and "preview" not in ml:
+                if "3.5-flash" in ml:
                     return 1
-                if "gemini-3" in ml and "flash" in ml:
+                if ml == "gemini-flash-latest":
                     return 2
                 if "flash" in ml and "lite" not in ml:
                     return 3
@@ -280,40 +280,41 @@ class LLMGateway:
             ]
 
         if task_type == "lesson_plan":
-            # 1. Soạn Kế hoạch bài dạy 5512
+            # 1. Soạn Kế hoạch bài dạy 5512 (Ưu tiên OpenRouter nếu có, sau đó Google, Groq)
+            if self.openrouter_key and "openrouter:deepseek/deepseek-chat" not in self._dead_models:
+                routes.append(ProviderRoute("openrouter", "deepseek/deepseek-chat", "https://openrouter.ai/api/v1", self.openrouter_key))
             if self.gemini_key:
-                for m in google_models[:2]:
+                for m in google_models[:3]:
                     routes.append(ProviderRoute("google", m, api_key=self.gemini_key))
             if self.groq_key:
                 for m in groq_models[:2]:
                     routes.append(ProviderRoute("groq", m, "https://api.groq.com/openai/v1", self.groq_key))
-            if self.openrouter_key and "openrouter:deepseek/deepseek-chat" not in self._dead_models:
-                routes.append(ProviderRoute("openrouter", "deepseek/deepseek-chat", "https://openrouter.ai/api/v1", self.openrouter_key))
-            if self.gemini_key and len(google_models) > 2:
-                for m in google_models[2:4]:
-                    routes.append(ProviderRoute("google", m, api_key=self.gemini_key))
+            if self.openrouter_key and "openrouter:meta-llama/llama-3.3-70b-instruct" not in self._dead_models:
+                routes.append(ProviderRoute("openrouter", "meta-llama/llama-3.3-70b-instruct", "https://openrouter.ai/api/v1", self.openrouter_key))
 
         elif task_type == "slide":
-            # 2. Sinh cấu trúc Slide bài giảng (Ưu tiên Groq nếu có, sau đó Google)
+            # 2. Sinh cấu trúc Slide bài giảng (Ưu tiên OpenRouter nếu có, sau đó Groq LPU, Google)
+            if self.openrouter_key and "openrouter:deepseek/deepseek-chat" not in self._dead_models:
+                routes.append(ProviderRoute("openrouter", "deepseek/deepseek-chat", "https://openrouter.ai/api/v1", self.openrouter_key))
             if self.groq_key:
                 for m in groq_models[:2]:
                     routes.append(ProviderRoute("groq", m, "https://api.groq.com/openai/v1", self.groq_key))
             if self.gemini_key:
-                for m in google_models[:2]:
+                for m in google_models[:3]:
                     routes.append(ProviderRoute("google", m, api_key=self.gemini_key))
-            if self.openrouter_key and "openrouter:deepseek/deepseek-chat" not in self._dead_models:
-                routes.append(ProviderRoute("openrouter", "deepseek/deepseek-chat", "https://openrouter.ai/api/v1", self.openrouter_key))
+            if self.openrouter_key and "openrouter:meta-llama/llama-3.3-70b-instruct" not in self._dead_models:
+                routes.append(ProviderRoute("openrouter", "meta-llama/llama-3.3-70b-instruct", "https://openrouter.ai/api/v1", self.openrouter_key))
 
         elif task_type == "chat":
             # 3. Chat Trợ giảng Co-pilot
+            if self.openrouter_key and "openrouter:deepseek/deepseek-chat" not in self._dead_models:
+                routes.append(ProviderRoute("openrouter", "deepseek/deepseek-chat", "https://openrouter.ai/api/v1", self.openrouter_key))
             if self.groq_key:
                 for m in groq_models[:2]:
                     routes.append(ProviderRoute("groq", m, "https://api.groq.com/openai/v1", self.groq_key))
             if self.gemini_key:
                 for m in google_models[:2]:
                     routes.append(ProviderRoute("google", m, api_key=self.gemini_key))
-            if self.openrouter_key and "openrouter:deepseek/deepseek-chat" not in self._dead_models:
-                routes.append(ProviderRoute("openrouter", "deepseek/deepseek-chat", "https://openrouter.ai/api/v1", self.openrouter_key))
 
         elif task_type == "math_code":
             # 4. Sinh mã nguồn hình học / đồ thị

@@ -1,0 +1,402 @@
+{
+  "subject": "Toán học",
+  "grade": 12,
+  "curriculum_standard": "GDPT 2018 (Kết nối tri thức với cuộc sống + Chuyên đề Ôn thi THPT)",
+  "chapters": [
+    {
+      "chapter_id": "M12-C1",
+      "chapter_number": 1,
+      "title": "Chương I. Ứng dụng đạo hàm để khảo sát và vẽ đồ thị của hàm số",
+      "semester": 1,
+      "lessons": [
+        {
+          "lesson_id": "M12-C1-B1",
+          "kntt_lesson": 1,
+          "title": "Bài 1: Tính đơn điệu và cực trị của hàm số",
+          "periods": 4,
+          "visual_mode": "function_plot",
+          "default_chart_expression": "x**3 - 3*x + 1",
+          "keywords": [
+            "đồng biến",
+            "nghịch biến",
+            "đơn điệu",
+            "cực trị",
+            "cực đại",
+            "cực tiểu",
+            "bảng biến thiên",
+            "xét dấu đạo hàm"
+          ],
+          "yccd": [
+            "Nhận biết được tính đồng biến, nghịch biến của một hàm số trên một khoảng dựa vào dấu của đạo hàm cấp một.",
+            "Thể hiện được tính đồng biến, nghịch biến của hàm số trong bảng biến thiên.",
+            "Nhận biết được điểm cực trị, giá trị cực trị của hàm số thông qua bảng biến thiên hoặc đồ thị."
+          ]
+        },
+        {
+          "lesson_id": "M12-C1-B2",
+          "kntt_lesson": 2,
+          "title": "Bài 2: Giá trị lớn nhất và giá trị nhỏ nhất của hàm số",
+          "periods": 2,
+          "visual_mode": "function_plot",
+          "default_chart_expression": "x**3 - 3*x**2 + 2",
+          "keywords": [
+            "giá trị lớn nhất",
+            "giá trị nhỏ nhất",
+            "GTLN",
+            "GTNN",
+            "max",
+            "min",
+            "trên đoạn"
+          ],
+          "yccd": [
+            "Nhận biết được giá trị lớn nhất, giá trị nhỏ nhất của hàm số trên một tập xác định cho trước.",
+            "Xác định được giá trị lớn nhất, giá trị nhỏ nhất của hàm số bằng đạo hàm trên một đoạn [a; b]."
+          ]
+        },
+        {
+          "lesson_id": "M12-C1-B3",
+          "kntt_lesson": 3,
+          "title": "Bài 3: Đường tiệm cận của đồ thị hàm số",
+          "periods": 2,
+          "visual_mode": "function_plot",
+          "default_chart_expression": "(2*x - 1)/(x - 1)",
+          "keywords": [
+            "tiệm cận",
+            "tiệm cận đứng",
+            "tiệm cận ngang",
+            "tiệm cận xiên",
+            "TCĐ",
+            "TCN"
+          ],
+          "yccd": [
+            "Nhận biết được đường tiệm cận đứng, đường tiệm cận ngang và đường tiệm cận xiên của đồ thị hàm số.",
+            "Xác định được các đường tiệm cận của đồ thị hàm phân thức hữu tỉ."
+          ]
+        },
+        {
+          "lesson_id": "M12-C1-B4",
+          "kntt_lesson": 4,
+          "title": "Bài 4: Khảo sát sự biến thiên và vẽ đồ thị của hàm số",
+          "periods": 4,
+          "visual_mode": "function_plot",
+          "default_chart_expression": "x**3 - 3*x",
+          "keywords": [
+            "khảo sát sự biến thiên",
+            "vẽ đồ thị",
+            "hàm số bậc ba",
+            "hàm phân thức",
+            "tâm đối xứng",
+            "tương giao"
+          ],
+          "yccd": [
+            "Khảo sát được tập xác định, chiều biến thiên, cực trị, tiệm cận, bảng biến thiên và vẽ đồ thị hàm số bậc ba, hàm phân thức.",
+            "Vận dụng đồ thị hàm số để biện luận số nghiệm của phương trình."
+          ]
+        },
+        {
+          "lesson_id": "M12-C1-B5",
+          "kntt_lesson": 5,
+          "title": "Bài 5: Ứng dụng đạo hàm để giải quyết một số vấn đề liên quan đến thực tiễn",
+          "periods": 2,
+          "visual_mode": "function_plot",
+          "default_chart_expression": "-x**2 + 6*x",
+          "keywords": [
+            "tối ưu",
+            "chi phí",
+            "lợi nhuận",
+            "quãng đường",
+            "vận tốc",
+            "gia tốc",
+            "thực tiễn"
+          ],
+          "yccd": [
+            "Sử dụng được đạo hàm để mô tả tốc độ thay đổi tức thời của một đại lượng trong vật lí, kinh tế.",
+            "Thiết lập được hàm mục tiêu và giải quyết bài toán tối ưu hoá trong thực tiễn."
+          ]
+        }
+      ]
+    },
+    {
+      "chapter_id": "M12-C2",
+      "chapter_number": 2,
+      "title": "Chương II. Vectơ và hệ trục tọa độ trong không gian",
+      "semester": 1,
+      "lessons": [
+        {
+          "lesson_id": "M12-C2-B1",
+          "kntt_lesson": 6,
+          "title": "Bài 6: Vectơ trong không gian",
+          "periods": 3,
+          "visual_mode": "3d_polyhedron",
+          "default_polyhedron": "cube",
+          "keywords": [
+            "vectơ trong không gian",
+            "quy tắc hình hộp",
+            "quy tắc ba điểm",
+            "tích vô hướng",
+            "góc giữa hai vectơ"
+          ],
+          "yccd": [
+            "Thực hiện được các phép toán tổng, hiệu hai vectơ (quy tắc ba điểm, quy tắc hình hộp) và tích vô hướng trong không gian."
+          ]
+        },
+        {
+          "lesson_id": "M12-C2-B2",
+          "kntt_lesson": 7,
+          "title": "Bài 7 & 8: Hệ trục tọa độ trong không gian và Biểu thức tọa độ của các phép toán vectơ",
+          "periods": 4,
+          "visual_mode": "none",
+          "keywords": [
+            "hệ trục tọa độ Oxyz",
+            "tọa độ của điểm",
+            "tọa độ của vectơ",
+            "trung điểm",
+            "trọng tâm",
+            "tích có hướng"
+          ],
+          "yccd": [
+            "Xác định được tọa độ của điểm và vectơ trong hệ trục Oxyz.",
+            "Vận dụng được biểu thức tọa độ của phép cộng, trừ vectơ, tích vô hướng, tọa độ trung điểm và trọng tâm tam giác."
+          ]
+        }
+      ]
+    },
+    {
+      "chapter_id": "M12-C3",
+      "chapter_number": 3,
+      "title": "Chương III. Các số đặc trưng đo mức độ phân tán của mẫu số liệu ghép nhóm",
+      "semester": 1,
+      "lessons": [
+        {
+          "lesson_id": "M12-C3-B1",
+          "kntt_lesson": 9,
+          "title": "Bài 9: Khoảng biến thiên và khoảng tứ phân vị của mẫu số liệu ghép nhóm",
+          "periods": 2,
+          "visual_mode": "none",
+          "keywords": [
+            "mẫu số liệu ghép nhóm",
+            "khoảng biến thiên",
+            "khoảng tứ phân vị",
+            "tứ phân vị",
+            "Q1",
+            "Q3"
+          ],
+          "yccd": [
+            "Tính được khoảng biến thiên và khoảng tứ phân vị của mẫu số liệu ghép nhóm và giải thích ý nghĩa thống kê."
+          ]
+        },
+        {
+          "lesson_id": "M12-C3-B2",
+          "kntt_lesson": 10,
+          "title": "Bài 10: Phương sai và độ lệch chuẩn của mẫu số liệu ghép nhóm",
+          "periods": 2,
+          "visual_mode": "none",
+          "keywords": [
+            "phương sai",
+            "độ lệch chuẩn",
+            "giá trị đại diện",
+            "mức độ phân tán"
+          ],
+          "yccd": [
+            "Tính được phương sai và độ lệch chuẩn của mẫu số liệu ghép nhóm để đánh giá mức độ đồng đều của dữ liệu."
+          ]
+        }
+      ]
+    },
+    {
+      "chapter_id": "M12-C4",
+      "chapter_number": 4,
+      "title": "Chương IV. Nguyên hàm và Tích phân",
+      "semester": 2,
+      "lessons": [
+        {
+          "lesson_id": "M12-C4-B1",
+          "kntt_lesson": 11,
+          "title": "Bài 11: Nguyên hàm",
+          "periods": 3,
+          "visual_mode": "none",
+          "keywords": [
+            "nguyên hàm",
+            "họ nguyên hàm",
+            "bảng nguyên hàm"
+          ],
+          "yccd": [
+            "Tìm được nguyên hàm của các hàm số sơ cấp cơ bản và vận dụng tính chất tuyến tính của nguyên hàm."
+          ]
+        },
+        {
+          "lesson_id": "M12-C4-B2",
+          "kntt_lesson": 12,
+          "title": "Bài 12: Tích phân",
+          "periods": 3,
+          "visual_mode": "function_plot",
+          "default_chart_expression": "x**2",
+          "keywords": [
+            "tích phân",
+            "Newton-Leibniz",
+            "cận tích phân",
+            "hình thang cong"
+          ],
+          "yccd": [
+            "Tính được tích phân bằng công thức Newton-Leibniz và các tính chất của tích phân."
+          ]
+        },
+        {
+          "lesson_id": "M12-C4-B3",
+          "kntt_lesson": 13,
+          "title": "Bài 13: Ứng dụng hình học của tích phân",
+          "periods": 3,
+          "visual_mode": "function_plot",
+          "default_chart_expression": "4 - x**2",
+          "keywords": [
+            "diện tích hình phẳng",
+            "thể tích vật thể",
+            "khối tròn xoay"
+          ],
+          "yccd": [
+            "Tính được diện tích hình phẳng và thể tích vật thể, khối tròn xoay bằng tích phân."
+          ]
+        }
+      ]
+    },
+    {
+      "chapter_id": "M12-C5",
+      "chapter_number": 5,
+      "title": "Chương V. Phương pháp tọa độ trong không gian",
+      "semester": 2,
+      "lessons": [
+        {
+          "lesson_id": "M12-C5-B1",
+          "kntt_lesson": 14,
+          "title": "Bài 14: Phương trình mặt phẳng",
+          "periods": 4,
+          "visual_mode": "none",
+          "keywords": [
+            "phương trình mặt phẳng",
+            "vectơ pháp tuyến",
+            "khoảng cách từ điểm đến mặt phẳng"
+          ],
+          "yccd": [
+            "Viết được phương trình tổng quát của mặt phẳng và tính khoảng cách từ một điểm đến mặt phẳng."
+          ]
+        },
+        {
+          "lesson_id": "M12-C5-B2",
+          "kntt_lesson": 15,
+          "title": "Bài 15: Phương trình đường thẳng trong không gian",
+          "periods": 4,
+          "visual_mode": "none",
+          "keywords": [
+            "phương trình đường thẳng",
+            "tham số",
+            "chính tắc",
+            "vectơ chỉ phương",
+            "vị trí tương đối"
+          ],
+          "yccd": [
+            "Viết được phương trình tham số, chính tắc của đường thẳng và xét vị trí tương đối trong không gian."
+          ]
+        },
+        {
+          "lesson_id": "M12-C5-B3",
+          "kntt_lesson": 16,
+          "title": "Bài 16 & 17: Công thức tính góc trong không gian và Phương trình mặt cầu",
+          "periods": 3,
+          "visual_mode": "none",
+          "keywords": [
+            "góc trong không gian",
+            "phương trình mặt cầu",
+            "tâm và bán kính mặt cầu"
+          ],
+          "yccd": [
+            "Tính được góc giữa đường thẳng và mặt phẳng, viết được phương trình mặt cầu biết tâm và bán kính."
+          ]
+        }
+      ]
+    },
+    {
+      "chapter_id": "M12-C6",
+      "chapter_number": 6,
+      "title": "Chương VI. Xác suất có điều kiện",
+      "semester": 2,
+      "lessons": [
+        {
+          "lesson_id": "M12-C6-B1",
+          "kntt_lesson": 18,
+          "title": "Bài 18: Xác suất có điều kiện",
+          "periods": 3,
+          "visual_mode": "none",
+          "keywords": [
+            "xác suất có điều kiện",
+            "P(A|B)",
+            "công thức nhân xác suất",
+            "sơ đồ hình cây"
+          ],
+          "yccd": [
+            "Tính được xác suất có điều kiện P(A|B) bằng định nghĩa, công thức nhân xác suất và sơ đồ hình cây."
+          ]
+        },
+        {
+          "lesson_id": "M12-C6-B2",
+          "kntt_lesson": 19,
+          "title": "Bài 19: Công thức xác suất toàn phần và công thức Bayes",
+          "periods": 3,
+          "visual_mode": "none",
+          "keywords": [
+            "xác suất toàn phần",
+            "công thức Bayes",
+            "sơ đồ hình cây"
+          ],
+          "yccd": [
+            "Vận dụng được công thức xác suất toàn phần và công thức Bayes trong các bài toán thực tiễn."
+          ]
+        }
+      ]
+    },
+    {
+      "chapter_id": "M12-CD",
+      "chapter_number": 7,
+      "title": "Chuyên đề Ôn thi THPT: Hình học Không gian 3D & Mũ - Logarit",
+      "semester": 2,
+      "lessons": [
+        {
+          "lesson_id": "M12-CD-B1",
+          "kntt_lesson": null,
+          "title": "Chuyên đề 1: Khối đa diện và Thể tích khối chóp, khối lăng trụ",
+          "periods": 3,
+          "visual_mode": "3d_polyhedron",
+          "default_polyhedron": "pyramid_square",
+          "keywords": [
+            "khối đa diện",
+            "thể tích khối chóp",
+            "thể tích khối lăng trụ",
+            "hình chóp",
+            "lăng trụ"
+          ],
+          "yccd": [
+            "Vận dụng công thức tính thể tích khối chóp và khối lăng trụ kết hợp khoảng cách, góc trong không gian."
+          ]
+        },
+        {
+          "lesson_id": "M12-CD-B2",
+          "kntt_lesson": null,
+          "title": "Chuyên đề 2: Mặt nón, Mặt trụ, Mặt cầu & Hàm số Mũ - Logarit",
+          "periods": 3,
+          "visual_mode": "3d_polyhedron",
+          "default_polyhedron": "pyramid_triangle",
+          "keywords": [
+            "hình nón",
+            "khối nón",
+            "hình trụ",
+            "khối trụ",
+            "logarit",
+            "hàm số mũ"
+          ],
+          "yccd": [
+            "Tính diện tích và thể tích khối nón, khối trụ, khối cầu và giải phương trình mũ, logarit."
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1111,16 +1111,41 @@ def fix_latex_backslashes_in_json(raw_text: str) -> str:
     return _FIX_PATTERN.sub(r'\\\\', raw_text)
 
 # Toàn bộ việc sinh nội dung được định tuyến và bảo vệ bởi llm_gateway
-def generate_lesson_plan(topic: str, subject: str, grade: int, max_retries: int = 2) -> tuple[LessonPlanSchema, ValidationResult]:
+def generate_lesson_plan(
+    topic: str,
+    subject: str = "Toán học",
+    grade: int = 12,
+    lesson_id: Optional[str] = None,
+    use_rag: bool = True,
+    proficiency: str = "standard",
+    max_retries: int = 2
+) -> tuple[LessonPlanSchema, ValidationResult]:
     """
-    Soạn giáo án Công văn 5512 định tuyến qua LLM Gateway có Graceful Fallback.
+    Soạn giáo án Công văn 5512 định tuyến qua LLM Gateway có Pedagogical RAG & Graceful Fallback.
     Bảo đảm không bao giờ ném lỗi 500 nếu đã từng sinh được bản giáo án hợp lệ.
     """
+    rag_context = ""
+    resolved_lid = lesson_id
+    if use_rag and grade == 12 and "toán" in subject.lower():
+        try:
+            from rag.context_builder import PedagogicalContextBuilder
+            from rag.curriculum_registry import infer_lesson_id
+            resolved_lid = lesson_id or infer_lesson_id(topic)
+            rag_context, _ = PedagogicalContextBuilder.build_lesson_plan_context(
+                resolved_lid, topic=topic, proficiency=proficiency
+            )
+        except Exception as e:
+            print(f"[AI Service] RAG Context build exception: {e}")
+
+    rag_instruction = f"\n\n{rag_context}\n" if rag_context else ""
     user_prompt = (
         f"Hãy soạn giáo án Công văn 5512 cho bài dạy: '{topic}', Môn {subject}, Lớp {grade}. "
-        "YÊU CẦU BẮT BUỘC: Mảng `activities` phải có ĐÚNG 4 phần tử tương ứng 4 hoạt động "
+        "YÊU CẦU BẮT BUỘC:\n"
+        "1. Mảng `activities` phải có ĐÚNG 4 phần tử tương ứng 4 hoạt động "
         "(activity_number = 1, 2, 3, 4: Khởi động, Hình thành kiến thức, Luyện tập, Vận dụng) "
-        "với tổng time_minutes của cả 4 hoạt động đúng bằng 45 phút."
+        "với tổng time_minutes của cả 4 hoạt động đúng bằng 45 phút.\n"
+        "2. Bắt buộc tuân thủ và sử dụng dữ liệu từ NGỮ CẢNH SƯ PHẠM SGK Kết nối tri thức ở trên."
+        f"{rag_instruction}"
     )
     current_prompt = user_prompt
 
@@ -1161,17 +1186,43 @@ def generate_lesson_plan(topic: str, subject: str, grade: int, max_retries: int 
                 return last_successful_plan, res
 
             if attempt == max_retries:
-                raise e
+                # KÍCH HOẠT CURATED PEDAGOGICAL FALLBACK ENGINE (ZERO-CRASH ARCHITECTURE)
+                print(f"[AI Service] Kích hoạt Curated Pedagogical Fallback cho môn {subject}, lớp {grade}, bài '{topic}' do: {err_msg[:80]}")
+                try:
+                    from services.fallback_service import get_curated_lesson_plan
+                    curated_plan = get_curated_lesson_plan(topic=topic, subject=subject, grade=grade, lesson_id=resolved_lid)
+                    val_result = validate_5512_lesson_plan(curated_plan)
+                    val_result.warnings.append("Hệ thống đã tự động chuyển sang Kế hoạch bài dạy chuẩn SGK (Curated Pedagogical Fallback) do gián đoạn kết nối AI.")
+                    return curated_plan, val_result
+                except Exception as fb_err:
+                    print(f"[AI Service] Fallback gặp sự cố: {fb_err}")
+                    raise e
 
     if last_successful_plan is not None:
         res = last_validation_result or ValidationResult(is_valid=True, errors=[], warnings=[])
         return last_successful_plan, res
 
-    raise RuntimeError("Không thể tạo Kế hoạch bài dạy sau các lần thử.")
+    try:
+        from services.fallback_service import get_curated_lesson_plan
+        curated_plan = get_curated_lesson_plan(topic=topic, subject=subject, grade=grade, lesson_id=resolved_lid)
+        val_result = validate_5512_lesson_plan(curated_plan)
+        return curated_plan, val_result
+    except Exception:
+        raise RuntimeError("Không thể tạo Kế hoạch bài dạy sau các lần thử.")
 
-def generate_slide_deck(topic: str, subject: str, grade: int, class_proficiency: Optional[ClassProficiency] = ClassProficiency.STANDARD, target_outcome: Optional[str] = None, plan: Optional[LessonPlanSchema] = None) -> SlideDeckSchema:
+def generate_slide_deck(
+    topic: str,
+    subject: str = "Toán học",
+    grade: int = 12,
+    lesson_id: Optional[str] = None,
+    use_rag: bool = True,
+    class_proficiency: Optional[ClassProficiency] = ClassProficiency.STANDARD,
+    target_outcome: Optional[str] = None,
+    plan: Optional[LessonPlanSchema] = None
+) -> SlideDeckSchema:
     """
     Soạn Slide bài giảng định tuyến qua LLM Gateway (Groq Llama 3.3 / Gemini 2.5 Flash).
+    Tích hợp Pedagogical RAG Grounding & Curated Pedagogical Fallback chống lỗi 500 khi mạng rớt hoặc hết quota.
     """
     if isinstance(class_proficiency, ClassProficiency):
         proficiency_str = class_proficiency.value
@@ -1179,27 +1230,64 @@ def generate_slide_deck(topic: str, subject: str, grade: int, class_proficiency:
         proficiency_str = str(class_proficiency or "standard")
     target_str = f"\nMục tiêu chuẩn đầu ra cần đạt: {target_outcome}" if target_outcome else ""
 
+    rag_slide_context = ""
+    source_refs = []
+    resolved_lid = lesson_id
+    if use_rag and grade == 12 and "toán" in subject.lower():
+        try:
+            from rag.context_builder import PedagogicalContextBuilder
+            from rag.curriculum_registry import infer_lesson_id
+            resolved_lid = lesson_id or (getattr(plan, 'lesson_id', None) if plan else None) or infer_lesson_id(topic)
+            rag_slide_context, source_refs = PedagogicalContextBuilder.build_slide_deck_context(
+                resolved_lid, topic=topic, proficiency=proficiency_str
+            )
+        except Exception as e:
+            print(f"[AI Service] RAG Slide Context build exception: {e}")
+
+    rag_instruction = f"\n\n{rag_slide_context}\n" if rag_slide_context else ""
+
     if plan:
         plan_json_str = plan.model_dump_json(indent=2)
         user_prompt = (
             f"Dựa trên Kế hoạch bài dạy chuẩn 5512 sau:\n{plan_json_str}\n\n"
             f"Hãy soạn cấu trúc Slide bài giảng JSON cho bài dạy: '{topic}', Môn {subject}, Lớp {grade}.\n"
             f"Trình độ học lực lớp mục tiêu: '{proficiency_str}'.{target_str}"
+            f"{rag_instruction}"
         )
     else:
         user_prompt = (
             f"Hãy soạn cấu trúc Slide bài giảng JSON cho bài dạy: '{topic}', Môn {subject}, Lớp {grade}.\n"
             f"Trình độ học lực lớp mục tiêu: '{proficiency_str}'.{target_str}"
+            f"{rag_instruction}"
         )
 
-    # Gọi qua Gateway có Auto-Fallback
-    slide_deck = llm_gateway.generate_structured(
-        prompt=user_prompt,
-        system_prompt=SLIDE_SYSTEM_PROMPT,
-        response_schema=SlideDeckSchema,
-        task_type="slide"
-    )
-    return slide_deck
+    try:
+        # Gọi qua Gateway có Auto-Fallback
+        slide_deck = llm_gateway.generate_structured(
+            prompt=user_prompt,
+            system_prompt=SLIDE_SYSTEM_PROMPT,
+            response_schema=SlideDeckSchema,
+            task_type="slide"
+        )
+        # Đảm bảo gán source_refs và activity_type cho các slide nếu cần
+        if slide_deck and slide_deck.slides:
+            for s in slide_deck.slides:
+                if not s.activity_type:
+                    if s.type == SlideType.WARM_UP_SLIDE:
+                        s.activity_type = "khoi_dong"
+                    elif s.type == SlideType.CONCEPT_SLIDE:
+                        s.activity_type = "hinh_thanh_kien_thuc"
+                    elif s.type == SlideType.EXERCISE_SLIDE:
+                        s.activity_type = "luyen_tap"
+                    elif s.type == SlideType.SUMMARY_SLIDE:
+                        s.activity_type = "tong_ket"
+                if source_refs and not s.source_refs:
+                    s.source_refs = source_refs[:2]
+        return slide_deck
+    except Exception as e:
+        print(f"[AI Service] Kích hoạt Curated Fallback SlideDeck cho môn {subject}, lớp {grade}, bài '{topic}' do: {str(e)[:80]}")
+        from services.fallback_service import get_curated_slide_deck
+        return get_curated_slide_deck(topic=topic, subject=subject, grade=grade, lesson_id=resolved_lid, plan=plan)
 
 def export_slide_to_pptx(data, pptx_path: str):
     """Xuất Slide PowerPoint Native 100% qua python-pptx Hybrid"""

@@ -48,3 +48,7 @@ app/backend/output/
 !app/backend/src/templates/*.pptx
 !app/backend/tests/fixtures/*.docx
 !app/backend/tests/fixtures/*.pptx
+
+# Raw offline data (564MB raw PPTX/PDF files in root)
+/data/
+
