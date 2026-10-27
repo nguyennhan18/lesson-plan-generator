@@ -23,8 +23,10 @@ plt.rcParams['font.sans-serif'] = ['Times New Roman', 'Arial', 'DejaVu Sans']
 plt.rcParams['font.family'] = 'serif'
 plt.rcParams['axes.unicode_minus'] = False
 
-# Các giá trị `kind` / `plot_type` được phép vẽ đồ thị hàm số
+# Các giá trị `kind` / `plot_type` được phép vẽ đồ thị hàm số và hệ bất phương trình
 _FUNCTION_KINDS = {"function", "function_plot", "arithmetic_sequence"}
+_INEQUALITY_KINDS = {"inequality_system", "linear_programming"}
+_PLIFTABLE_KINDS = _FUNCTION_KINDS | _INEQUALITY_KINDS
 
 
 def _plain_value(v):
@@ -33,13 +35,15 @@ def _plain_value(v):
 
 
 def is_plottable(config) -> bool:
-    """Kiểm tra NHANH (không vẽ) xem chart_spec có thể vẽ thành đồ thị hàm số không.
+    """Kiểm tra NHANH (không vẽ) xem chart_spec có thể vẽ thành đồ thị hàm số / hệ BPT không.
     Exporter dùng hàm này để quyết định bố cục có/không có cột đồ thị trước khi đặt chữ."""
     if not isinstance(config, dict):
         return False
     plot_type = _plain_value(config.get("plot_type") or config.get("kind") or "")
-    if plot_type not in _FUNCTION_KINDS:
+    if plot_type not in _PLIFTABLE_KINDS:
         return False
+    if plot_type in _INEQUALITY_KINDS:
+        return bool(config.get("boundary_lines") or config.get("vertices") or config.get("expression") or config.get("formula"))
     expr_str = config.get("expression") or config.get("formula")
     if not isinstance(expr_str, str) or not expr_str.strip():
         return False
@@ -68,7 +72,60 @@ def generate_math_plot(config: dict, figsize: tuple = (6, 4)) -> bytes:
 
     plot_type = _plain_value(config.get("plot_type") or config.get("kind") or "function")
 
-    if plot_type in _FUNCTION_KINDS:
+    if plot_type in _INEQUALITY_KINDS:
+        from matplotlib.patches import Polygon
+        boundary_lines = config.get("boundary_lines") or []
+        if not boundary_lines and config.get("expression"):
+            raw_expr = str(config.get("expression"))
+            exprs = [e.strip() for e in raw_expr.split(";") if e.strip()]
+            boundary_lines = [{"expr": e, "label": f"y = {e}"} for e in exprs]
+        
+        vertices = config.get("vertices") or []
+        x_min = float(config.get("x_min", -1.0))
+        x_max = float(config.get("x_max", 6.0))
+        y_min = float(config.get("y_min", -1.0))
+        y_max = float(config.get("y_max", 6.0))
+        
+        fig, ax = plt.subplots(figsize=figsize)
+        ax.axhline(0, color='black', linewidth=1.0)
+        ax.axvline(0, color='black', linewidth=1.0)
+        ax.text(x_max - 0.3, -0.45, '$x$', fontsize=11, fontweight='bold', fontfamily='Times New Roman')
+        ax.text(-0.45, y_max - 0.3, '$y$', fontsize=11, fontweight='bold', fontfamily='Times New Roman')
+        ax.text(-0.35, -0.35, '$O$', fontsize=10, fontfamily='Times New Roman')
+        
+        # 1. Vẽ các đường thẳng biên ranh giới của hệ BPT
+        line_colors = ["#2563eb", "#7c3aed", "#d97706", "#0284c7"]
+        for idx, line_info in enumerate(boundary_lines):
+            expr_val = line_info.get("expr") or line_info.get("expression")
+            lbl = line_info.get("label", f"d_{idx+1}")
+            color = line_info.get("color") or line_colors[idx % len(line_colors)]
+            try:
+                sym_line = sp.sympify(expr_val)
+                f_line = sp.lambdify(_X, sym_line, modules=["numpy"])
+                x_pts = np.linspace(x_min, x_max, 400)
+                y_pts = f_line(x_pts)
+                ax.plot(x_pts, y_pts, label=lbl, color=color, linewidth=1.8, linestyle='-')
+            except Exception:
+                pass
+                
+        # 2. Tô màu miền nghiệm đa giác lồi
+        if vertices and len(vertices) >= 3:
+            poly = Polygon(vertices, closed=True, facecolor='#10b981', alpha=0.35, edgecolor='#059669', linewidth=1.5, label='Miền nghiệm (đa giác OABC)')
+            ax.add_patch(poly)
+            default_labels = ["O(0,0)", "A(4,0)", "B(8/3, 8/3)", "C(0,4)"]
+            for idx, pt in enumerate(vertices):
+                vx, vy = float(pt[0]), float(pt[1])
+                ax.scatter([vx], [vy], color='#dc2626', s=45, zorder=5)
+                lbl = default_labels[idx] if idx < len(default_labels) else f"P{idx+1}({vx:.1f}, {vy:.1f})"
+                ax.annotate(lbl, (vx, vy), textcoords="offset points", xytext=(6, 6),
+                            fontsize=10, fontfamily='Times New Roman', fontweight='bold', color='#1e293b')
+                            
+        ax.set_xlim(x_min, x_max)
+        ax.set_ylim(y_min, y_max)
+        ax.grid(True, linestyle=':', alpha=0.6)
+        ax.legend(loc='upper right', prop={'family': 'Times New Roman', 'size': 9})
+
+    elif plot_type in _FUNCTION_KINDS:
         expr_str = config.get("expression") or config.get("formula")
         if not isinstance(expr_str, str) or not expr_str.strip():
             raise ValueError("chart_spec thiếu 'expression' nên không thể vẽ đồ thị hàm số")

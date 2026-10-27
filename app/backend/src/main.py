@@ -10,6 +10,9 @@ os.environ["MPLCONFIGDIR"] = "/tmp/matplotlib_cache"
 
 import json
 import base64
+import io
+import zipfile
+from typing import Union, Dict, Any, Optional, List
 from urllib.parse import quote
 
 from fastapi import FastAPI, HTTPException, APIRouter, UploadFile, File, status
@@ -18,12 +21,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from schemas.chat_schema import ChatInteractRequest, ChatInteractResponse, ApplyPatchRequest, ApplyPatchResponse
-from schemas.schemas import LessonPlanSchema, LessonRequest
+from schemas.schemas import LessonPlanSchema, LessonRequest, RAGPreviewRequest
 from schemas.slide_schema import SlideDeckSchema
 from services.ai_service import generate_lesson_plan, generate_slide_deck
 from services.chat_service import handle_copilot_chat, session_manager, apply_slide_patch
 from services.grade_classifier import classify_grade_sheet
 from services.validation import audit_slide_deck, DeckAuditResponse
+from rag.curriculum_registry import CurriculumRegistry, infer_lesson_id
+from rag.retriever import Math12HybridRetriever
 from services.geometry_service import (
     calculate_parametric_geometry,
     ParametricGeometryRequest,
@@ -39,6 +44,8 @@ from parsers.common import ParsedDocumentResponse
 from exporters.docx_exporter import export_lesson_plan_to_docx
 from exporters.slide_exporter import export_slide_deck_to_pptx, render_latex_to_bytes
 from exporters.graph_generator import generate_math_plot, is_plottable
+from exporters.dual_package_exporter import export_dual_package, sanitize_filename
+from utils.temp_file_cleaner import clean_expired_temp_files, get_temp_storage_stats, cleanup_memory_and_figures
 
 
 app = FastAPI(
@@ -105,12 +112,107 @@ def get_test_cases():
         with open(test_file, "r", encoding="utf-8") as f:
             return json.load(f)
     return [
-        {"topic": "Cấp số cộng", "subject": "Toán học", "grade": 11},
-        {"topic": "Đạo hàm và ứng dụng", "subject": "Toán học", "grade": 11},
-        {"topic": "Phương trình bậc hai một ẩn", "subject": "Toán học", "grade": 9},
-        {"topic": "Sóng cơ và sự truyền sóng cơ", "subject": "Vật lý", "grade": 12},
-        {"topic": "Khảo sát và vẽ đồ thị hàm số", "subject": "Toán học", "grade": 12}
+        {"id": "tc-m12-01", "lesson_id": "M12-C1-B1", "topic": "Tính đơn điệu và cực trị của hàm số", "subject": "Toán học", "grade": 12},
+        {"id": "tc-m12-03", "lesson_id": "M12-C1-B4", "topic": "Khảo sát sự biến thiên và vẽ đồ thị hàm số bậc ba", "subject": "Toán học", "grade": 12},
+        {"id": "tc-m12-05", "lesson_id": "M12-C2-B2", "topic": "Hệ trục tọa độ trong không gian Oxyz", "subject": "Toán học", "grade": 12},
+        {"id": "tc-m12-06", "lesson_id": "M12-C3-B1", "topic": "Khoảng biến thiên và khoảng tứ phân vị của mẫu số liệu ghép nhóm", "subject": "Toán học", "grade": 12},
+        {"id": "tc-m12-07", "lesson_id": "M12-C3-B2", "topic": "Phương sai và độ lệch chuẩn của mẫu số liệu ghép nhóm", "subject": "Toán học", "grade": 12},
+        {"id": "tc-m12-08", "lesson_id": "M12-C4-B2", "topic": "Tích phân và công thức Newton - Leibniz", "subject": "Toán học", "grade": 12},
+        {"id": "tc-m12-09", "lesson_id": "M12-C5-B1", "topic": "Phương trình mặt phẳng trong không gian Oxyz", "subject": "Toán học", "grade": 12},
+        {"id": "tc-m12-10", "lesson_id": "M12-C6-B2", "topic": "Công thức xác suất toàn phần và công thức Bayes", "subject": "Toán học", "grade": 12}
     ]
+
+@app.get("/api/v1/curriculum/math12")
+def get_math12_curriculum_endpoint():
+    """
+    Trả về toàn bộ Khung Chương trình Toán 12 (CT GDPT 2018 - SGK Kết nối tri thức với cuộc sống),
+    bao gồm danh mục Chương, Bài học, YCCĐ, từ khóa và số lượng slide / câu hỏi có sẵn trong kho RAG.
+    """
+    try:
+        registry = CurriculumRegistry.get_instance()
+        retriever = Math12HybridRetriever.get_instance()
+
+        curriculum_data = registry.curriculum
+        chapters = []
+        for ch in curriculum_data.get("chapters", []):
+            ch_copy = dict(ch)
+            lessons = []
+            for l in ch.get("lessons", []):
+                l_copy = dict(l)
+                lid = l.get("lesson_id")
+                l_copy["available_slides_count"] = len(retriever.slides_by_lesson.get(lid, []))
+                l_copy["available_questions_count"] = len(retriever.questions_by_lesson.get(lid, []))
+                lessons.append(l_copy)
+            ch_copy["lessons"] = lessons
+            chapters.append(ch_copy)
+
+        return {
+            "subject": curriculum_data.get("subject", "Toán học"),
+            "grade": curriculum_data.get("grade", 12),
+            "curriculum_standard": curriculum_data.get("curriculum_standard", "GDPT 2018 (Kết nối tri thức với cuộc sống)"),
+            "total_chapters": len(chapters),
+            "total_lessons": len(registry.get_all_lessons()),
+            "total_slides": len(retriever.slides),
+            "total_questions": len(retriever.questions),
+            "chapters": chapters
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi khi tải Khung chương trình Toán 12: {str(e)}")
+
+@app.post("/api/v1/rag/preview")
+def preview_rag_materials_endpoint(req: RAGPreviewRequest):
+    """
+    Xem trước tài nguyên sư phạm được Pedagogical RAG truy xuất cho bài học Toán 12:
+    bao gồm YCCĐ, Dàn ý bài giảng (Skeleton), Slide mẫu đẹp nhất và Câu hỏi bài tập thực tế.
+    """
+    try:
+        retriever = Math12HybridRetriever.get_instance()
+        skeleton = retriever.retrieve_lesson_skeleton(req.lesson_id)
+        slides = retriever.retrieve_exemplar_slides(req.lesson_id, query=req.topic, k=req.k_slides)
+        questions = retriever.retrieve_questions(req.lesson_id, proficiency=req.proficiency or "standard", query=req.topic, k=req.k_questions)
+
+        cleaned_slides = []
+        for s in slides:
+            cleaned_slides.append({
+                "slide_id": s.get("slide_id"),
+                "title": s.get("title"),
+                "activity_type": s.get("activity_type"),
+                "layout_hint": s.get("layout_hint"),
+                "bullet_points": s.get("bullet_points", []),
+                "main_definition_latex": s.get("main_definition_latex"),
+                "quality_score": s.get("quality_score", 0.5),
+                "source": s.get("source_file", "KNTT12")
+            })
+
+        cleaned_questions = []
+        for q in questions:
+            cleaned_questions.append({
+                "question_id": q.get("question_id"),
+                "topic": q.get("topic"),
+                "question": q.get("question"),
+                "difficulty": q.get("difficulty", "medium"),
+                "quiz_options": q.get("quiz_options", []),
+                "worked_solution_steps": q.get("worked_solution_steps", []),
+                "answer": q.get("answer")
+            })
+
+        return {
+            "lesson_id": req.lesson_id,
+            "topic": req.topic or skeleton.get("title"),
+            "chapter_id": skeleton.get("chapter_id"),
+            "chapter_title": skeleton.get("chapter_title"),
+            "periods": skeleton.get("periods", 2),
+            "yccd": skeleton.get("yccd", []),
+            "keywords": skeleton.get("keywords", []),
+            "deck_outline": skeleton.get("deck_outline", []),
+            "slides_preview": cleaned_slides,
+            "questions_preview": cleaned_questions,
+            "total_available_slides": len(retriever.slides_by_lesson.get(req.lesson_id, [])),
+            "total_available_questions": len(retriever.questions_by_lesson.get(req.lesson_id, []))
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi khi xem trước tài nguyên RAG: {str(e)}")
+
 
 @app.post("/api/v1/lesson-plan/generate")
 def generate_lesson_plan_endpoint(req: LessonRequest):
@@ -121,7 +223,10 @@ def generate_lesson_plan_endpoint(req: LessonRequest):
         plan, val_result = generate_lesson_plan(
             topic=req.topic,
             subject=req.subject,
-            grade=req.grade
+            grade=req.grade,
+            lesson_id=req.lesson_id,
+            use_rag=req.use_rag,
+            proficiency=req.class_proficiency.value if req.class_proficiency else "standard"
         )
         return {
             "is_valid": val_result.is_valid,
@@ -130,27 +235,67 @@ def generate_lesson_plan_endpoint(req: LessonRequest):
             "plan": plan.model_dump()
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Lỗi khi sinh giáo án: {str(e)}")
+        print(f"[API] Sự cố sinh giáo án ({e}). Tự động kích hoạt Curated Fallback...")
+        from services.fallback_service import get_curated_lesson_plan
+        from services.validation import validate_5512_lesson_plan
+        plan = get_curated_lesson_plan(topic=req.topic, subject=req.subject, grade=req.grade, lesson_id=req.lesson_id)
+        val_result = validate_5512_lesson_plan(plan)
+        return {
+            "is_valid": val_result.is_valid,
+            "errors": val_result.errors,
+            "warnings": val_result.warnings + [f"Đã tự động chuyển sang Kế hoạch bài dạy chuẩn SGK do gián đoạn AI: {str(e)[:100]}"],
+            "plan": plan.model_dump()
+        }
 
 @app.post("/api/v1/lesson-plan/export-docx")
-def export_docx_endpoint(plan: LessonPlanSchema):
+def export_docx_endpoint(payload: Union[Dict[str, Any], LessonPlanSchema]):
     """
-    API 2: Nhận dữ liệu Giáo án JSON và trả về file Word (.docx) cho người dùng tải xuống.
+    API 2: Nhận dữ liệu Giáo án JSON (và tùy chọn SlideDeck để đồng bộ) và trả về file Word (.docx) chuẩn CV 5512.
     """
     try:
-        docx_stream = export_lesson_plan_to_docx(plan)
-        raw_filename = f"Giao_An_{plan.lesson_title}.docx".replace(" ", "_")
-        safe_filename = quote(raw_filename)
+        actual_plan = payload
+        slide_deck = None
+        if isinstance(payload, dict):
+            if "plan" in payload or "lesson_plan" in payload:
+                actual_plan = payload.get("plan") or payload.get("lesson_plan")
+            slide_deck = payload.get("slide_deck")
+
+        if actual_plan is None:
+            raise HTTPException(status_code=400, detail="Không tìm thấy nội dung giáo án hợp lệ để xuất file Word")
+
+        docx_stream = export_lesson_plan_to_docx(actual_plan, slide_deck=slide_deck)
+
+        title = "Giao_An_5512"
+        if isinstance(actual_plan, LessonPlanSchema):
+            title = actual_plan.lesson_title or title
+        elif isinstance(actual_plan, dict):
+            title = actual_plan.get("lesson_title") or title
+        elif slide_deck and isinstance(slide_deck, dict):
+            title = slide_deck.get("presentation_title") or title
+
+        safe_title = sanitize_filename(title, max_length=50)
+        safe_filename = f"Giao_An_5512_{safe_title}.docx"
+        url_encoded_filename = quote(safe_filename)
 
         return Response(
             content=docx_stream.getvalue(),
             media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             headers={
-                "Content-Disposition": f"attachment; filename*=utf-8''{safe_filename}"
+                "Content-Disposition": f'attachment; filename="{safe_filename}"; filename*=utf-8\'\'{url_encoded_filename}'
             }
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Lỗi khi xuất file Word: {str(e)}")
+        print(f"[API] Sự cố xuất Word ({e}). Kích hoạt Fallback Word DOCX...")
+        from services.fallback_service import get_curated_lesson_plan
+        fallback_plan = get_curated_lesson_plan("Toán học", "Toán học", 10)
+        fb_stream = export_lesson_plan_to_docx(fallback_plan)
+        return Response(
+            content=fb_stream.getvalue(),
+            media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            headers={
+                "Content-Disposition": 'attachment; filename="Giao_An_5512_Fallback.docx"; filename*=utf-8\'\'Giao_An_5512_Fallback.docx'
+            }
+        )
 
 @app.post("/api/v1/lesson-plan/export-slide")
 def export_slide_endpoint(deck: SlideDeckSchema):
@@ -159,18 +304,72 @@ def export_slide_endpoint(deck: SlideDeckSchema):
     """
     try:
         pptx_stream = export_slide_deck_to_pptx(deck)
-        raw_filename = f"Slide_{deck.presentation_title}.pptx".replace(" ", "_")
-        safe_filename = quote(raw_filename)
+        deck_title = deck.presentation_title or "Bai_Giang"
+        safe_title = sanitize_filename(deck_title, max_length=50)
+        safe_filename = f"Slide_{safe_title}.pptx"
+        url_encoded_filename = quote(safe_filename)
 
         return Response(
             content=pptx_stream.getvalue(),
             media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
             headers={
-                "Content-Disposition": f"attachment; filename*=utf-8''{safe_filename}"
+                "Content-Disposition": f'attachment; filename="{safe_filename}"; filename*=utf-8\'\'{url_encoded_filename}'
             }
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Lỗi khi xuất file Slide PPTX: {str(e)}")
+        print(f"[API] Sự cố xuất Slide PPTX ({e}). Kích hoạt Fallback PPTX...")
+        from services.fallback_service import get_curated_slide_deck
+        fallback_deck = get_curated_slide_deck("Toán học", "Toán học", 10)
+        fb_stream = export_slide_deck_to_pptx(fallback_deck)
+        return Response(
+            content=fb_stream.getvalue(),
+            media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            headers={
+                "Content-Disposition": 'attachment; filename="Slide_Fallback.pptx"; filename*=utf-8\'\'Slide_Fallback.pptx'
+            }
+        )
+    finally:
+        cleanup_memory_and_figures()
+
+@app.post("/api/v1/lesson-plan/export-dual-package")
+def export_dual_package_endpoint(payload: Dict[str, Any]):
+    """
+    API 3B (Dual-Package): Xuất trọn bộ Kế hoạch bài dạy Word (.docx) & Bài giảng Slide (.pptx)
+    đã được đồng bộ hóa nội dung (Sync Dual-Mode) đóng gói trong định dạng .zip chuẩn nén,
+    kèm mã băm SHA-256 xác thực và hướng dẫn sư phạm chi tiết.
+    """
+    try:
+        plan_raw = payload.get("plan") or payload.get("lesson_plan")
+        deck_raw = payload.get("slide_deck") or payload.get("deck")
+
+        if not plan_raw and not deck_raw:
+            raise HTTPException(
+                status_code=400,
+                detail="Cần cung cấp ít nhất Kế hoạch bài dạy ('plan') hoặc Slide ('slide_deck') để xuất gói ZIP."
+            )
+
+        result = export_dual_package(payload)
+        url_encoded_filename = quote(result.filename)
+
+        return Response(
+            content=result.zip_bytes,
+            media_type="application/zip",
+            headers={
+                "Content-Disposition": f'attachment; filename="{result.filename}"; filename*=utf-8\'\'{url_encoded_filename}',
+                "X-Dual-Package-Docs-Count": str(result.file_count),
+                "X-Dual-Package-SHA256": result.zip_sha256,
+                "X-Docx-SHA256": result.docx_sha256,
+                "X-Pptx-SHA256": result.pptx_sha256,
+            }
+        )
+    except HTTPException:
+        raise
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi khi xuất trọn bộ Dual-Package ZIP: {str(e)}")
+    finally:
+        cleanup_memory_and_figures()
 
 def enrich_slide_deck_with_renders(deck_dict: dict) -> dict:
     """
@@ -217,14 +416,25 @@ def generate_slide_endpoint(req: LessonRequest):
             topic=req.topic,
             subject=req.subject,
             grade=req.grade,
+            lesson_id=req.lesson_id,
+            use_rag=req.use_rag,
             plan=req.plan,
-            class_proficiency= req.class_proficiency,
-            target_outcome= req.target_outcome
+            class_proficiency=req.class_proficiency,
+            target_outcome=req.target_outcome
         )
         deck_dict = slide_deck.model_dump()
         return enrich_slide_deck_with_renders(deck_dict)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Lỗi khi sinh Slide: {str(e)}")
+        print(f"[API] Sự cố sinh slide ({e}). Tự động kích hoạt Curated Fallback SlideDeck...")
+        from services.fallback_service import get_curated_slide_deck
+        fallback_deck = get_curated_slide_deck(
+            topic=req.topic,
+            subject=req.subject,
+            grade=req.grade,
+            lesson_id=req.lesson_id,
+            plan=req.plan
+        )
+        return enrich_slide_deck_with_renders(fallback_deck.model_dump())
 
 @app.post("/api/v1/slide/enrich")
 def enrich_slide_endpoint(deck: dict):
@@ -549,6 +759,55 @@ def get_raycast_occlusion_endpoint(
 
 
 app.include_router(geometry_router)
+
+# ==============================================================================
+# SYSTEM & RESOURCE MAINTENANCE ROUTER (Task 19.4)
+# ==============================================================================
+system_router = APIRouter(prefix="/api/v1/system", tags=["System & Maintenance"])
+
+@system_router.post("/clean-temp-files")
+def clean_temp_files_endpoint(
+    max_age_seconds: int = 3600,
+    force_all: bool = False,
+    dry_run: bool = False
+):
+    """
+    Task 19.4: Dọn dẹp các tệp tin tạm (Word, PPTX, ZIP, PNG đồ thị, cache) hết hạn lưu trữ
+    trên máy chủ hoặc ép dọn sạch toàn bộ khi force_all=True.
+    """
+    try:
+        report = clean_expired_temp_files(
+            max_age_seconds=max_age_seconds,
+            force_all=force_all,
+            dry_run=dry_run
+        )
+        return report.to_dict()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi khi dọn dẹp tệp tin tạm: {str(e)}")
+
+@system_router.get("/temp-stats")
+def get_temp_stats_endpoint():
+    """
+    Task 19.4: Tra cứu thống kê số lượng và dung lượng tệp tin tạm hiện có trên server.
+    """
+    try:
+        stats = get_temp_storage_stats()
+        return stats.to_dict()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi khi truy vấn thống kê tệp tạm: {str(e)}")
+
+@system_router.post("/cleanup-memory")
+def cleanup_memory_endpoint():
+    """
+    Task 19.4: Giải phóng tài nguyên bộ nhớ rò rỉ (đóng toàn bộ figure Matplotlib & Garbage Collection).
+    """
+    try:
+        return cleanup_memory_and_figures()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi khi giải phóng bộ nhớ: {str(e)}")
+
+app.include_router(system_router)
+
 
 if __name__ == "__main__":
     import uvicorn

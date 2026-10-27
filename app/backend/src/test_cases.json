@@ -1,58 +1,92 @@
 [
   {
-    "id": "tc-1",
-    "topic": "Cấp số cộng",
+    "id": "tc-m12-01",
+    "lesson_id": "M12-C1-B1",
+    "topic": "Tính đơn điệu và cực trị của hàm số",
     "subject": "Toán học",
-    "grade": 11,
-    "description": "Bài học trọng tâm lớp 11 với công thức tổng quát và tính tổng dãy số."
+    "grade": 12,
+    "chapter": "Chương I. Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số",
+    "description": "Xét dấu đạo hàm f'(x), lập bảng biến thiên, xác định các khoảng đồng biến, nghịch biến và điểm cực đại, cực tiểu của hàm số."
   },
   {
-    "id": "tc-2",
-    "topic": "Đạo hàm và ý nghĩa hình học của đạo hàm",
+    "id": "tc-m12-02",
+    "lesson_id": "M12-C1-B3",
+    "topic": "Đường tiệm cận của đồ thị hàm số",
     "subject": "Toán học",
-    "grade": 11,
-    "description": "Khái niệm đạo hàm, tiếp tuyến đồ thị hàm số và ý nghĩa vật lý."
+    "grade": 12,
+    "chapter": "Chương I. Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số",
+    "description": "Tìm tiệm cận đứng, tiệm cận ngang và tiệm cận xiên của đồ thị hàm phân thức bằng giới hạn lim tại vô cực và điểm gián đoạn."
   },
   {
-    "id": "tc-3",
+    "id": "tc-m12-03",
+    "lesson_id": "M12-C1-B4",
     "topic": "Khảo sát sự biến thiên và vẽ đồ thị hàm số bậc ba",
     "subject": "Toán học",
     "grade": 12,
-    "description": "Bài toán kinh điển lớp 12 có bảng biến thiên và vẽ đồ thị hàm số."
+    "chapter": "Chương I. Ứng dụng đạo hàm để khảo sát và vẽ đồ thị hàm số",
+    "description": "Quy trình khảo sát 3 bước: Tập xác định -> Sự biến thiên (y', y'=0, BBT) -> Vẽ đồ thị nhận tâm đối xứng là điểm uốn."
   },
   {
-    "id": "tc-4",
-    "topic": "Phương trình bậc hai một ẩn",
+    "id": "tc-m12-04",
+    "lesson_id": "M12-C2-B1",
+    "topic": "Vectơ trong không gian và quy tắc hình hộp",
     "subject": "Toán học",
-    "grade": 9,
-    "description": "Công thức nghiệm Delta, định lý Vi-et và ứng dụng thực tế."
-  },
-  {
-    "id": "tc-5",
-    "topic": "Sóng cơ và sự truyền sóng cơ",
-    "subject": "Vật lý",
     "grade": 12,
-    "description": "Khái niệm sóng cơ, chu kỳ, bước sóng, tốc độ truyền sóng và phương trình sóng."
+    "chapter": "Chương II. Vectơ và hệ trục tọa độ trong không gian",
+    "description": "Các phép toán cộng, trừ vectơ, tích vô hướng trong không gian, quy tắc hình hộp và điều kiện đồng phẳng của ba vectơ."
   },
   {
-    "id": "tc-6",
-    "topic": "Định luật bảo toàn cơ năng",
-    "subject": "Vật lý",
-    "grade": 10,
-    "description": "Thế năng, động năng, điều kiện bảo toàn và bài toán vật rơi tự do."
+    "id": "tc-m12-05",
+    "lesson_id": "M12-C2-B2",
+    "topic": "Hệ trục tọa độ trong không gian Oxyz",
+    "subject": "Toán học",
+    "grade": 12,
+    "chapter": "Chương II. Vectơ và hệ trục tọa độ trong không gian",
+    "description": "Tọa độ điểm, tọa độ vectơ trên hệ trục Oxyz, độ dài đoạn thẳng, góc giữa hai vectơ và tích vô hướng."
   },
   {
-    "id": "tc-7",
-    "topic": "Cấu tạo nguyên tử và bảng tuần hoàn các nguyên tố hóa học",
-    "subject": "Hóa học",
-    "grade": 10,
-    "description": "Hạt proton, neutron, electron và quy luật sắp xếp bảng tuần hoàn."
+    "id": "tc-m12-06",
+    "lesson_id": "M12-C3-B1",
+    "topic": "Khoảng biến thiên và khoảng tứ phân vị của mẫu số liệu ghép nhóm",
+    "subject": "Toán học",
+    "grade": 12,
+    "chapter": "Chương III. Các số đặc trưng đo mức độ phân tán của mẫu số liệu ghép nhóm",
+    "description": "Đọc bảng ghép nhóm, tính khoảng biến thiên R = a_k - a_1, xác định nhóm chứa tứ phân vị và tính khoảng tứ phân vị Delta_Q."
   },
   {
-    "id": "tc-8",
-    "topic": "Thuật toán tìm kiếm nhị phân",
-    "subject": "Tin học",
-    "grade": 10,
-    "description": "Ý tưởng tìm kiếm chia đôi trên danh sách đã sắp xếp, mã giả và độ phức tạp O(log n)."
+    "id": "tc-m12-07",
+    "lesson_id": "M12-C3-B2",
+    "topic": "Phương sai và độ lệch chuẩn của mẫu số liệu ghép nhóm",
+    "subject": "Toán học",
+    "grade": 12,
+    "chapter": "Chương III. Các số đặc trưng đo mức độ phân tán của mẫu số liệu ghép nhóm",
+    "description": "Lập bảng giá trị đại diện c_i, tính số trung bình, phương sai s^2 và độ lệch chuẩn s để so sánh mức độ phân tán và rủi ro thực tế."
+  },
+  {
+    "id": "tc-m12-08",
+    "lesson_id": "M12-C4-B2",
+    "topic": "Tích phân và công thức Newton - Leibniz",
+    "subject": "Toán học",
+    "grade": 12,
+    "chapter": "Chương IV. Nguyên hàm và Tích phân",
+    "description": "Khái niệm tích phân xác định, định lý cơ bản của giải tích và các phương pháp đổi biến số, từng phần."
+  },
+  {
+    "id": "tc-m12-09",
+    "lesson_id": "M12-C5-B1",
+    "topic": "Phương trình mặt phẳng trong không gian Oxyz",
+    "subject": "Toán học",
+    "grade": 12,
+    "chapter": "Chương V. Phương pháp tọa độ trong không gian",
+    "description": "Vectơ pháp tuyến, viết phương trình tổng quát Ax + By + Cz + D = 0 và tính khoảng cách từ điểm đến mặt phẳng."
+  },
+  {
+    "id": "tc-m12-10",
+    "lesson_id": "M12-C6-B2",
+    "topic": "Công thức xác suất toàn phần và công thức Bayes",
+    "subject": "Toán học",
+    "grade": 12,
+    "chapter": "Chương VI. Xác suất có điều kiện",
+    "description": "Sơ đồ hình cây, công thức xác suất toàn phần và định lý Bayes ứng dụng trong chẩn đoán y khoa và độ tin cậy sản phẩm."
   }
 ]

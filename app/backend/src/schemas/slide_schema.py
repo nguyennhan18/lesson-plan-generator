@@ -6,13 +6,14 @@ from pydantic import BaseModel, Field
 class ChartType(str, Enum):
     ARITHMETIC_SEQUENCE = "arithmetic_sequence"   # giữ lại cho dãy số dạng u_n = a + d*n
     FUNCTION_PLOT = "function_plot"                # TỔNG QUÁT — áp dụng mọi hàm số 1 biến
+    INEQUALITY_SYSTEM = "inequality_system"        # Hệ bất phương trình bậc nhất 2 ẩn & Miền nghiệm Oxy
     NONE = "none"
 
 class ChartSpec(BaseModel):
     kind: ChartType = Field(
         default=ChartType.NONE,
         description=(
-            "Chỉ chọn 'function_plot' đối với những slide thực sự cần minh họa trực quan đồ thị hàm số "
+            "Chỉ chọn 'function_plot' hoặc 'inequality_system' đối với những slide thực sự cần minh họa trực quan "
             "(thường là 1-2 slide có layout 'IMAGE_TEXT' trong bài). "
             "BẮT BUỘC chọn 'none' đối với các slide Định nghĩa, Công thức (CONCEPT_HIGHLIGHT), "
             "Phương pháp giải & Ví dụ giải mẫu từng bước (TWO_COLUMN, SINGLE_COLUMN)."
@@ -31,8 +32,18 @@ class ChartSpec(BaseModel):
             "KHÔNG chứa code, ký tự đặc biệt hay hướng dẫn khác."
         )
     )
+    boundary_lines: Optional[list] = Field(
+        default=None,
+        description="Danh sách đường biên cho hệ bất phương trình. VD: [{'expr': '8 - 2*x', 'label': '2x + y = 8'}]"
+    )
+    vertices: Optional[list] = Field(
+        default=None,
+        description="Tọa độ các đỉnh miền nghiệm đa giác trên Oxy. VD: [[0, 0], [4, 0], [2.67, 2.67], [0, 4]]"
+    )
     x_min: float = Field(default= -4.0)
     x_max: float = Field(default=4.0)
+    y_min: Optional[float] = Field(default=-1.0)
+    y_max: Optional[float] = Field(default=6.0)
     chart_title: Optional[str] = Field(
         default=None,
         description="Tiêu đề hiển thị trên đồ thị. VD: 'Đồ thị hàm số y = 2x'."
@@ -108,8 +119,20 @@ class SlideSchema(BaseModel):
     description="Trình độ học lực phân hóa của slide (basic, standard, advanced)"
     )
     target_outcome: Optional[str] = Field(
-    default=None,
-    description="Mục tiêu chuẩn đầu ra kiến thức/kỹ năng của học sinh"
+        default=None,
+        description="Mục tiêu chuẩn đầu ra kiến thức/kỹ năng của học sinh"
+    )
+    activity_type: Optional[str] = Field(
+        default=None,
+        description="Loại hoạt động sư phạm CV 5512: khoi_dong, hinh_thanh_kien_thuc, luyen_tap, van_dung, tong_ket"
+    )
+    source_refs: Optional[List[dict]] = Field(
+        default=None,
+        description="Tham chiếu nguồn gốc từ kho slide KNTT 12 hoặc ngân hàng câu hỏi RAG (VD: slide_id, question_id)"
+    )
+    pedagogical_mode: Optional[str] = Field(
+        default=None,
+        description="Chế độ sư phạm tổ chức hoạt động (Thảo luận cặp đôi, Thảo luận nhóm 4, Cá nhân suy ngẫm...)"
     )
     @model_validator(mode = "after")
     def validate_quiz_options(self) -> "SlideSchema":

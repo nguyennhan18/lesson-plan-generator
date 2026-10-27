@@ -231,8 +231,13 @@ def latex_to_unicode_math(text: str) -> str:
 def render_latex_to_bytes(latex_str: str) -> bytes:
     """
     Render công thức LaTeX ra ảnh PNG chuẩn nét (300 DPI).
-    Tự động xử lý và fallback an toàn nếu gặp ký tự tiếng Việt hoặc TeX không được mathtext hỗ trợ.
+    Tự động co giãn kích thước font theo độ dài công thức (Adaptive Font Scaling)
+    và có 3 tầng Fallback an toàn tuyệt đối, chống crash 100%.
     """
+    if not latex_str or not isinstance(latex_str, str):
+        # Trả về 1x1 transparent PNG chuẩn
+        return b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4\x00\x00\x00\rIDATx\x9cc`\x00\x00\x00\x02\x00\x01H\xaf\xa4q\x00\x00\x00\x00IEND\xaeB`\x82'
+
     clean_str = latex_str.replace(r'\(', '').replace(r'\)', '').strip()
 
     clean_str = re.sub(r'\\ge(?![a-zA-Z])', r'\\geq', clean_str)
@@ -246,6 +251,12 @@ def render_latex_to_bytes(latex_str: str) -> bytes:
     clean_str = re.sub(r'\\text\{([^}]+)\}', r'\1', clean_str)
     clean_str = re.sub(r'\\mathrm\{([^}]+)\}', r'\1', clean_str)
 
+    # Adaptive Font Scaling: Tự động thu nhỏ cỡ font cho công thức cực dài (> 35 ký tự)
+    # Giữ nguyên 20pt cho công thức ngắn; co dần xuống 10pt cho công thức dài >= 115 ký tự
+    formula_len = len(clean_str)
+    calc_fontsize = max(10, min(20, int(20 - (max(0, formula_len - 35) / 8.0))))
+    calc_fallback_font = max(9, min(18, int(18 - (max(0, formula_len - 35) / 8.0))))
+
     fig, ax = plt.subplots(figsize=(0.1, 0.1))
     ax.axis('off')
 
@@ -253,7 +264,7 @@ def render_latex_to_bytes(latex_str: str) -> bytes:
         formatted_latex = f"${clean_str}$" if not clean_str.startswith("$") else clean_str
         ax.text(
             0.5, 0.5, formatted_latex,
-            fontsize=20, ha='center', va='center', color='#1e3a8a'
+            fontsize=calc_fontsize, ha='center', va='center', color='#1e3a8a'
         )
         buf = io.BytesIO()
         plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0.04, dpi=300, transparent=True)
@@ -262,19 +273,27 @@ def render_latex_to_bytes(latex_str: str) -> bytes:
         return buf.getvalue()
     except Exception:
         plt.close(fig)
-        # Fallback render bằng Unicode text
-        fig, ax = plt.subplots(figsize=(0.1, 0.1))
-        ax.axis('off')
-        unicode_str = latex_to_unicode_math(latex_str)
-        ax.text(
-            0.5, 0.5, unicode_str,
-            fontsize=18, ha='center', va='center', color='#1e3a8a', fontname='Arial'
-        )
-        buf = io.BytesIO()
-        plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0.04, dpi=300, transparent=True)
-        plt.close(fig)
-        buf.seek(0)
-        return buf.getvalue()
+        try:
+            # Fallback 1: render bằng Unicode text
+            fig, ax = plt.subplots(figsize=(0.1, 0.1))
+            ax.axis('off')
+            unicode_str = latex_to_unicode_math(latex_str)
+            ax.text(
+                0.5, 0.5, unicode_str,
+                fontsize=calc_fallback_font, ha='center', va='center', color='#1e3a8a', fontname='Arial'
+            )
+            buf = io.BytesIO()
+            plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0.04, dpi=300, transparent=True)
+            plt.close(fig)
+            buf.seek(0)
+            return buf.getvalue()
+        except Exception:
+            try:
+                plt.close(fig)
+            except Exception:
+                pass
+            # Fallback 2: 1x1 transparent PNG tuyệt đối an toàn
+            return b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4\x00\x00\x00\rIDATx\x9cc`\x00\x00\x00\x02\x00\x01H\xaf\xa4q\x00\x00\x00\x00IEND\xaeB`\x82'
 
 
 def _plain(obj):
@@ -598,11 +617,14 @@ def build_content_slide(slide, slide_data: dict, slide_idx: int, total_slides: i
                 with Image.open(io.BytesIO(png_bytes)) as im:
                     px_w, px_h = im.size
                 asp = px_w / max(px_h, 1)
-                img_h = Inches(0.7)
-                img_w = Inches(0.7 * asp)
-                if img_w > Inches(4.4):
-                    img_w = Inches(4.4)
-                    img_h = Inches(4.4 / asp)
+                max_w = Inches(4.4)
+                max_h = Inches(1.0)
+                if asp >= (max_w / max_h):
+                    img_w = max_w
+                    img_h = max_w / asp
+                else:
+                    img_h = max_h
+                    img_w = max_h * asp
                 img_left = Inches(0.6) + (w_left - img_w) / 2
                 img_top = Inches(3.85) + (Inches(1.2) - img_h) / 2
                 slide.shapes.add_picture(io.BytesIO(png_bytes), img_left, img_top, width=img_w, height=img_h)
@@ -717,11 +739,14 @@ def build_content_slide(slide, slide_data: dict, slide_idx: int, total_slides: i
                 with Image.open(io.BytesIO(png_bytes)) as im:
                     px_w, px_h = im.size
                 asp = px_w / max(px_h, 1)
-                img_h = Inches(0.7)
-                img_w = Inches(0.7 * asp)
-                if img_w > Inches(4.4):
-                    img_w = Inches(4.4)
-                    img_h = Inches(4.4 / asp)
+                max_w = Inches(4.4)
+                max_h = Inches(1.0)
+                if asp >= (max_w / max_h):
+                    img_w = max_w
+                    img_h = max_w / asp
+                else:
+                    img_h = max_h
+                    img_w = max_h * asp
                 img_left = Inches(0.6) + (w_left - img_w) / 2
                 img_top = Inches(3.85) + (Inches(1.2) - img_h) / 2
                 slide.shapes.add_picture(io.BytesIO(png_bytes), img_left, img_top, width=img_w, height=img_h)
@@ -855,11 +880,14 @@ def build_content_slide(slide, slide_data: dict, slide_idx: int, total_slides: i
                 with Image.open(io.BytesIO(png_bytes)) as im:
                     px_w, px_h = im.size
                 asp = px_w / max(px_h, 1)
-                img_h = Inches(0.8)
-                img_w = Inches(0.8 * asp)
-                if img_w > Inches(6.4):
-                    img_w = Inches(6.4)
-                    img_h = Inches(6.4 / asp)
+                max_w = Inches(6.6)
+                max_h = Inches(1.0)
+                if asp >= (max_w / max_h):
+                    img_w = max_w
+                    img_h = max_w / asp
+                else:
+                    img_h = max_h
+                    img_w = max_h * asp
                 img_left = Inches(1.5) + (Inches(7.0) - img_w) / 2
                 img_top = Inches(3.85) + (Inches(1.2) - img_h) / 2
                 slide.shapes.add_picture(io.BytesIO(png_bytes), img_left, img_top, width=img_w, height=img_h)
