@@ -1126,6 +1126,7 @@ def test_task_18_5_dod_end_to_end_acceptance():
     assert len(prs.slides) == 5, f"Tổng số slide mong đợi là 5, thực tế là {len(prs.slides)}"
 
     # Kích thước slide chuẩn 16:9 Widescreen
+    assert prs.slide_width is not None and prs.slide_height is not None
     assert round(prs.slide_width.inches, 2) == 10.0
     assert round(prs.slide_height.inches, 3) == 5.625
 

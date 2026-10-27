@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, MessageSquare, Wrench, HelpCircle, Check, Eye, LineChart, Box, FileText, Edit3, AlertTriangle, Layers, Compass, Sparkles, BookOpen, Sliders, MoveVertical, Maximize2, Minimize2, RotateCcw, Calculator, Zap, Tag, Moon } from 'lucide-react';
 import ThreeCanvas from './ThreeCanvas';
 import UnfoldedNetViewer from './UnfoldedNetViewer';
@@ -40,7 +40,7 @@ export default function PresentationStage({
   onCameraPreset,
   showUnfoldedNet = false,
   setShowUnfoldedNet,
-  onSwitchSample,
+  onNavigateScreen,
   // Task 14.1: Cầu nối Snapshot 3D WebGL
   onCaptureReady,
   // Task 15.2: Chế độ Trình chiếu Toàn màn hình 16:9 Cinema
@@ -596,33 +596,6 @@ export default function PresentationStage({
                 <span>Hiện Trợ Giảng AI (C)</span>
               </button>
             )}
-
-            {/* Nút chuyển nhanh bài mẫu (Quick Topic Switcher) */}
-            {onSwitchSample && (
-              <div className="hidden lg:flex items-center gap-1 bg-slate-900/90 border border-slate-800 rounded-lg p-0.5 text-[11px]">
-                <span className="text-slate-400 px-1.5">Mẫu:</span>
-                <button
-                  onClick={() => onSwitchSample('quadratic')}
-                  className={`px-2 py-0.5 rounded transition ${
-                    fullContextText.includes('bậc hai') || fullContextText.includes('phương trình')
-                      ? 'bg-cyan-600 text-white font-semibold'
-                      : 'text-slate-300 hover:text-white'
-                  }`}
-                >
-                  PT Bậc Hai (Toán 10)
-                </button>
-                <button
-                  onClick={() => onSwitchSample('cube')}
-                  className={`px-2 py-0.5 rounded transition ${
-                    fullContextText.includes('lập phương')
-                      ? 'bg-cyan-600 text-white font-semibold'
-                      : 'text-slate-300 hover:text-white'
-                  }`}
-                >
-                  Hình Lập Phương (Toán 11)
-                </button>
-              </div>
-            )}
           </div>
 
           <div className="text-[11px] text-slate-400 tracking-wide font-mono hidden md:flex items-center gap-2">
@@ -670,7 +643,7 @@ export default function PresentationStage({
           {/* Header của Slide */}
           <div className="pb-2.5 border-b border-slate-800/80 flex items-center justify-between shrink-0">
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-[10px] md:text-xs font-bold px-2.5 py-0.5 rounded border border-cyan-800 bg-cyan-950/70 text-cyan-300 uppercase tracking-wider">
                   {activityTag}
                 </span>
@@ -678,6 +651,20 @@ export default function PresentationStage({
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-700/80 bg-emerald-950/80 text-emerald-300 uppercase tracking-wider flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                     16:9 Cinema
+                  </span>
+                )}
+                {slide.source_refs && slide.source_refs.length > 0 && (
+                  <span
+                    className="text-[10px] md:text-xs font-semibold px-2 py-0.5 rounded border border-indigo-700/80 bg-indigo-950/80 text-indigo-300 flex items-center gap-1 shadow-sm"
+                    title={`Nguồn tri thức sư phạm: ${slide.source_refs.map(r => r.ref_id || r.type).join(', ')}`}
+                  >
+                    <BookOpen size={11} className="text-indigo-400" />
+                    <span>Nguồn RAG: KNTT 12</span>
+                  </span>
+                )}
+                {slide.pedagogical_mode && (
+                  <span className="text-[10px] md:text-xs font-medium px-2 py-0.5 rounded border border-purple-800/80 bg-purple-950/60 text-purple-300 hidden sm:flex items-center gap-1">
+                    <span>{slide.pedagogical_mode}</span>
                   </span>
                 )}
               </div>
@@ -793,8 +780,26 @@ export default function PresentationStage({
 
           {/* Body của Slide */}
           <div className="flex-1 my-2.5 overflow-y-auto">
-            {/* TRƯỜNG HỢP A: BẢN IN PPTX 1:1 PREVIEW (Xóa bỏ hoàn toàn bất nhất Web vs File tải về) */}
-            {effectiveVisual === 'pptx' ? (
+            {slides.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-center p-8 text-slate-400">
+                <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 mb-4 shadow-xl">
+                  <Sparkles className="w-12 h-12 text-cyan-400 animate-pulse" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">Chưa có Slide bài giảng</h3>
+                <p className="max-w-md text-xs text-slate-400 mb-5">
+                  Hãy nhập chủ đề bài dạy (ví dụ: &quot;Phương trình bậc 2&quot;) và bấm &quot;Sinh Bài Dạy &amp; Bộ Slide&quot; để AI khởi tạo nội dung hoàn chỉnh!
+                </p>
+                {onNavigateScreen && (
+                  <button
+                    onClick={() => onNavigateScreen('lesson-plan')}
+                    className="px-5 py-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-semibold rounded-xl shadow-lg transition flex items-center gap-2 cursor-pointer"
+                  >
+                    <BookOpen size={14} />
+                    <span>Chuyển sang Soạn Bài Dạy Bằng AI</span>
+                  </button>
+                )}
+              </div>
+            ) : effectiveVisual === 'pptx' ? (
               <div className="h-full w-full bg-slate-100 rounded-xl p-6 text-slate-900 flex flex-col justify-between shadow-2xl border-4 border-slate-300">
                 {/* Header PPTX */}
                 <div className="border-b-2 border-blue-900 pb-2 flex items-center justify-between">

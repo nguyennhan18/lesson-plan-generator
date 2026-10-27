@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Presentation, Download, Plus, Trash2, Edit3, HelpCircle, Save, Sparkles, AlertTriangle } from 'lucide-react';
+import { Presentation, Download, Plus, Trash2, Edit3, HelpCircle, Save, Sparkles, AlertTriangle, FileText, Package, BookOpen } from 'lucide-react';
 import MathText from './MathText';
 import MathLiveModal from './MathLiveModal';
 import PedagogicalWarningModal from './PedagogicalWarningModal';
@@ -10,7 +10,9 @@ import { auditSlideDeckLocal, auditSlideDeckRemote, mergeAuditWarnings } from '.
 export default function SlideEditorScreen({
   slideDeck,
   setSlideDeck,
-  onExportPptx
+  onExportPptx,
+  onExportDocx,
+  onExportDualPackage
 }) {
   const slides = slideDeck?.slides || [];
   const [selectedSlide, setSelectedSlide] = useState(0);
@@ -183,7 +185,7 @@ export default function SlideEditorScreen({
           </h2>
           <p className="text-xs text-slate-400">Chỉnh sửa trực tiếp từng slide bài giảng do AI sinh ra & Xuất file PowerPoint thật</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => setIsWarningModalOpen(true)}
@@ -197,16 +199,37 @@ export default function SlideEditorScreen({
             <AlertTriangle size={14} className={activeWarnings.length > 0 ? 'text-amber-400' : 'text-slate-400'} />
             <span>
               {activeWarnings.length > 0
-                ? `⚠️ Danh sách Cảnh báo (${activeWarnings.length})`
-                : 'Kiểm duyệt Sư phạm (0 lỗi)'}
+                ? `⚠️ Cảnh báo (${activeWarnings.length})`
+                : 'Kiểm duyệt Sư phạm'}
             </span>
           </button>
 
+          {/* Task 19.2: Cụm nút bấm Tải về trên Xưởng Biên Tập Slide */}
           <button
+            type="button"
             onClick={onExportPptx}
-            className="px-3.5 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold flex items-center gap-2 shadow-lg shadow-amber-950/40 transition"
+            className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-lg shadow-amber-950/40 transition active:scale-95 cursor-pointer"
+            title="Xuất file PowerPoint (.pptx) chuẩn 16:9 kèm ảnh mô hình 3D và đồ thị"
           >
-            <Download size={14} /> Xuất PowerPoint (.pptx)
+            <Download size={14} /> <span>Tải Slide (.pptx)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onExportDocx}
+            className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-lg shadow-blue-950/40 transition active:scale-95 cursor-pointer"
+            title="Tải Giáo án Word (.docx) đồng bộ chuẩn CV 5512"
+          >
+            <FileText size={14} /> <span>Tải Word (.docx)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onExportDualPackage}
+            className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-emerald-950/40 border border-emerald-400/40 transition active:scale-95 cursor-pointer"
+            title="Tải Trọn Bộ (.zip): Gói kép Word + PowerPoint đồng bộ 100%"
+          >
+            <Package size={14} /> <span>Tải Trọn Bộ (.zip)</span>
           </button>
         </div>
       </div>
@@ -245,8 +268,13 @@ export default function SlideEditorScreen({
                     <div className="font-semibold text-white truncate flex items-center gap-1.5">
                       <span>Slide {idx + 1}: {s.title || `Trang ${idx + 1}`}</span>
                     </div>
-                    <div className="text-[11px] text-slate-400 truncate mt-0.5 flex items-center gap-1.5">
+                    <div className="text-[11px] text-slate-400 truncate mt-0.5 flex items-center gap-1.5 flex-wrap">
                       <span>{s.activity_type || 'Nội dung bài'}</span>
+                      {s.source_refs && s.source_refs.length > 0 && (
+                        <span className="px-1.5 py-0.2 rounded bg-indigo-950/80 border border-indigo-800 text-indigo-300 text-[10px] font-medium">
+                          RAG KNTT 12
+                        </span>
+                      )}
                       {slideWarnsCount > 0 && (
                         <span
                           onClick={(e) => {
@@ -282,6 +310,12 @@ export default function SlideEditorScreen({
               <Edit3 size={15} className="text-cyan-400" /> Biên Tập Slide {selectedSlide + 1}
             </h3>
             <div className="flex items-center gap-2">
+              {curSlide.source_refs && curSlide.source_refs.length > 0 && (
+                <span className="px-2 py-0.5 rounded bg-indigo-950/80 border border-indigo-800 text-indigo-300 text-[11px] font-medium flex items-center gap-1">
+                  <BookOpen size={11} className="text-indigo-400" />
+                  <span>KNTT 12</span>
+                </span>
+              )}
               {currentSlideWarnings.length > 0 && (
                 <button
                   type="button"

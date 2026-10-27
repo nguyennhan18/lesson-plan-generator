@@ -1,5 +1,5 @@
-import React from 'react';
-import { Box, Play, FileText, Wrench, BarChart2, Bot, Sliders, Maximize, Clock } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Box, Play, FileText, Wrench, BarChart2, Bot, Sliders, Maximize, Clock, Download, ChevronDown, Package } from 'lucide-react';
 
 export default function HeaderNav({
   activeScreen,
@@ -10,8 +10,24 @@ export default function HeaderNav({
   setIsRightOpen,
   onToggleFullscreen,
   onStartPresentation,
-  isPresentationMode
+  isPresentationMode,
+  onExportDocx,
+  onExportPptx,
+  onExportDualPackage
 }) {
+  const [isExportOpen, setIsExportOpen] = useState(false);
+  const exportMenuRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target)) {
+        setIsExportOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const tabs = [
     { key: 'presentation', label: 'Trình Chiếu Giảng Dạy', icon: Play },
     { key: 'lesson-plan', label: 'Soạn Giáo Án 5512', icon: FileText },
@@ -73,6 +89,78 @@ export default function HeaderNav({
         <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-cyan-400 font-mono text-xs">
           <Clock size={13} className="text-amber-400 animate-pulse" />
           <span>45:20</span>
+        </div>
+
+        {/* Task 19.2: Cụm nút bấm Tải về / Xuất bản (Word, PowerPoint, Trọn bộ ZIP) */}
+        <div className="relative" ref={exportMenuRef}>
+          <button
+            onClick={() => setIsExportOpen(!isExportOpen)}
+            className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-cyan-300 hover:text-cyan-200 border border-cyan-800/70 text-xs font-semibold flex items-center gap-1.5 transition shadow-sm cursor-pointer"
+            title="Tải Giáo án Word, Bài giảng PowerPoint hoặc Trọn bộ ZIP"
+          >
+            <Download size={13} className="text-cyan-400" />
+            <span className="hidden sm:inline">Tải Về</span>
+            <ChevronDown size={12} className={`transition-transform duration-200 ${isExportOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {isExportOpen && (
+            <div className="absolute right-0 mt-2 w-72 glass-panel bg-slate-950/95 border border-slate-700/80 rounded-xl shadow-2xl p-1.5 z-50 space-y-1 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
+              <div className="px-2.5 py-1.5 border-b border-slate-800/80 text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                <span>Xuất Bản Tài Liệu</span>
+                <span className="text-[10px] text-cyan-400 font-normal">Dual-Mode 5512</span>
+              </div>
+              <button
+                onClick={() => {
+                  setIsExportOpen(false);
+                  onExportDocx?.();
+                }}
+                className="w-full text-left px-2.5 py-2 rounded-lg hover:bg-blue-950/60 border border-transparent hover:border-blue-800/50 flex items-start gap-2.5 transition text-xs group cursor-pointer"
+              >
+                <div className="p-1.5 rounded-md bg-blue-500/20 text-blue-400 group-hover:bg-blue-500/30 shrink-0 mt-0.5">
+                  <FileText size={15} />
+                </div>
+                <div>
+                  <div className="font-semibold text-white group-hover:text-blue-300">Tải Giáo Án Word (.docx)</div>
+                  <div className="text-[10px] text-slate-400 leading-tight">Chuẩn CV 5512, tích hợp OMML & câu hỏi củng cố</div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsExportOpen(false);
+                  onExportPptx?.();
+                }}
+                className="w-full text-left px-2.5 py-2 rounded-lg hover:bg-amber-950/60 border border-transparent hover:border-amber-800/50 flex items-start gap-2.5 transition text-xs group cursor-pointer"
+              >
+                <div className="p-1.5 rounded-md bg-amber-500/20 text-amber-400 group-hover:bg-amber-500/30 shrink-0 mt-0.5">
+                  <Play size={15} className="fill-amber-400" />
+                </div>
+                <div>
+                  <div className="font-semibold text-white group-hover:text-amber-300">Tải Bài Giảng PowerPoint (.pptx)</div>
+                  <div className="text-[10px] text-slate-400 leading-tight">Slide 16:9, ảnh 3D WebGL, đồ thị & Speaker notes</div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsExportOpen(false);
+                  onExportDualPackage?.();
+                }}
+                className="w-full text-left px-2.5 py-2 rounded-lg bg-gradient-to-r from-emerald-950/40 via-teal-950/40 to-cyan-950/40 hover:from-emerald-950/70 hover:to-cyan-950/70 border border-emerald-800/50 flex items-start gap-2.5 transition text-xs group cursor-pointer"
+              >
+                <div className="p-1.5 rounded-md bg-emerald-500/20 text-emerald-400 group-hover:bg-emerald-500/30 shrink-0 mt-0.5">
+                  <Package size={15} />
+                </div>
+                <div>
+                  <div className="font-bold text-emerald-300 flex items-center gap-1.5">
+                    <span>Tải Trọn Bộ Dual-Pack (.zip)</span>
+                    <span className="text-[9px] px-1 rounded bg-emerald-900 border border-emerald-500/40 text-emerald-200">Gói Kép</span>
+                  </div>
+                  <div className="text-[10px] text-slate-400 leading-tight">Đồng bộ kép: Word 5512 + PowerPoint + Hướng dẫn</div>
+                </div>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Toggle Chat Copilot */}
