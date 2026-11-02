@@ -21,10 +21,8 @@ ROOT_DIR = Path(__file__).resolve().parents[3]
 BACKEND_SRC = ROOT_DIR / "app" / "backend" / "src"
 FRONTEND_DIR = ROOT_DIR / "app" / "frontend"
 
-if str(BACKEND_SRC) not in sys.path:
-    sys.path.insert(0, str(BACKEND_SRC))
 
-from main import app
+from lessonai.main import app
 
 client = TestClient(app)
 
@@ -46,7 +44,7 @@ def test_task_14_1_webgl_canvas_snapshot_configuration():
     5. Đăng ký window.__threeCanvasCaptureSnapshot phục vụ kiểm thử và tự động hóa
     6. Nút bấm Chụp ảnh Snapshot 3D (Camera icon) trên thanh công cụ
     """
-    canvas_path = FRONTEND_DIR / "src" / "components" / "ThreeCanvas.jsx"
+    canvas_path = FRONTEND_DIR / "src" / "features" / "geometry" / "ThreeCanvas.jsx"
     assert canvas_path.exists(), f"Không tìm thấy file: {canvas_path}"
     content = canvas_path.read_text(encoding="utf-8")
 
@@ -86,7 +84,7 @@ def test_task_14_1_component_wiring_in_stage_and_app():
     - PresentationStage.jsx nhận onCaptureReady và truyền xuống ThreeCanvas
     - App.jsx quản lý threeCanvasCaptureRef và truyền onCaptureReady xuống PresentationStage
     """
-    stage_path = FRONTEND_DIR / "src" / "components" / "PresentationStage.jsx"
+    stage_path = FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationStage.jsx"
     assert stage_path.exists()
     stage_content = stage_path.read_text(encoding="utf-8")
 
@@ -129,7 +127,7 @@ def test_task_14_2_schema_validation_snapshot_3d():
     - SlideSchema chấp nhận snapshot_3d_base64 dạng Base64 Data URL
     - SlideDeckSchema chấp nhận snapshot_3d_base64 làm dự phòng toàn cục
     """
-    from schemas.slide_schema import SlideDeckSchema, SlideSchema, SlideType, SlideLayout
+    from lessonai.schemas.slide_schema import SlideDeckSchema, SlideSchema, SlideType, SlideLayout
 
     slide = SlideSchema(
         slide_index=1,
@@ -167,12 +165,16 @@ def test_task_14_2_frontend_payload_packaging_integration():
     app_path = FRONTEND_DIR / "src" / "App.jsx"
     content = app_path.read_text(encoding="utf-8")
 
+    assert "createDocumentExportActions" in content
+    content = (FRONTEND_DIR / "src" / "features" / "exports" / "documentExportActions.js").read_text(encoding="utf-8")
     assert "handleExportPptx" in content
     assert "threeCanvasCaptureRef.current" in content
     assert "snapshot_3d_base64" in content
     assert "payloadDeck" in content
-    assert "fetch('/api/v1/lesson-plan/export-slide'" in content or 'fetch("/api/v1/lesson-plan/export-slide"' in content
-    assert "body: JSON.stringify(payloadDeck)" in content
+    assert "postJson('/api/v1/lesson-plan/export-slide'" in content or 'postJson("/api/v1/lesson-plan/export-slide"' in content
+    assert "postJson" in content
+    transport = (FRONTEND_DIR / "src" / "shared" / "api" / "client.js").read_text(encoding="utf-8")
+    assert "body: JSON.stringify(payload)" in transport
 
 
 def test_task_14_2_api_export_slide_accepts_snapshot_payload():
@@ -228,7 +230,7 @@ def test_task_14_3_decode_base64_data_url():
     3. Tự động khắc phục chuỗi Base64 bị khuyết padding '='
     4. Xử lý an toàn khi gặp dữ liệu lỗi/rỗng/None mà không raise Exception
     """
-    from exporters.slide_exporter import decode_base64_data_url
+    from lessonai.exporters.slide_exporter import decode_base64_data_url
 
     # 1. Data URL chuẩn
     stream1 = decode_base64_data_url(SAMPLE_DATA_URL)
@@ -263,8 +265,8 @@ def test_task_14_3_pptx_embedding_creates_picture_shape():
     """
     from pptx import Presentation
     from pptx.enum.shapes import MSO_SHAPE_TYPE
-    from exporters.slide_exporter import export_slide_deck_to_pptx
-    from schemas.slide_schema import SlideDeckSchema, SlideSchema, SlideType, SlideLayout
+    from lessonai.exporters.slide_exporter import export_slide_deck_to_pptx
+    from lessonai.schemas.slide_schema import SlideDeckSchema, SlideSchema, SlideType, SlideLayout
 
     slide_3d = SlideSchema(
         slide_index=1,
@@ -321,8 +323,8 @@ def test_task_14_3_pptx_inherits_deck_snapshot_fallback():
     """
     from pptx import Presentation
     from pptx.enum.shapes import MSO_SHAPE_TYPE
-    from exporters.slide_exporter import export_slide_deck_to_pptx
-    from schemas.slide_schema import SlideDeckSchema, SlideSchema, SlideType, SlideLayout
+    from lessonai.exporters.slide_exporter import export_slide_deck_to_pptx
+    from lessonai.schemas.slide_schema import SlideDeckSchema, SlideSchema, SlideType, SlideLayout
 
     slide_without_own_snap = SlideSchema(
         slide_index=1,
@@ -368,7 +370,7 @@ def test_task_14_4_aspect_preserving_fit_algorithm():
     3. Ảnh đứng Portrait (600x1200 ~ 1:2): Fit chiều cao, căn giữa theo chiều rộng
     4. Tỉ lệ khung hình (Aspect Ratio) của kích thước fit phải bằng chính xác tỉ lệ ảnh gốc
     """
-    from exporters.slide_exporter import compute_aspect_preserving_fit
+    from lessonai.exporters.slide_exporter import compute_aspect_preserving_fit
 
     box_l, box_t, box_w, box_h = 5.7, 1.5, 3.6, 2.45
 
@@ -407,8 +409,8 @@ def test_task_14_4_slide_grid_16_9_geometry_and_margins():
     """
     from pptx import Presentation
     from pptx.util import Inches
-    from exporters.slide_exporter import export_slide_deck_to_pptx
-    from schemas.slide_schema import SlideDeckSchema, SlideSchema
+    from lessonai.exporters.slide_exporter import export_slide_deck_to_pptx
+    from lessonai.schemas.slide_schema import SlideDeckSchema, SlideSchema
 
     deck = SlideDeckSchema(
         presentation_title="Lưới 16:9 Toán Học",
@@ -455,8 +457,8 @@ def test_task_14_4_pptx_picture_preserves_aspect_ratio_in_exported_deck():
     from pptx import Presentation
     from pptx.enum.shapes import MSO_SHAPE_TYPE
     from pptx.util import Inches
-    from exporters.slide_exporter import export_slide_deck_to_pptx
-    from schemas.slide_schema import SlideDeckSchema, SlideSchema
+    from lessonai.exporters.slide_exporter import export_slide_deck_to_pptx
+    from lessonai.schemas.slide_schema import SlideDeckSchema, SlideSchema
 
     square_snap = make_test_png_data_url(600, 600)
     widescreen_snap = make_test_png_data_url(960, 540)

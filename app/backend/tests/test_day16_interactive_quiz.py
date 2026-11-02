@@ -17,10 +17,8 @@ ROOT_DIR = Path(__file__).resolve().parents[3]
 BACKEND_SRC = ROOT_DIR / "app" / "backend" / "src"
 FRONTEND_DIR = ROOT_DIR / "app" / "frontend"
 
-if str(BACKEND_SRC) not in sys.path:
-    sys.path.insert(0, str(BACKEND_SRC))
 
-from main import app
+from lessonai.main import app
 
 client = TestClient(app)
 
@@ -35,13 +33,13 @@ def test_task_16_1_interactive_quiz_card_component():
     - Hỗ trợ phím tắt số [1], [2], [3], [4] tương ứng phương án A, B, C, D
     - Có nút bình chọn lại (RotateCcw)
     """
-    quiz_path = FRONTEND_DIR / "src" / "components" / "InteractiveQuizCard.jsx"
+    quiz_path = FRONTEND_DIR / "src" / "features" / "presentation" / "InteractiveQuizCard.jsx"
     assert quiz_path.exists(), f"Không tìm thấy tệp {quiz_path}"
     content = quiz_path.read_text(encoding="utf-8")
 
     # Kiểm tra props & import MathText
     assert "export default function InteractiveQuizCard" in content
-    assert "import MathText from './MathText'" in content
+    assert "import MathText from '../../shared/math/MathText'" in content
     assert "votedOption" in content
     assert "onVote" in content
     assert "votes" in content
@@ -71,7 +69,7 @@ def test_task_16_1_quiz_card_integration_in_presentation_stage():
     - Render <InteractiveQuizCard ... /> trong nhánh isQuizLayout
     - Truyền slide, currentSlide, votedOption, onVote={handleVote}, votes, onResetVotes, isPresentationMode
     """
-    stage_path = FRONTEND_DIR / "src" / "components" / "PresentationStage.jsx"
+    stage_path = FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationStage.jsx"
     assert stage_path.exists(), f"Không tìm thấy tệp {stage_path}"
     content = stage_path.read_text(encoding="utf-8")
 
@@ -92,7 +90,7 @@ def test_task_16_2_quiz_audio_feedback_synthesizer():
     - playWrong: Âm trầm nhẹ nhàng (220 Hz -> 140 Hz) sư phạm
     - Có cơ chế kiểm soát âm lượng và mute/unmute
     """
-    audio_path = FRONTEND_DIR / "src" / "utils" / "quizAudioFeedback.js"
+    audio_path = FRONTEND_DIR / "src" / "features" / "presentation" / "quizAudioFeedback.js"
     assert audio_path.exists(), f"Không tìm thấy tệp {audio_path}"
     content = audio_path.read_text(encoding="utf-8")
 
@@ -117,7 +115,7 @@ def test_task_16_2_canvas_confetti_engine():
     - Hỗ trợ màn hình Retina (window.devicePixelRatio)
     - Tự động dọn dẹp canvas và huỷ animation frame khi hoàn tất
     """
-    confetti_path = FRONTEND_DIR / "src" / "utils" / "canvasConfetti.js"
+    confetti_path = FRONTEND_DIR / "src" / "features" / "presentation" / "canvasConfetti.js"
     assert confetti_path.exists(), f"Không tìm thấy tệp {confetti_path}"
     content = confetti_path.read_text(encoding="utf-8")
 
@@ -144,13 +142,13 @@ def test_task_16_2_quiz_card_correct_feedback_integration():
     - Nhãn 'CHÍNH XÁC' và biểu tượng CheckCircle2, Sparkles
     - Nút chuyển đổi âm thanh (Volume2/VolumeX) phục vụ không gian lớp học
     """
-    quiz_path = FRONTEND_DIR / "src" / "components" / "InteractiveQuizCard.jsx"
+    quiz_path = FRONTEND_DIR / "src" / "features" / "presentation" / "InteractiveQuizCard.jsx"
     assert quiz_path.exists(), f"Không tìm thấy tệp {quiz_path}"
     content = quiz_path.read_text(encoding="utf-8")
 
     # Import công cụ âm thanh và pháo hoa
-    assert "import { quizAudio } from '../utils/quizAudioFeedback'" in content
-    assert "import { launchCanvasConfetti } from '../utils/canvasConfetti'" in content
+    assert "import { quizAudio } from './quizAudioFeedback.js'" in content
+    assert "import { launchCanvasConfetti } from './canvasConfetti.js'" in content
 
     # Canvas ref và DOM element
     assert "confettiCanvasRef" in content
@@ -185,7 +183,7 @@ def test_task_16_3_misconception_classifier_utility():
     - Phân loại CALCULATION_ERROR (Lỗi tính toán số học)
     - Có thông tin badgeClass, iconColor và advice sư phạm cho từng loại
     """
-    classifier_path = FRONTEND_DIR / "src" / "utils" / "misconceptionClassifier.js"
+    classifier_path = FRONTEND_DIR / "src" / "features" / "presentation" / "misconceptionClassifier.js"
     assert classifier_path.exists(), f"Không tìm thấy tệp {classifier_path}"
     content = classifier_path.read_text(encoding="utf-8")
 
@@ -209,12 +207,12 @@ def test_task_16_3_misconception_modal_component():
     - Đưa ra bản chất sai lầm Toán học và Lời khuyên sư phạm phòng tránh
     - Hỗ trợ phím Escape để đóng hộp thoại
     """
-    modal_path = FRONTEND_DIR / "src" / "components" / "MisconceptionModal.jsx"
+    modal_path = FRONTEND_DIR / "src" / "features" / "presentation" / "MisconceptionModal.jsx"
     assert modal_path.exists(), f"Không tìm thấy tệp {modal_path}"
     content = modal_path.read_text(encoding="utf-8")
 
     assert "export default function MisconceptionModal" in content
-    assert "import MathText from './MathText'" in content
+    assert "import MathText from '../../shared/math/MathText'" in content
     assert "classifyMisconception" in content
     assert "allOptions.map" in content
     assert "activeTab" in content
@@ -234,7 +232,7 @@ def test_task_16_3_quiz_card_wrong_choice_feedback_and_modal_trigger():
     - Nút 'Phân Tích Bẫy Sai Lầm' trong thanh công cụ mở trực tiếp hộp thoại
     - Render <MisconceptionModal ... />
     """
-    quiz_path = FRONTEND_DIR / "src" / "components" / "InteractiveQuizCard.jsx"
+    quiz_path = FRONTEND_DIR / "src" / "features" / "presentation" / "InteractiveQuizCard.jsx"
     assert quiz_path.exists(), f"Không tìm thấy tệp {quiz_path}"
     content = quiz_path.read_text(encoding="utf-8")
 
@@ -267,7 +265,7 @@ def test_task_16_4_solution_step_formatter_utility():
     - formatSolutionToClipboard: Định dạng toàn bộ lời giải thành Markdown để sao chép vào vở
     - Đảm bảo công thức toán học KaTeX được bao bọc chuẩn xác ($...$)
     """
-    formatter_path = FRONTEND_DIR / "src" / "utils" / "solutionStepFormatter.js"
+    formatter_path = FRONTEND_DIR / "src" / "features" / "presentation" / "solutionStepFormatter.js"
     assert formatter_path.exists(), f"Không tìm thấy tệp {formatter_path}"
     content = formatter_path.read_text(encoding="utf-8")
 
@@ -288,12 +286,12 @@ def test_task_16_4_detailed_solution_modal_component():
     - Có khối Lưu ý sư phạm khi trình bày vào vở ghi
     - Hỗ trợ phím Escape để đóng hộp thoại
     """
-    modal_path = FRONTEND_DIR / "src" / "components" / "DetailedSolutionModal.jsx"
+    modal_path = FRONTEND_DIR / "src" / "features" / "presentation" / "DetailedSolutionModal.jsx"
     assert modal_path.exists(), f"Không tìm thấy tệp {modal_path}"
     content = modal_path.read_text(encoding="utf-8")
 
     assert "export default function DetailedSolutionModal" in content
-    assert "import MathText from './MathText'" in content
+    assert "import MathText from '../../shared/math/MathText'" in content
     assert "getNormalizedSolutionSteps" in content
     assert "formatSolutionToClipboard" in content
     assert "handleCopy" in content
@@ -309,7 +307,7 @@ def test_task_16_4_quiz_card_solution_button_and_modal_integration():
     - Nhấp nút mở DetailedSolutionModal (setIsSolutionModalOpen(true))
     - Render <DetailedSolutionModal ... /> với props slide, currentSlide, isOpen, onClose
     """
-    quiz_path = FRONTEND_DIR / "src" / "components" / "InteractiveQuizCard.jsx"
+    quiz_path = FRONTEND_DIR / "src" / "features" / "presentation" / "InteractiveQuizCard.jsx"
     assert quiz_path.exists(), f"Không tìm thấy tệp {quiz_path}"
     content = quiz_path.read_text(encoding="utf-8")
 
@@ -340,7 +338,7 @@ def test_task_16_5_definition_of_done_e2e_quiz_flow():
        - solutionStepFormatter.js (chuẩn hóa các bước giải SGK và sao chép Markdown)
     3. Pipeline Integration: Kiểm tra InteractiveQuizCard được tích hợp hoàn chỉnh trong PresentationStage.jsx.
     """
-    from schemas.slide_schema import SlideSchema, SlideType, SlideLayout, QuizOptionDetail
+    from lessonai.schemas.slide_schema import SlideSchema, SlideType, SlideLayout, QuizOptionDetail
 
     # 1. Kiểm tra Schema Validation
     quiz_slide = SlideSchema(
@@ -371,13 +369,13 @@ def test_task_16_5_definition_of_done_e2e_quiz_flow():
 
     # 2. Kiểm tra sự tồn tại của đầy đủ 7 mô-đun Ngày 16
     files_to_check = [
-        FRONTEND_DIR / "src" / "components" / "InteractiveQuizCard.jsx",
-        FRONTEND_DIR / "src" / "components" / "MisconceptionModal.jsx",
-        FRONTEND_DIR / "src" / "components" / "DetailedSolutionModal.jsx",
-        FRONTEND_DIR / "src" / "utils" / "quizAudioFeedback.js",
-        FRONTEND_DIR / "src" / "utils" / "canvasConfetti.js",
-        FRONTEND_DIR / "src" / "utils" / "misconceptionClassifier.js",
-        FRONTEND_DIR / "src" / "utils" / "solutionStepFormatter.js"
+        FRONTEND_DIR / "src" / "features" / "presentation" / "InteractiveQuizCard.jsx",
+        FRONTEND_DIR / "src" / "features" / "presentation" / "MisconceptionModal.jsx",
+        FRONTEND_DIR / "src" / "features" / "presentation" / "DetailedSolutionModal.jsx",
+        FRONTEND_DIR / "src" / "features" / "presentation" / "quizAudioFeedback.js",
+        FRONTEND_DIR / "src" / "features" / "presentation" / "canvasConfetti.js",
+        FRONTEND_DIR / "src" / "features" / "presentation" / "misconceptionClassifier.js",
+        FRONTEND_DIR / "src" / "features" / "presentation" / "solutionStepFormatter.js"
     ]
 
     for f in files_to_check:
@@ -385,7 +383,7 @@ def test_task_16_5_definition_of_done_e2e_quiz_flow():
         assert len(f.read_text(encoding="utf-8")) > 100, f"Tệp {f} có nội dung quá ngắn hoặc rỗng"
 
     # 3. Kiểm tra PresentationStage.jsx tích hợp InteractiveQuizCard
-    stage_content = (FRONTEND_DIR / "src" / "components" / "PresentationStage.jsx").read_text(encoding="utf-8")
+    stage_content = (FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationStage.jsx").read_text(encoding="utf-8")
     assert "InteractiveQuizCard" in stage_content
     assert "<InteractiveQuizCard" in stage_content
 

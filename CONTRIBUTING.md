@@ -50,3 +50,11 @@ Cảm ơn bạn đã quan tâm và muốn đóng góp cho dự án **LessonAI-55
 Nếu bạn phát hiện lỗi hoặc có ý tưởng cải tiến:
 - Kiểm tra danh sách [GitHub Issues](https://github.com/NguyenNhan18/Lesson-Plan-Generator/issues) xem vấn đề đã được đề cập chưa.
 - Mở một Issue mới với tiêu đề súc tích, các bước tái hiện lỗi (nếu có) và hành vi mong đợi.
+
+
+## Cấu trúc và kiểm tra thay đổi
+
+Đọc [hướng dẫn kiến trúc repo](docs/architecture/repository.md) để chọn đúng module.
+Cài backend bằng `app/backend/venv/bin/python -m pip install -e ./app/backend`.
+Từ thư mục gốc, chạy `make test` và `make build` trước khi gửi thay đổi.
+Các script dùng import `lessonai`, không chỉnh `sys.path`.

@@ -13,10 +13,10 @@ import zipfile
 import pytest
 from fastapi.testclient import TestClient
 
-from main import app
-from schemas.schemas import LessonRequest, RAGPreviewRequest
-from rag.curriculum_registry import CurriculumRegistry
-from rag.retriever import Math12HybridRetriever
+from lessonai.main import app
+from lessonai.schemas.schemas import LessonRequest, RAGPreviewRequest
+from lessonai.rag.curriculum_registry import CurriculumRegistry
+from lessonai.rag.retriever import Math12HybridRetriever
 
 
 @pytest.fixture(scope="module")
@@ -29,7 +29,7 @@ def speed_up_offline_tests(monkeypatch):
     """Giúp test chạy tức thì (< 1s) trong môi trường kiểm thử offline không có mạng."""
     def fast_mock_llm(*args, **kwargs):
         raise ConnectionError("Offline test mode: kích hoạt nhanh Retrieval Fallback")
-    monkeypatch.setattr("services.ai_service.llm_gateway.generate_structured", fast_mock_llm)
+    monkeypatch.setattr("lessonai.llm.gateway.llm_gateway.generate_structured", fast_mock_llm)
 
 
 def test_api_curriculum_math12_structure_and_stats(client):

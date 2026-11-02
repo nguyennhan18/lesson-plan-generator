@@ -18,10 +18,8 @@ ROOT_DIR = Path(__file__).resolve().parents[3]
 BACKEND_SRC = ROOT_DIR / "app" / "backend" / "src"
 FRONTEND_DIR = ROOT_DIR / "app" / "frontend"
 
-if str(BACKEND_SRC) not in sys.path:
-    sys.path.insert(0, str(BACKEND_SRC))
 
-from schemas.slide_schema import (
+from lessonai.schemas.slide_schema import (
     SlideSchema,
     SlideDeckSchema,
     ChartSpec,
@@ -31,12 +29,12 @@ from schemas.slide_schema import (
     SlideType,
     ThemeType
 )
-from services.ai_service import SLIDE_SYSTEM_PROMPT
+from lessonai.prompts.slides import SLIDE_SYSTEM_PROMPT
 
-PRESENTATION_STAGE_JSX = FRONTEND_DIR / "src" / "components" / "PresentationStage.jsx"
-THREE_CANVAS_JSX = FRONTEND_DIR / "src" / "components" / "ThreeCanvas.jsx"
+PRESENTATION_STAGE_JSX = FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationStage.jsx"
+THREE_CANVAS_JSX = FRONTEND_DIR / "src" / "features" / "geometry" / "ThreeCanvas.jsx"
 APP_JSX = FRONTEND_DIR / "src" / "App.jsx"
-SLIDE_SCHEMA_PY = BACKEND_SRC / "schemas" / "slide_schema.py"
+SLIDE_SCHEMA_PY = BACKEND_SRC / "lessonai" / "schemas" / "slide_schema.py"
 
 
 def test_task_11_1_slide_schema_dynamic_layouts_and_3d_spec():

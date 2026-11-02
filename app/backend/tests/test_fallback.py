@@ -13,10 +13,8 @@ from pydantic import BaseModel, Field
 # Thêm đường dẫn src vào Python path
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 SRC_DIR = BACKEND_DIR / "src"
-if str(SRC_DIR) not in sys.path:
-    sys.path.insert(0, str(SRC_DIR))
 
-from services.llm_gateway import (
+from lessonai.llm.gateway import (
     LLMGateway,
     ProviderRoute,
     fix_latex_backslashes,
@@ -184,8 +182,8 @@ def test_graceful_fallback_preserves_last_successful_plan(monkeypatch):
     lần 2 cố sửa nhưng gặp sự cố mạng/quota, hệ thống vẫn trả về plan đã có
     kèm warning, tuyệt đối không ném ngoại lệ 500.
     """
-    from services.ai_service import generate_lesson_plan
-    from schemas.schemas import LessonPlanSchema, LessonActivity, ExecutionSteps
+    from lessonai.services.generation import generate_lesson_plan
+    from lessonai.schemas.schemas import LessonPlanSchema, LessonActivity, ExecutionSteps
 
     call_count = 0
 
@@ -226,8 +224,8 @@ def test_graceful_fallback_preserves_last_successful_plan(monkeypatch):
             raise RuntimeError("429 Too Many Requests: Quota limit reached")
 
     # Giả lập validate trả về có cảnh báo/lỗi nhẹ để ép thử lần 2
-    from services.validation import ValidationResult
-    monkeypatch.setattr("services.ai_service.llm_gateway.generate_structured", mock_generate_structured)
+    from lessonai.services.validation import ValidationResult
+    monkeypatch.setattr("lessonai.llm.gateway.llm_gateway.generate_structured", mock_generate_structured)
     
     validation_calls = 0
     def mock_validate(plan):
@@ -237,7 +235,7 @@ def test_graceful_fallback_preserves_last_successful_plan(monkeypatch):
             return ValidationResult(is_valid=False, errors=["Thiếu phân hóa nâng cao"], warnings=[])
         return ValidationResult(is_valid=True, errors=[], warnings=[])
 
-    monkeypatch.setattr("services.ai_service.validate_5512_lesson_plan", mock_validate)
+    monkeypatch.setattr("lessonai.services.generation.lesson_plan.validate_5512_lesson_plan", mock_validate)
 
     # Chạy hàm: Phải hoàn trả thành công bản kế hoạch của lần 1, không được crash!
     plan, val_result = generate_lesson_plan("Cấp số cộng", "Toán học", 11, max_retries=1)

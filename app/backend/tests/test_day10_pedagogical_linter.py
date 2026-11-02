@@ -20,10 +20,8 @@ ROOT_DIR = Path(__file__).resolve().parents[3]
 BACKEND_SRC = ROOT_DIR / "app" / "backend" / "src"
 FRONTEND_DIR = ROOT_DIR / "app" / "frontend"
 
-if str(BACKEND_SRC) not in sys.path:
-    sys.path.insert(0, str(BACKEND_SRC))
 
-from services.validation import (
+from lessonai.services.validation import (
     PEDAGOGICAL_THEOREM_AUDIT_SYSTEM_PROMPT,
     SlideWarningItem,
     DeckAuditResponse,
@@ -33,12 +31,12 @@ from services.validation import (
     check_textbook_theorems_in_slide,
 )
 
-MAIN_PY = BACKEND_SRC / "main.py"
-VALIDATION_PY = BACKEND_SRC / "services" / "validation.py"
-LINTER_CLIENT_JS = FRONTEND_DIR / "src" / "utils" / "pedagogicalLinterClient.js"
-WARNING_MODAL_JSX = FRONTEND_DIR / "src" / "components" / "PedagogicalWarningModal.jsx"
-PRESENTATION_STAGE_JSX = FRONTEND_DIR / "src" / "components" / "PresentationStage.jsx"
-SLIDE_EDITOR_JSX = FRONTEND_DIR / "src" / "components" / "SlideEditorScreen.jsx"
+MAIN_PY = BACKEND_SRC / "lessonai" / "api" / "routes" / "validation.py"
+VALIDATION_PY = BACKEND_SRC / "lessonai" / "services" / "validation.py"
+LINTER_CLIENT_JS = FRONTEND_DIR / "src" / "shared" / "validation" / "pedagogicalLinterClient.js"
+WARNING_MODAL_JSX = FRONTEND_DIR / "src" / "shared" / "validation" / "PedagogicalWarningModal.jsx"
+PRESENTATION_STAGE_JSX = FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationStage.jsx"
+SLIDE_EDITOR_JSX = FRONTEND_DIR / "src" / "features" / "slide-editor" / "SlideEditorScreen.jsx"
 
 
 def test_task_10_1_vietnamese_spelling_and_audit_endpoint():
@@ -48,7 +46,7 @@ def test_task_10_1_vietnamese_spelling_and_audit_endpoint():
     """
     main_code = MAIN_PY.read_text(encoding="utf-8")
     assert "/api/v1/validation" in main_code, "Thiếu prefix /api/v1/validation trong main.py"
-    assert '"/audit-deck"' in main_code, "Thiếu route POST /api/v1/validation/audit-deck trong main.py"
+    assert '"/audit-deck"' in main_code, "Thiếu route POST /api/v1/validation/audit-deck"
     assert "audit_slide_deck" in main_code
 
     slide_with_typos = {
@@ -70,10 +68,9 @@ def test_task_10_1_vietnamese_spelling_and_audit_endpoint():
     assert "vô ngiệm" in detected_tokens, "Phải phát hiện lỗi chính tả 'vô ngiệm'"
 
 
-def test_task_10_2_sympy_algebraic_equivalence_verification():
+def test_m0_symbolic_verification_reports_unverified():
     """
-    Task 10.2: Kiểm tra tích hợp SymPy phát hiện các phép biến đổi đại số và phương trình/bất phương trình
-    không tương đương, đồng thời KHÔNG báo lỗi giả trên phương trình điều kiện chuẩn.
+    M0: công thức đúng/sai đều báo chưa kiểm chứng khi bộ xử lý đại số đang tạm ngắt.
     """
     # 1. Slide chứa 5 phép biến đổi đại số SAI
     slide_bad_algebra = {
@@ -88,8 +85,12 @@ def test_task_10_2_sympy_algebraic_equivalence_verification():
         ],
     }
     bad_warnings = verify_math_with_sympy_in_slide(slide_bad_algebra, 2)
-    assert len(bad_warnings) == 5, f"SymPy phải phát hiện đủ 5 lỗi đại số, thực tế: {len(bad_warnings)}"
-    assert all(w.category == "algebra_sympy" for w in bad_warnings)
+    # M0 intentionally disables symbolic verification; this is not evidence of
+    # detecting the five errors. M1 must restore verification with a safe parser.
+    assert len(bad_warnings) == 1
+    assert bad_warnings[0].category == "algebra_unverified"
+    assert bad_warnings[0].severity == "warning"
+    assert "tạm ngắt" in bad_warnings[0].message
 
     # 2. Slide chứa các phương trình điều kiện & biến đổi ĐÚNG (Không được báo lỗi giả)
     slide_clean_algebra = {
@@ -108,7 +109,9 @@ def test_task_10_2_sympy_algebraic_equivalence_verification():
         ],
     }
     clean_warnings = verify_math_with_sympy_in_slide(slide_clean_algebra, 3)
-    assert len(clean_warnings) == 0, f"Slide chuẩn không được phép có cảnh báo giả: {clean_warnings}"
+    assert len(clean_warnings) == 1
+    assert clean_warnings[0].category == "algebra_unverified"
+    assert clean_warnings[0].severity == "warning"
 
 
 def test_task_10_3_textbook_theorem_cross_checking_and_schema():
@@ -196,14 +199,14 @@ def test_task_10_5_dod_hoc_xinh_and_sign_error_end_to_end():
     )
 
     categories = {w.category for w in backend_res.warnings}
-    assert categories == {"spelling", "textbook_theorem", "algebra_sympy"}, (
-        f"Phải hội tụ đủ 3 tầng kiểm duyệt (spelling, textbook_theorem, algebra_sympy), nhận được: {categories}"
+    assert categories == {"spelling", "textbook_theorem", "algebra_unverified"}, (
+        f"M0 giữ kiểm tra chính tả/định lý và báo đại số chưa kiểm chứng: {categories}"
     )
     assert dod_deck == original_snapshot, "Backend audit_slide_deck tuyệt đối KHÔNG được làm biến đổi dữ liệu gốc của GV!"
 
     # 2. Kiểm định phía Frontend bằng Node.js ESM Runtime (pedagogicalLinterClient.js)
     node_script = r"""
-import { auditSlideDeckLocal, mergeAuditWarnings } from './src/utils/pedagogicalLinterClient.js';
+import { auditSlideDeckLocal, mergeAuditWarnings } from './src/shared/validation/pedagogicalLinterClient.js';
 
 const teacherDeck = {
   presentation_title: 'Bài giảng Phương trình bậc hai',
@@ -258,7 +261,7 @@ class TestDay10PedagogicalLinter(unittest.TestCase):
         test_task_10_1_vietnamese_spelling_and_audit_endpoint()
 
     def test_10_2_sympy_algebra_verification(self):
-        test_task_10_2_sympy_algebraic_equivalence_verification()
+        test_m0_symbolic_verification_reports_unverified()
 
     def test_10_3_textbook_theorem_crosscheck(self):
         test_task_10_3_textbook_theorem_cross_checking_and_schema()

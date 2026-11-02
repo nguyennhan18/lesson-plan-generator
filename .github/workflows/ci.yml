@@ -1,0 +1,46 @@
+name: Project checks
+
+on: [push, pull_request]
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    env:
+      GEMINI_API_KEY: ''
+      GROQ_API_KEY: ''
+      OPENROUTER_API_KEY: ''
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: python -m pip install --upgrade "pip>=26.2"
+      - run: python -m pip install -e ./app/backend
+      - run: make test-backend PYTHON=python
+      - run: make test-critical-backend PYTHON=python
+      - run: make audit-acceptance PYTHON=python REVIEW_OUTPUT=/tmp/lessonai-m0-acceptance
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: remediation-m0-evidence
+          path: /tmp/lessonai-m0-acceptance*.json
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: app/frontend/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run test:critical
+      - run: npm run build

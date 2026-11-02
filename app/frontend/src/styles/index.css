@@ -1,0 +1,167 @@
+@import 'katex/dist/katex.min.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  font-family: 'Inter', 'Saans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: #ffffff;
+  color: #141414;
+  letter-spacing: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Mobbin Design System Components */
+.gallery-card {
+  background-color: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 24px;
+}
+
+.gallery-card-soft {
+  background-color: #f3f3f3;
+  border: 1px solid #e0e0e0;
+  border-radius: 24px;
+}
+
+.glass-panel {
+  background-color: #ffffff;
+  border: 1px solid #e0e0e0;
+  box-shadow: none;
+}
+
+.glass-panel-glow {
+  background-color: #ffffff;
+  border: 1px solid #141414;
+  box-shadow: none;
+}
+
+/* Stadium Pill Buttons */
+.button-primary {
+  background-color: #141414;
+  color: #ffffff;
+  border-radius: 9999px;
+  padding: 8px 18px;
+  font-weight: 600;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+  border: none;
+  cursor: pointer;
+}
+.button-primary:hover {
+  background-color: #262626;
+}
+.button-primary:active {
+  transform: scale(0.98);
+}
+
+.button-outline {
+  background-color: #ffffff;
+  color: #141414;
+  border: 1px solid #e0e0e0;
+  border-radius: 9999px;
+  padding: 8px 18px;
+  font-weight: 600;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  cursor: pointer;
+}
+.button-outline:hover {
+  background-color: #f3f3f3;
+  border-color: #141414;
+}
+
+.button-pill-soft {
+  background-color: #f3f3f3;
+  color: #141414;
+  border: 1px solid transparent;
+  border-radius: 9999px;
+  padding: 6px 14px;
+  font-weight: 500;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background-color 0.15s ease;
+  cursor: pointer;
+}
+.button-pill-soft:hover {
+  background-color: #e0e0e0;
+}
+
+/* Inputs */
+.text-input {
+  background-color: #f0f0f0;
+  color: #141414;
+  border: 2px solid transparent;
+  border-radius: 16px;
+  padding: 10px 16px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.text-input:focus {
+  border-color: #141414;
+  background-color: #ffffff;
+}
+
+/* Badges */
+.badge-popular {
+  background-color: #0066ff;
+  color: #ffffff;
+  border-radius: 9999px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.badge-overlay {
+  background-color: rgba(115, 115, 115, 0.56);
+  color: #ffffff;
+  border-radius: 9999px;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* KaTeX light theme */
+.katex {
+  color: #141414 !important;
+}
+
+/* Minimal neutral scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f3f3f3;
+}
+::-webkit-scrollbar-thumb {
+  background: #e0e0e0;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #adadad;
+}

@@ -19,18 +19,18 @@ import pytest
 from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
 
-from main import app
-from schemas.schemas import LessonPlanSchema, LessonActivity, LessonRequest
-from schemas.slide_schema import SlideDeckSchema, SlideSchema, SlideType, ChartSpec, ChartType
-from exporters.docx_exporter import export_lesson_plan_to_docx, clean_xml_string, convert_latex_to_omml
-from exporters.slide_exporter import (
+from lessonai.main import app
+from lessonai.schemas.schemas import LessonPlanSchema, LessonActivity, LessonRequest
+from lessonai.schemas.slide_schema import SlideDeckSchema, SlideSchema, SlideType, ChartSpec, ChartType
+from lessonai.exporters.docx_exporter import export_lesson_plan_to_docx, clean_xml_string, convert_latex_to_omml
+from lessonai.exporters.slide_exporter import (
     render_latex_to_bytes,
     export_slide_deck_to_pptx,
     decode_base64_data_url,
     latex_to_unicode_math
 )
-from exporters.dual_package_exporter import sanitize_filename, export_dual_package
-from services.fallback_service import get_curated_lesson_plan, get_curated_slide_deck
+from lessonai.exporters.dual_package_exporter import sanitize_filename, export_dual_package
+from lessonai.services.generation.fallback import get_curated_lesson_plan, get_curated_slide_deck
 
 client = TestClient(app)
 
@@ -294,7 +294,7 @@ def test_lesson_plan_generate_fallback_when_llm_fails():
     Endpoint /api/v1/lesson-plan/generate phải trả về 200 OK với Curated Lesson Plan
     kèm cảnh báo rõ ràng, tuyệt đối không quăng mã lỗi 500.
     """
-    with patch("services.ai_service.llm_gateway.generate_structured", side_effect=TimeoutError("Connection timed out to Groq/Gemini")):
+    with patch("lessonai.llm.gateway.llm_gateway.generate_structured", side_effect=TimeoutError("Connection timed out to Groq/Gemini")):
         req_data = {
             "topic": "Hệ bất phương trình bậc nhất hai ẩn",
             "subject": "Toán học",
@@ -315,7 +315,7 @@ def test_slide_generate_fallback_when_llm_rate_limited():
     Endpoint /api/v1/slide/generate phải trả về 200 OK với Curated SlideDeck
     kèm các ảnh render bổ trợ đầy đủ, không gây lỗi 500.
     """
-    with patch("services.ai_service.llm_gateway.generate_structured", side_effect=RuntimeError("Groq 429: Rate limit reached")):
+    with patch("lessonai.llm.gateway.llm_gateway.generate_structured", side_effect=RuntimeError("Groq 429: Rate limit reached")):
         req_data = {
             "topic": "Tính đơn điệu và cực trị hàm số",
             "subject": "Toán học",
@@ -367,7 +367,7 @@ def test_generate_endpoints_with_whitespace_topic():
     Ca biên 5.2: Gửi bài dạy chỉ gồm khoảng trắng "   ".
     Hệ thống phải xử lý nhẹ nhàng, không gây Exception 500.
     """
-    with patch("services.ai_service.llm_gateway.generate_structured", side_effect=ValueError("Invalid prompt")):
+    with patch("lessonai.llm.gateway.llm_gateway.generate_structured", side_effect=ValueError("Invalid prompt")):
         req_data = {
             "topic": "   ",
             "subject": "Toán học",

@@ -5,11 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "test": "node --test",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:critical": "node --test tests/critical-regressions.test.js"
   },
   "dependencies": {
-    "katex": "^0.16.11",
+    "katex": "^0.18.10",
     "lucide-react": "^0.460.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

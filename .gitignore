@@ -36,19 +36,21 @@ project/
 *.code-workspace
 ~$*
 
-# Documents & Planning files
+# Documents, Reports & Planning files
 docs/
+reports/
 plan_*.md
+*.docx
+*.pptx
+*.pdf
+
+# Data directories (Root and Backend)
+data/
+app/backend/data/
 
 # Generated output files
 app/backend/output/
 *.log
 
-# Explicitly keep templates and test fixtures
-!app/backend/src/templates/*.pptx
-!app/backend/tests/fixtures/*.docx
-!app/backend/tests/fixtures/*.pptx
-
-# Raw offline data (564MB raw PPTX/PDF files in root)
-/data/
-
+# Python packaging and build metadata
+app/backend/dist/

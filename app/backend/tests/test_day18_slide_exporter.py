@@ -19,10 +19,8 @@ from pptx.enum.shapes import MSO_SHAPE
 ROOT_DIR = Path(__file__).resolve().parents[3]
 BACKEND_SRC = ROOT_DIR / "app" / "backend" / "src"
 
-if str(BACKEND_SRC) not in sys.path:
-    sys.path.insert(0, str(BACKEND_SRC))
 
-from exporters.slide_exporter import (
+from lessonai.exporters.slide_exporter import (
     export_slide_deck_to_pptx,
     build_title_slide,
     build_quiz_slide,
@@ -1368,7 +1366,7 @@ def test_task_18_5_dod_scorecard_14_criteria():
     scorecard["Criterion_3_Robust_Base64_Handling"] = True
 
     # 4. Polyhedron SGK Classification
-    from exporters.slide_exporter import POLYHEDRON_LABELS
+    from lessonai.exporters.slide_exporter import POLYHEDRON_LABELS
     expected_polyhedra = ["cube", "pyramid_square", "pyramid_triangle", "prism_triangle", "cone", "cylinder", "sphere"]
     assert all(k in POLYHEDRON_LABELS for k in expected_polyhedra)
     scorecard["Criterion_4_Polyhedron_SGK_Classification"] = True
@@ -1415,7 +1413,7 @@ def test_task_18_5_dod_scorecard_14_criteria():
     scorecard["Criterion_8_Distractor_Rationales"] = True
 
     # 9. ECMA-376 XML Sanitization
-    from exporters.slide_exporter import clean_xml_string
+    from lessonai.exporters.slide_exporter import clean_xml_string
     dirty_str = "Toán\x00\x05\x0B\x0C12\x1F\x7F"
     cleaned = clean_xml_string(dirty_str)
     assert cleaned == "Toán12"

@@ -16,10 +16,8 @@ if ENV_PATH.exists():
     load_dotenv(dotenv_path=ENV_PATH)
 
 # 2. Thêm đường dẫn src vào sys.path để import các module hệ thống
-if str(SRC_DIR) not in sys.path:
-    sys.path.insert(0, str(SRC_DIR))
 
-from services.grade_classifier import (
+from lessonai.services.analytics import (
     StudentEvaluation,
     GradeStatistics,
     ClassProficiencyResult,
@@ -32,7 +30,7 @@ from services.grade_classifier import (
     classify_class_proficiency,
     classify_grade_sheet,
 )
-from main import app
+from lessonai.main import app
 
 client = TestClient(app)
 

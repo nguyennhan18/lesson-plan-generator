@@ -25,10 +25,10 @@ from docx import Document
 from pptx import Presentation
 from PIL import Image
 
-from main import app
-from schemas.schemas import LessonPlanSchema
-from schemas.slide_schema import SlideDeckSchema
-from services.fallback_service import get_curated_lesson_plan, get_curated_slide_deck
+from lessonai.main import app
+from lessonai.schemas.schemas import LessonPlanSchema
+from lessonai.schemas.slide_schema import SlideDeckSchema
+from lessonai.services.generation.fallback import get_curated_lesson_plan, get_curated_slide_deck
 
 client = TestClient(app)
 
@@ -246,8 +246,9 @@ def test_dod_all_endpoints_zero_500_resilience():
         "expression": "8 - 2*x",
         "domain": [0, 6]
     })
-    assert res_chart.status_code == 200
-    assert res_chart.headers["content-type"] == "image/png"
+    assert res_chart.status_code == 503
+    assert res_chart.headers["content-type"] == "application/json"
+    assert res_chart.json()["detail"]["code"] == "expression_processing_temporarily_unavailable"
 
     # 5. Word export với dữ liệu tối giản
     res_word = client.post("/api/v1/lesson-plan/export-docx", json={

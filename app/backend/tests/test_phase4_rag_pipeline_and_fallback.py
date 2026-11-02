@@ -1,11 +1,11 @@
 import pytest
 from fastapi.testclient import TestClient
-from main import app
-from schemas.schemas import LessonRequest
-from schemas.slide_schema import SlideType, SlideLayout
-from services.fallback_service import get_curated_lesson_plan, get_curated_slide_deck
-from services.validation import validate_5512_lesson_plan
-from rag.curriculum_registry import infer_lesson_id
+from lessonai.main import app
+from lessonai.schemas.schemas import LessonRequest
+from lessonai.schemas.slide_schema import SlideType, SlideLayout
+from lessonai.services.generation.fallback import get_curated_lesson_plan, get_curated_slide_deck
+from lessonai.services.validation import validate_5512_lesson_plan
+from lessonai.rag.curriculum_registry import infer_lesson_id
 
 client = TestClient(app)
 
@@ -15,7 +15,7 @@ def speed_up_offline_tests(monkeypatch):
     """Giúp test chạy tức thì (< 1s) trong môi trường kiểm thử offline không có mạng"""
     def fast_mock_llm(*args, **kwargs):
         raise ConnectionError("Offline test mode: kích hoạt nhanh Retrieval Fallback")
-    monkeypatch.setattr("services.ai_service.llm_gateway.generate_structured", fast_mock_llm)
+    monkeypatch.setattr("lessonai.llm.gateway.llm_gateway.generate_structured", fast_mock_llm)
 
 
 def test_retrieval_fallback_across_all_math12_chapters():

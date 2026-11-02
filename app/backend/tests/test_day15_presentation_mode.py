@@ -17,10 +17,8 @@ ROOT_DIR = Path(__file__).resolve().parents[3]
 BACKEND_SRC = ROOT_DIR / "app" / "backend" / "src"
 FRONTEND_DIR = ROOT_DIR / "app" / "frontend"
 
-if str(BACKEND_SRC) not in sys.path:
-    sys.path.insert(0, str(BACKEND_SRC))
 
-from main import app
+from lessonai.main import app
 
 client = TestClient(app)
 
@@ -34,7 +32,7 @@ def test_task_15_1_fullscreen_helper_implementation():
     - Định nghĩa togglePresentationFullscreen()
     - Định nghĩa onFullscreenChange() lắng nghe fullscreenchange và webkitfullscreenchange
     """
-    helper_path = FRONTEND_DIR / "src" / "utils" / "fullscreenHelper.js"
+    helper_path = FRONTEND_DIR / "src" / "features" / "presentation" / "fullscreenHelper.js"
     assert helper_path.exists(), f"Không tìm thấy tệp {helper_path}"
     content = helper_path.read_text(encoding="utf-8")
 
@@ -59,7 +57,7 @@ def test_task_15_1_header_nav_start_presentation_button():
     - Nhận prop onStartPresentation và kích hoạt sự kiện khi click
     - Nhận prop isPresentationMode
     """
-    header_path = FRONTEND_DIR / "src" / "components" / "HeaderNav.jsx"
+    header_path = FRONTEND_DIR / "src" / "shared" / "components" / "HeaderNav.jsx"
     assert header_path.exists(), f"Không tìm thấy tệp {header_path}"
     content = header_path.read_text(encoding="utf-8")
 
@@ -81,6 +79,8 @@ def test_task_15_1_app_state_and_fullscreen_integration():
     app_path = FRONTEND_DIR / "src" / "App.jsx"
     assert app_path.exists(), f"Không tìm thấy tệp {app_path}"
     content = app_path.read_text(encoding="utf-8")
+    assert "usePresentationControls" in content
+    content += (FRONTEND_DIR / "src" / "features" / "presentation" / "usePresentationControls.js").read_text(encoding="utf-8")
 
     assert "isPresentationMode" in content
     assert "setIsPresentationMode" in content
@@ -118,8 +118,10 @@ def test_task_15_2_presentation_mode_sidebar_and_dock_hiding():
     assert "onExitPresentation={handleExitPresentation}" in content
 
     # Kiểm tra phím tắt Escape để thoát trình chiếu
-    assert "'Escape'" in content
-    assert "handleExitPresentation()" in content
+    controls_code = (FRONTEND_DIR / "src" / "features" / "presentation" / "usePresentationControls.js").read_text(encoding="utf-8")
+    assert "usePresentationControls" in content
+    assert "'Escape'" in controls_code
+    assert "handleExitPresentation()" in controls_code
 
 
 def test_task_15_2_presentation_stage_16_9_cinema_layout():
@@ -132,7 +134,7 @@ def test_task_15_2_presentation_stage_16_9_cinema_layout():
     - Hiển thị badge '16:9 Cinema'
     - Có nút Thoát trình chiếu (Minimize2, nhãn 'Thoát', phím tắt Esc) gọi onExitPresentation
     """
-    stage_path = FRONTEND_DIR / "src" / "components" / "PresentationStage.jsx"
+    stage_path = FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationStage.jsx"
     assert stage_path.exists(), f"Không tìm thấy tệp {stage_path}"
     content = stage_path.read_text(encoding="utf-8")
 
@@ -173,6 +175,8 @@ def test_task_15_3_keyboard_shortcuts_navigation_and_hotkeys():
     app_path = FRONTEND_DIR / "src" / "App.jsx"
     assert app_path.exists(), f"Không tìm thấy tệp {app_path}"
     content = app_path.read_text(encoding="utf-8")
+    assert "usePresentationControls" in content
+    content += (FRONTEND_DIR / "src" / "features" / "presentation" / "usePresentationControls.js").read_text(encoding="utf-8")
 
     # State Blackout
     assert "isBlackout" in content
@@ -209,7 +213,7 @@ def test_task_15_3_blackout_mode_overlay_and_curtain():
     - Có nút 'Tối màn hình (B)' trong header khi ở isPresentationMode
     - Footer hiển thị phím tắt đầy đủ: [← / → / Space]: Chuyển slide • [B]: Tối màn hình • [Esc / F5]: Thoát
     """
-    stage_path = FRONTEND_DIR / "src" / "components" / "PresentationStage.jsx"
+    stage_path = FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationStage.jsx"
     assert stage_path.exists(), f"Không tìm thấy tệp {stage_path}"
     content = stage_path.read_text(encoding="utf-8")
 
@@ -245,7 +249,7 @@ def test_task_15_4_presentation_floating_bar_component():
     - Nút điều hướng slide (onPrevSlide, onNextSlide), danh mục Thumbnails (showThumbnails)
     - Nút Tối màn hình (Moon, B) và Thoát (Minimize2, Esc)
     """
-    bar_path = FRONTEND_DIR / "src" / "components" / "PresentationFloatingBar.jsx"
+    bar_path = FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationFloatingBar.jsx"
     assert bar_path.exists(), f"Không tìm thấy tệp {bar_path}"
     content = bar_path.read_text(encoding="utf-8")
 
@@ -285,7 +289,7 @@ def test_task_15_4_floating_bar_integration_in_presentation_stage():
     - Truyền đầy đủ props: currentSlide, totalSlides, onPrevSlide, onNextSlide, onSelectSlide,
       slides, isBlackout, onToggleBlackout, onExitPresentation, visualMode, onSelectVisualMode
     """
-    stage_path = FRONTEND_DIR / "src" / "components" / "PresentationStage.jsx"
+    stage_path = FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationStage.jsx"
     assert stage_path.exists(), f"Không tìm thấy tệp {stage_path}"
     content = stage_path.read_text(encoding="utf-8")
 
@@ -309,14 +313,14 @@ def test_task_15_5_definition_of_done_e2e_presentation_mode():
     - Đồng hồ 45 phút đếm ngược chính xác: 2700 giây về 0, phân tầng màu xanh/vàng/đỏ, tự động mờ khi không di chuột sau 3.5s.
     """
     # 1. Kiểm tra Fullscreen Helper
-    helper_path = FRONTEND_DIR / "src" / "utils" / "fullscreenHelper.js"
+    helper_path = FRONTEND_DIR / "src" / "features" / "presentation" / "fullscreenHelper.js"
     assert helper_path.exists()
     helper_code = helper_path.read_text(encoding="utf-8")
     for fn in ["isFullscreenActive", "requestPresentationFullscreen", "exitPresentationFullscreen", "togglePresentationFullscreen", "onFullscreenChange"]:
         assert fn in helper_code
 
     # 2. Kiểm tra HeaderNav & Nút Bắt đầu Tiết học
-    header_path = FRONTEND_DIR / "src" / "components" / "HeaderNav.jsx"
+    header_path = FRONTEND_DIR / "src" / "shared" / "components" / "HeaderNav.jsx"
     assert header_path.exists()
     header_code = header_path.read_text(encoding="utf-8")
     assert "Bắt đầu Tiết học" in header_code
@@ -330,11 +334,13 @@ def test_task_15_5_definition_of_done_e2e_presentation_mode():
     assert "isPresentationMode" in app_code
     assert "isBlackout" in app_code
     assert "!isPresentationMode &&" in app_code  # Ẩn HeaderNav, TeacherChatDock, RightToolsDock
-    assert "'Escape'" in app_code
-    assert "'b'" in app_code or "'B'" in app_code
+    controls_code = (FRONTEND_DIR / "src" / "features" / "presentation" / "usePresentationControls.js").read_text(encoding="utf-8")
+    assert "usePresentationControls" in app_code
+    assert "'Escape'" in controls_code
+    assert "'b'" in controls_code or "'B'" in controls_code
 
     # 4. Kiểm tra PresentationStage.jsx
-    stage_path = FRONTEND_DIR / "src" / "components" / "PresentationStage.jsx"
+    stage_path = FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationStage.jsx"
     assert stage_path.exists()
     stage_code = stage_path.read_text(encoding="utf-8")
     assert "fixed inset-0 z-50 bg-black" in stage_code
@@ -344,7 +350,7 @@ def test_task_15_5_definition_of_done_e2e_presentation_mode():
     assert "PresentationFloatingBar" in stage_code
 
     # 5. Kiểm tra PresentationFloatingBar.jsx
-    bar_path = FRONTEND_DIR / "src" / "components" / "PresentationFloatingBar.jsx"
+    bar_path = FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationFloatingBar.jsx"
     assert bar_path.exists()
     bar_code = bar_path.read_text(encoding="utf-8")
     assert "45 * 60" in bar_code  # 45 phút chuẩn GDPT

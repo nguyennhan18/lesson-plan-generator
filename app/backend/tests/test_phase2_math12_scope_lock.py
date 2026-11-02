@@ -1,9 +1,9 @@
 import pytest
-from schemas.schemas import LessonRequest
-from schemas.slide_schema import SlideSchema, SlideType, SlideLayout
-from rag.curriculum_registry import infer_lesson_id, CurriculumRegistry
+from lessonai.schemas.schemas import LessonRequest
+from lessonai.schemas.slide_schema import SlideSchema, SlideType, SlideLayout
+from lessonai.rag.curriculum_registry import infer_lesson_id, CurriculumRegistry
 from fastapi.testclient import TestClient
-from main import app
+from lessonai.main import app
 
 client = TestClient(app)
 
@@ -46,12 +46,12 @@ def test_slide_schema_source_refs_and_pedagogical_mode():
         layout=SlideLayout.TWO_COLUMN,
         title="Tính đơn điệu của hàm số",
         bullet_points=["Định lý điều kiện đủ của tính đơn điệu"],
-        source_refs=[{"source": "slides_kntt12", "slide_id": "M12-C1-B1-S05"}],
+        source_refs=[{"source_type": "slide_kntt12", "id": "M12-C1-B1-S05"}],
         pedagogical_mode="Hoạt động thảo luận cặp đôi (3 phút)"
     )
     assert slide.source_refs is not None
     assert len(slide.source_refs) == 1
-    assert slide.source_refs[0]["slide_id"] == "M12-C1-B1-S05"
+    assert slide.model_dump()["source_refs"][0]["id"] == "M12-C1-B1-S05"
     assert slide.pedagogical_mode == "Hoạt động thảo luận cặp đôi (3 phút)"
 
 

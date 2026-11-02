@@ -1,8 +1,8 @@
 import time
 import pytest
-from rag.retriever import Math12HybridRetriever
-from rag.context_builder import PedagogicalContextBuilder
-from rag.curriculum_registry import CurriculumRegistry
+from lessonai.rag.retriever import Math12HybridRetriever
+from lessonai.rag.context_builder import PedagogicalContextBuilder
+from lessonai.rag.curriculum_registry import CurriculumRegistry
 
 
 @pytest.fixture(scope="module")

@@ -16,11 +16,9 @@ ROOT_DIR = Path(__file__).resolve().parents[3]
 BACKEND_SRC = ROOT_DIR / "app" / "backend" / "src"
 FRONTEND_DIR = ROOT_DIR / "app" / "frontend"
 
-if str(BACKEND_SRC) not in sys.path:
-    sys.path.insert(0, str(BACKEND_SRC))
 
-from main import app
-from services.geometry_service import calculate_parametric_geometry, get_apex_coordinates
+from lessonai.main import app
+from lessonai.services.geometry import calculate_parametric_geometry, get_apex_coordinates
 
 client = TestClient(app)
 
@@ -119,7 +117,7 @@ def test_task_12_frontend_code_integration():
     assert "geoHeight" in app_jsx
     assert "geoBaseEdge" in app_jsx
 
-    pres_jsx = (FRONTEND_DIR / "src" / "components" / "PresentationStage.jsx").read_text(encoding="utf-8")
+    pres_jsx = (FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationStage.jsx").read_text(encoding="utf-8")
     assert "handleHeightInput" in pres_jsx
     assert "handleBaseEdgeInput" in pres_jsx
     assert "volumeLatex" in pres_jsx
@@ -127,15 +125,15 @@ def test_task_12_frontend_code_integration():
     assert "generalFormula" in pres_jsx
     assert "substFormula" in pres_jsx
 
-    canvas_jsx = (FRONTEND_DIR / "src" / "components" / "ThreeCanvas.jsx").read_text(encoding="utf-8")
+    canvas_jsx = (FRONTEND_DIR / "src" / "features" / "geometry" / "ThreeCanvas.jsx").read_text(encoding="utf-8")
     assert "heightParam" in canvas_jsx
     assert "baseParam" in canvas_jsx
 
-    dock_jsx = (FRONTEND_DIR / "src" / "components" / "RightToolsDock.jsx").read_text(encoding="utf-8")
+    dock_jsx = (FRONTEND_DIR / "src" / "features" / "geometry" / "RightToolsDock.jsx").read_text(encoding="utf-8")
     assert "computeParametricCoordinatesLocal" in dock_jsx
     assert "Thể tích V:" in dock_jsx
 
-    client_js = (FRONTEND_DIR / "src" / "utils" / "geometryClient.js").read_text(encoding="utf-8")
+    client_js = (FRONTEND_DIR / "src" / "features" / "geometry" / "geometryClient.js").read_text(encoding="utf-8")
     assert "computeParametricCoordinatesLocal" in client_js
     assert "fetchParametricCoordinatesRemote" in client_js
 
@@ -149,7 +147,7 @@ def test_task_12_4_render_performance_raf_and_texture_cache():
     - RightToolsDock.jsx: Áp dụng requestAnimationFrame cho cụm thanh trượt
     - Có biểu tượng và trạng thái '60 FPS rAF' thông báo cho giáo viên
     """
-    canvas_jsx = (FRONTEND_DIR / "src" / "components" / "ThreeCanvas.jsx").read_text(encoding="utf-8")
+    canvas_jsx = (FRONTEND_DIR / "src" / "features" / "geometry" / "ThreeCanvas.jsx").read_text(encoding="utf-8")
     assert "labelTextureCache" in canvas_jsx
     assert "getOrCreateLabelTexture" in canvas_jsx
     assert "rafRebuildRef" in canvas_jsx
@@ -157,14 +155,14 @@ def test_task_12_4_render_performance_raf_and_texture_cache():
     assert "cancelAnimationFrame" in canvas_jsx
     assert "60 FPS rAF" in canvas_jsx
 
-    pres_jsx = (FRONTEND_DIR / "src" / "components" / "PresentationStage.jsx").read_text(encoding="utf-8")
+    pres_jsx = (FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationStage.jsx").read_text(encoding="utf-8")
     assert "rafHeightRef" in pres_jsx
     assert "rafBaseRef" in pres_jsx
     assert "requestAnimationFrame" in pres_jsx
     assert "cancelAnimationFrame" in pres_jsx
     assert "60 FPS rAF" in pres_jsx
 
-    dock_jsx = (FRONTEND_DIR / "src" / "components" / "RightToolsDock.jsx").read_text(encoding="utf-8")
+    dock_jsx = (FRONTEND_DIR / "src" / "features" / "geometry" / "RightToolsDock.jsx").read_text(encoding="utf-8")
     assert "rafHeightRef" in dock_jsx
     assert "rafBaseRef" in dock_jsx
     assert "requestAnimationFrame" in dock_jsx

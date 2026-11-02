@@ -6,13 +6,11 @@ from fastapi.testclient import TestClient
 # Thêm đường dẫn src vào sys.path
 TESTS_DIR = Path(__file__).resolve().parent
 SRC_DIR = TESTS_DIR.parent / "src"
-if str(SRC_DIR) not in sys.path:
-    sys.path.insert(0, str(SRC_DIR))
 
-from parsers.common import clean_text, ParsedDocumentResponse
-from parsers.docx_parser import parse_docx
-from parsers.pptx_parser import parse_pptx
-from main import app
+from lessonai.parsers.common import clean_text, ParsedDocumentResponse
+from lessonai.parsers.docx_parser import parse_docx
+from lessonai.parsers.pptx_parser import parse_pptx
+from lessonai.main import app
 
 client = TestClient(app)
 

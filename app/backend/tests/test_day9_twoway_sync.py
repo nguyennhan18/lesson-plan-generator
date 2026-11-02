@@ -15,13 +15,13 @@ from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parents[3]
 FRONTEND_DIR = ROOT_DIR / "app" / "frontend"
-MATHLIVE_MODAL = FRONTEND_DIR / "src" / "components" / "MathLiveModal.jsx"
-MATHTEXT_JSX = FRONTEND_DIR / "src" / "components" / "MathText.jsx"
-PRESENTATION_STAGE = FRONTEND_DIR / "src" / "components" / "PresentationStage.jsx"
-SLIDE_EDITOR = FRONTEND_DIR / "src" / "components" / "SlideEditorScreen.jsx"
+MATHLIVE_MODAL = FRONTEND_DIR / "src" / "shared" / "math" / "MathLiveModal.jsx"
+MATHTEXT_JSX = FRONTEND_DIR / "src" / "shared" / "math" / "MathText.jsx"
+PRESENTATION_STAGE = FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationStage.jsx"
+SLIDE_EDITOR = FRONTEND_DIR / "src" / "features" / "slide-editor" / "SlideEditorScreen.jsx"
 APP_JSX = FRONTEND_DIR / "src" / "App.jsx"
-SLIDE_DECK_STORAGE = FRONTEND_DIR / "src" / "utils" / "slideDeckStorage.js"
-LATEX_VALIDATOR = FRONTEND_DIR / "src" / "utils" / "latexValidator.js"
+SLIDE_DECK_STORAGE = FRONTEND_DIR / "src" / "shared" / "storage" / "slideDeckStorage.js"
+LATEX_VALIDATOR = FRONTEND_DIR / "src" / "shared" / "math" / "latexValidator.js"
 
 
 def test_task_9_1_latex_expanded_extraction_and_context_preservation():
@@ -53,7 +53,7 @@ def test_task_9_2_browser_memory_slide_json_sync():
     Task 9.2: Kiểm tra cập nhật chuỗi LaTeX mới vào cấu trúc Slide JSON
     đang lưu trữ trong bộ nhớ trình duyệt (sessionStorage + window.__LESSONAI_SLIDE_DECK_JSON__).
     """
-    assert SLIDE_DECK_STORAGE.exists(), "Không tìm thấy app/frontend/src/utils/slideDeckStorage.js"
+    assert SLIDE_DECK_STORAGE.exists(), "Không tìm thấy app/frontend/src/shared/storage/slideDeckStorage.js"
     storage_code = SLIDE_DECK_STORAGE.read_text(encoding="utf-8")
 
     # Kiểm tra các hàm cốt lõi trong slideDeckStorage.js
@@ -112,7 +112,7 @@ def test_task_9_4_latex_syntax_validator_four_layers():
     Task 9.4: Kiểm tra bộ kiểm duyệt cú pháp LaTeX 4 tầng (latexValidator.js)
     và chốt chặn an toàn trước khi lưu trong MathLiveModal.jsx + SlideEditorScreen.jsx.
     """
-    assert LATEX_VALIDATOR.exists(), "Không tìm thấy app/frontend/src/utils/latexValidator.js"
+    assert LATEX_VALIDATOR.exists(), "Không tìm thấy app/frontend/src/shared/math/latexValidator.js"
     validator_code = LATEX_VALIDATOR.read_text(encoding="utf-8")
 
     for fn_name in [
@@ -143,13 +143,13 @@ def test_task_9_5_dod_end_to_end_formula_update_y_2x_to_x2_plus_1():
     """
     node_script = r"""
 import katex from 'katex';
-import { validateLatexSyntax } from './src/utils/latexValidator.js';
+import { validateLatexSyntax } from './src/shared/math/latexValidator.js';
 import {
   SLIDE_DECK_STORAGE_KEY,
   saveSlideDeckToBrowserMemory,
   loadSlideDeckFromBrowserMemory,
   updateSlideFormulaInDeck,
-} from './src/utils/slideDeckStorage.js';
+} from './src/shared/storage/slideDeckStorage.js';
 
 // Giả lập môi trường bộ nhớ trình duyệt (window + sessionStorage)
 const memoryStore = new Map();

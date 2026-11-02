@@ -19,19 +19,17 @@ from fastapi.testclient import TestClient
 # Thiết lập đường dẫn src
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 SRC_DIR = BACKEND_DIR / "src"
-if str(SRC_DIR) not in sys.path:
-    sys.path.insert(0, str(SRC_DIR))
 
 # Đặt thư mục đệm Matplotlib để chạy an toàn trong môi trường test
 os.environ["MPLCONFIGDIR"] = "/tmp/matplotlib_day20_test"
 
-from main import app
-from schemas.schemas import LessonPlanSchema
-from schemas.slide_schema import SlideDeckSchema, ChartType, SlideType
-from services.ai_service import generate_lesson_plan, generate_slide_deck
-from services.fallback_service import get_curated_lesson_plan, get_curated_slide_deck
-from services.validation import validate_5512_lesson_plan
-from exporters.graph_generator import generate_math_plot, is_plottable
+from lessonai.main import app
+from lessonai.schemas.schemas import LessonPlanSchema
+from lessonai.schemas.slide_schema import SlideDeckSchema, ChartType, SlideType
+from lessonai.services.generation import generate_lesson_plan, generate_slide_deck
+from lessonai.services.generation.fallback import get_curated_lesson_plan, get_curated_slide_deck
+from lessonai.services.validation import validate_5512_lesson_plan
+from lessonai.exporters.graph_generator import generate_math_plot, is_plottable
 from docx import Document
 from pptx import Presentation
 
@@ -46,7 +44,7 @@ def speed_up_offline_tests(monkeypatch):
     thay vì phải chờ timeout 120s của 5 tuyến model.
     """
     # Nếu môi trường không có key thật hoặc không kết nối được mạng
-    from services.ai_service import llm_gateway
+    from lessonai.llm.gateway import llm_gateway
     original_generate = llm_gateway.generate_structured
 
     def fast_gateway(prompt, system_prompt, response_schema, task_type="lesson_plan", **kwargs):
@@ -69,7 +67,7 @@ def speed_up_offline_tests(monkeypatch):
         return get_curated_lesson_plan(topic, "Toán học", grade)
 
     # Trong môi trường test cô lập, kích hoạt fast_gateway để test hoàn tất trong < 2 giây
-    monkeypatch.setattr("services.ai_service.llm_gateway.generate_structured", fast_gateway)
+    monkeypatch.setattr("lessonai.llm.gateway.llm_gateway.generate_structured", fast_gateway)
 
 
 # ==============================================================================
@@ -177,14 +175,11 @@ def test_grade10_chart_rendering_endpoint():
         "y_max": 6.0
     }
 
-    assert is_plottable(spec) is True, "is_plottable phải trả về True cho inequality_system"
-
-    # Gọi trực tiếp qua API endpoint
+    assert is_plottable(spec) is False, "M0 tạm ngắt xử lý biểu thức biên"
     response = client.post("/api/v1/chart/render", json=spec)
-    assert response.status_code == 200
-    assert response.headers["content-type"] == "image/png"
-    assert len(response.content) > 5000, f"Dung lượng ảnh đồ thị quá nhỏ: {len(response.content)} bytes"
-    assert response.content[:4] == b'\x89PNG', "Định dạng ảnh trả về không phải là PNG hợp lệ"
+    assert response.status_code == 503
+    assert response.headers["content-type"] == "application/json"
+    assert response.json()["detail"]["code"] == "expression_processing_temporarily_unavailable"
 
 
 # ==============================================================================
@@ -321,7 +316,7 @@ def test_grade10_e2e_zero_500_offline_resilience(monkeypatch):
         raise ConnectionError("Mạng Internet bị gián đoạn hoặc API Key Gemini hết hạn (Chaos Test).")
 
     # Ép Gateway ném Exception
-    monkeypatch.setattr("services.ai_service.llm_gateway.generate_structured", mock_broken_llm)
+    monkeypatch.setattr("lessonai.llm.gateway.llm_gateway.generate_structured", mock_broken_llm)
 
     # 1. Test endpoint sinh Kế hoạch bài dạy
     res_plan = client.post("/api/v1/lesson-plan/generate", json={
@@ -569,7 +564,7 @@ def test_grade11_e2e_zero_500_offline_resilience(monkeypatch):
     def mock_broken_llm(*args, **kwargs):
         raise ConnectionError("Mạng Internet bị gián đoạn hoặc API Key Gemini hết hạn (Chaos Test Lớp 11).")
 
-    monkeypatch.setattr("services.ai_service.llm_gateway.generate_structured", mock_broken_llm)
+    monkeypatch.setattr("lessonai.llm.gateway.llm_gateway.generate_structured", mock_broken_llm)
 
     # 1. Test endpoint sinh Kế hoạch bài dạy
     res_plan = client.post("/api/v1/lesson-plan/generate", json={
@@ -824,7 +819,7 @@ def test_grade12_e2e_zero_500_offline_resilience(monkeypatch):
     def mock_broken_llm(*args, **kwargs):
         raise ConnectionError("Mạng Internet bị gián đoạn hoặc API Key Gemini hết hạn (Chaos Test Lớp 12).")
 
-    monkeypatch.setattr("services.ai_service.llm_gateway.generate_structured", mock_broken_llm)
+    monkeypatch.setattr("lessonai.llm.gateway.llm_gateway.generate_structured", mock_broken_llm)
 
     # 1. Test endpoint sinh Kế hoạch bài dạy
     res_plan = client.post("/api/v1/lesson-plan/generate", json={

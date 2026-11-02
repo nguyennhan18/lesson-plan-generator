@@ -6,10 +6,8 @@ from pydantic import ValidationError
 from pathlib import Path
 
 SRC_DIR = Path(__file__).resolve().parent.parent / "src"
-if str(SRC_DIR) not in sys.path:
-    sys.path.insert(0, str(SRC_DIR))
 
-from schemas.slide_schema import (
+from lessonai.schemas.slide_schema import (
     SlideDeckSchema,
     SlideSchema,
     SlideType,
@@ -18,7 +16,7 @@ from schemas.slide_schema import (
     ClassProficiency,
     ThemeType,
 )
-from schemas.schemas import LessonRequest
+from lessonai.schemas.schemas import LessonRequest
 
 
 def test_quiz_slide_valid():

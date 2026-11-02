@@ -19,12 +19,10 @@ from fastapi.testclient import TestClient
 ROOT_DIR = Path(__file__).resolve().parents[3]
 BACKEND_SRC = ROOT_DIR / "app" / "backend" / "src"
 
-if str(BACKEND_SRC) not in sys.path:
-    sys.path.insert(0, str(BACKEND_SRC))
 
-from schemas.schemas import LessonPlanSchema, LessonActivity, ExecutionSteps
-from schemas.slide_schema import SlideDeckSchema
-from exporters.docx_exporter import (
+from lessonai.schemas.schemas import LessonPlanSchema, LessonActivity, ExecutionSteps
+from lessonai.schemas.slide_schema import SlideDeckSchema
+from lessonai.exporters.docx_exporter import (
     export_lesson_plan_to_docx,
     export_lesson_plan_to_docx_file,
     synchronize_lesson_and_slide_deck,
@@ -33,13 +31,13 @@ from exporters.docx_exporter import (
     convert_latex_to_omml,
     add_text_with_latex,
 )
-from exporters.dual_package_exporter import (
+from lessonai.exporters.dual_package_exporter import (
     export_dual_package,
     remove_vietnamese_diacritics,
     sanitize_filename,
     DualPackageResult,
 )
-from utils.temp_file_cleaner import (
+from lessonai.utils.temp_file_cleaner import (
     TempFileCleaner,
     CleaningReport,
     TempStatsReport,
@@ -47,7 +45,7 @@ from utils.temp_file_cleaner import (
     cleanup_memory_and_figures,
     get_temp_storage_stats,
 )
-from main import app
+from lessonai.main import app
 
 client = TestClient(app)
 
@@ -445,7 +443,7 @@ def test_task_19_2_frontend_ui_export_buttons_presence():
     frontend_dir = ROOT_DIR / "app" / "frontend" / "src"
 
     # 1. HeaderNav.jsx
-    header_path = frontend_dir / "components" / "HeaderNav.jsx"
+    header_path = frontend_dir / "shared" / "components" / "HeaderNav.jsx"
     assert header_path.exists()
     header_content = header_path.read_text(encoding="utf-8")
     assert "Tải Về" in header_content
@@ -457,7 +455,7 @@ def test_task_19_2_frontend_ui_export_buttons_presence():
     assert "onExportPptx" in header_content
 
     # 2. LessonPlanScreen.jsx
-    lesson_path = frontend_dir / "components" / "LessonPlanScreen.jsx"
+    lesson_path = frontend_dir / "features" / "lesson-plan" / "LessonPlanScreen.jsx"
     assert lesson_path.exists()
     lesson_content = lesson_path.read_text(encoding="utf-8")
     assert "Tải Word (.docx)" in lesson_content
@@ -467,7 +465,7 @@ def test_task_19_2_frontend_ui_export_buttons_presence():
     assert "onExportPptx" in lesson_content
 
     # 3. SlideEditorScreen.jsx
-    slide_editor_path = frontend_dir / "components" / "SlideEditorScreen.jsx"
+    slide_editor_path = frontend_dir / "features" / "slide-editor" / "SlideEditorScreen.jsx"
     assert slide_editor_path.exists()
     slide_editor_content = slide_editor_path.read_text(encoding="utf-8")
     assert "Tải Slide (.pptx)" in slide_editor_content
@@ -483,7 +481,9 @@ def test_task_19_2_frontend_ui_export_buttons_presence():
     assert "handleExportDualPackage" in app_content
     assert "handleExportDocx" in app_content
     assert "handleExportPptx" in app_content
-    assert "/api/v1/lesson-plan/export-dual-package" in app_content
+    export_path = frontend_dir / "features" / "exports" / "documentExportActions.js"
+    assert "createDocumentExportActions" in app_content
+    assert "/api/v1/lesson-plan/export-dual-package" in export_path.read_text(encoding="utf-8")
     assert "onExportDualPackage={handleExportDualPackage}" in app_content
 
 
@@ -720,7 +720,7 @@ def test_task_19_4_memory_and_matplotlib_cleanup():
     """
     Task 19.4: Kiểm tra giải phóng tài nguyên bộ nhớ rò rỉ:
     - Mở các figure Matplotlib rồi gọi hàm dọn dẹp
-    - Đảm bảo tất cả figure được đóng hoàn toàn
+    - Đảm bảo cleanup không đóng figure thuộc job khác
     - Kích hoạt Python Garbage Collection thu gom rác
     """
     import matplotlib.pyplot as plt
@@ -735,8 +735,10 @@ def test_task_19_4_memory_and_matplotlib_cleanup():
     # Kích hoạt dọn dẹp bộ nhớ
     res = cleanup_memory_and_figures()
 
-    assert len(plt.get_fignums()) == 0, "Tất cả Matplotlib figures phải được đóng triệt để"
-    assert res["figures_closed"] >= 3
+    assert all(plt.fignum_exists(fig.number) for fig in (fig1, fig2, fig3))
+    assert res["figures_closed"] == 0
+    for fig in (fig1, fig2, fig3):
+        plt.close(fig)
     assert "collected_objects" in res
     assert "current_memory_mb" in res
 

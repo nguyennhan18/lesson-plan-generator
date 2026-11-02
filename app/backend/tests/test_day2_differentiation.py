@@ -11,11 +11,9 @@ load_dotenv(dotenv_path=env_path)
 
 # Thêm đường dẫn src vào sys.path
 SRC_DIR = Path(__file__).resolve().parent.parent / "src"
-if str(SRC_DIR) not in sys.path:
-    sys.path.insert(0, str(SRC_DIR))
 
-from schemas.slide_schema import ClassProficiency, SlideLayout
-from services.ai_service import generate_slide_deck
+from lessonai.schemas.slide_schema import ClassProficiency, SlideLayout
+from lessonai.services.generation import generate_slide_deck
 
 def test_differentiation():
     if not os.getenv("GEMINI_API_KEY"):

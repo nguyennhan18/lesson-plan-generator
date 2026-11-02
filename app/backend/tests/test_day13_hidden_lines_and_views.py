@@ -18,11 +18,9 @@ ROOT_DIR = Path(__file__).resolve().parents[3]
 BACKEND_SRC = ROOT_DIR / "app" / "backend" / "src"
 FRONTEND_DIR = ROOT_DIR / "app" / "frontend"
 
-if str(BACKEND_SRC) not in sys.path:
-    sys.path.insert(0, str(BACKEND_SRC))
 
-from main import app
-from services.geometry_service import get_polyhedron_edge_topology
+from lessonai.main import app
+from lessonai.services.geometry import get_polyhedron_edge_topology
 
 client = TestClient(app)
 
@@ -106,7 +104,7 @@ def test_task_13_1_frontend_code_integration():
     - PresentationStage.jsx: Nút toggle 'Nét Đứt' ngay trên thanh công cụ
     - App.jsx: Truyền prop setShowHiddenLines xuống PresentationStage
     """
-    canvas_jsx = (FRONTEND_DIR / "src" / "components" / "ThreeCanvas.jsx").read_text(encoding="utf-8")
+    canvas_jsx = (FRONTEND_DIR / "src" / "features" / "geometry" / "ThreeCanvas.jsx").read_text(encoding="utf-8")
     assert "LineDashedMaterial" in canvas_jsx
     assert "dashSize" in canvas_jsx
     assert "gapSize" in canvas_jsx
@@ -116,7 +114,7 @@ def test_task_13_1_frontend_code_integration():
     assert 'addEdge(v.A, v.D, 0x38bdf8, true' in canvas_jsx
     assert 'addEdge(v.A, v["A\'"], 0x34d399, true' in canvas_jsx
 
-    stage_jsx = (FRONTEND_DIR / "src" / "components" / "PresentationStage.jsx").read_text(encoding="utf-8")
+    stage_jsx = (FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationStage.jsx").read_text(encoding="utf-8")
     assert "setShowHiddenLines" in stage_jsx
     assert "Nét Đứt" in stage_jsx
 
@@ -135,7 +133,7 @@ def test_task_13_2_camera_presets_multi_views():
     - RightToolsDock.jsx: Có grid 4 nút góc nhìn chuẩn SGK
     - ThreeCanvas.jsx: Có bộ xử lý 4 presets với nội suy vi phân Lerp mượt mà
     """
-    canvas_jsx = (FRONTEND_DIR / "src" / "components" / "ThreeCanvas.jsx").read_text(encoding="utf-8")
+    canvas_jsx = (FRONTEND_DIR / "src" / "features" / "geometry" / "ThreeCanvas.jsx").read_text(encoding="utf-8")
     assert "cameraPreset === 'iso'" in canvas_jsx
     assert "cameraPreset === 'top'" in canvas_jsx
     assert "cameraPreset === 'front'" in canvas_jsx
@@ -145,7 +143,7 @@ def test_task_13_2_camera_presets_multi_views():
     # Kiểm tra góc quay Side View đúng +90 độ
     assert "90 * (Math.PI / 180)" in canvas_jsx
 
-    stage_jsx = (FRONTEND_DIR / "src" / "components" / "PresentationStage.jsx").read_text(encoding="utf-8")
+    stage_jsx = (FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationStage.jsx").read_text(encoding="utf-8")
     assert "Góc nhìn SGK:" in stage_jsx
     assert "Phối Cảnh" in stage_jsx
     assert "Chiếu Đứng" in stage_jsx
@@ -155,7 +153,7 @@ def test_task_13_2_camera_presets_multi_views():
     assert "onCameraPreset?.('front')" in stage_jsx
     assert "onCameraPreset?.('side')" in stage_jsx
 
-    dock_jsx = (FRONTEND_DIR / "src" / "components" / "RightToolsDock.jsx").read_text(encoding="utf-8")
+    dock_jsx = (FRONTEND_DIR / "src" / "features" / "geometry" / "RightToolsDock.jsx").read_text(encoding="utf-8")
     assert "Góc nhìn chuẩn SGK" in dock_jsx
     assert "onCameraPreset?.('iso')" in dock_jsx
     assert "onCameraPreset?.('front')" in dock_jsx
@@ -178,7 +176,7 @@ def test_task_13_3_unfolded_net_topology_calculation():
     3. Khối lập phương: 6 mảnh mặt vuông chữ thập (4 mặt xung quanh + 2 mặt đáy)
        - S_xq = 4*a^2, S_tp = 6*a^2
     """
-    from services.geometry_service import get_unfolded_net_topology
+    from lessonai.services.geometry import get_unfolded_net_topology
 
     # 1. Chóp tứ giác (a = 4.0, h = 4.0)
     net_sq = get_unfolded_net_topology("pyramid_square", height=4.0, base_edge=4.0)
@@ -235,7 +233,7 @@ def test_task_13_3_frontend_unfolded_net_integration():
     - App.jsx: Quản lý state showUnfoldedNet đồng bộ hai chiều
     - geometryClient.js: Hàm tính toán cục bộ computeUnfoldedNetLocal và fetchUnfoldedNetRemote
     """
-    viewer_file = FRONTEND_DIR / "src" / "components" / "UnfoldedNetViewer.jsx"
+    viewer_file = FRONTEND_DIR / "src" / "features" / "geometry" / "UnfoldedNetViewer.jsx"
     assert viewer_file.exists()
     viewer_jsx = viewer_file.read_text(encoding="utf-8")
     assert "<svg" in viewer_jsx
@@ -244,19 +242,19 @@ def test_task_13_3_frontend_unfolded_net_integration():
     assert "Sxq (Xung quanh)" in viewer_jsx
     assert "S toàn phần" in viewer_jsx
 
-    stage_jsx = (FRONTEND_DIR / "src" / "components" / "PresentationStage.jsx").read_text(encoding="utf-8")
+    stage_jsx = (FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationStage.jsx").read_text(encoding="utf-8")
     assert "UnfoldedNetViewer" in stage_jsx
     assert "Khai Triển 2D" in stage_jsx
     assert "activeShowUnfoldedNet" in stage_jsx
 
-    dock_jsx = (FRONTEND_DIR / "src" / "components" / "RightToolsDock.jsx").read_text(encoding="utf-8")
+    dock_jsx = (FRONTEND_DIR / "src" / "features" / "geometry" / "RightToolsDock.jsx").read_text(encoding="utf-8")
     assert "Khai triển 2D (Net):" in dock_jsx
     assert "netMetrics" in dock_jsx
 
     app_jsx = (FRONTEND_DIR / "src" / "App.jsx").read_text(encoding="utf-8")
     assert "showUnfoldedNet={showUnfoldedNet}" in app_jsx
 
-    geom_client = (FRONTEND_DIR / "src" / "utils" / "geometryClient.js").read_text(encoding="utf-8")
+    geom_client = (FRONTEND_DIR / "src" / "features" / "geometry" / "geometryClient.js").read_text(encoding="utf-8")
     assert "computeUnfoldedNetLocal" in geom_client
     assert "fetchUnfoldedNetRemote" in geom_client
 
@@ -269,7 +267,7 @@ def test_task_13_4_vertex_labels_taxonomy():
     3. Lăng trụ tam giác: A, B, C, A', B', C' (6 đỉnh)
     4. Hình lập phương: A, B, C, D, A', B', C', D' (8 đỉnh)
     """
-    from services.geometry_service import get_polyhedron_vertex_labels
+    from lessonai.services.geometry import get_polyhedron_vertex_labels
 
     # 1. Chóp tứ giác
     v_sq = get_polyhedron_vertex_labels("pyramid_square")
@@ -320,21 +318,21 @@ def test_task_13_4_frontend_vertex_labels_toggle_integration():
     - ThreeCanvas.jsx: Tách biệt nhãn trục Oxyz (addAxisLabelSprite) và nhãn đỉnh (addVertexSprite)
     - UnfoldedNetViewer.jsx: Ẩn/hiện tên các đỉnh theo prop showVertexLabels
     """
-    stage_jsx = (FRONTEND_DIR / "src" / "components" / "PresentationStage.jsx").read_text(encoding="utf-8")
+    stage_jsx = (FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationStage.jsx").read_text(encoding="utf-8")
     assert "Tên Đỉnh" in stage_jsx
     assert "setShowVertexLabels" in stage_jsx
     assert "showVertexLabels={showVertexLabels}" in stage_jsx
 
-    dock_jsx = (FRONTEND_DIR / "src" / "components" / "RightToolsDock.jsx").read_text(encoding="utf-8")
+    dock_jsx = (FRONTEND_DIR / "src" / "features" / "geometry" / "RightToolsDock.jsx").read_text(encoding="utf-8")
     assert "vertexChipList" in dock_jsx
     assert "Hiện tên các đỉnh" in dock_jsx
 
-    canvas_jsx = (FRONTEND_DIR / "src" / "components" / "ThreeCanvas.jsx").read_text(encoding="utf-8")
+    canvas_jsx = (FRONTEND_DIR / "src" / "features" / "geometry" / "ThreeCanvas.jsx").read_text(encoding="utf-8")
     assert "if (!showVertexLabels) return;" in canvas_jsx
     assert "Times New Roman" in canvas_jsx
     assert "addAxisLabelSprite" in canvas_jsx
 
-    viewer_jsx = (FRONTEND_DIR / "src" / "components" / "UnfoldedNetViewer.jsx").read_text(encoding="utf-8")
+    viewer_jsx = (FRONTEND_DIR / "src" / "features" / "geometry" / "UnfoldedNetViewer.jsx").read_text(encoding="utf-8")
     assert "showVertexLabels" in viewer_jsx
     assert "{showVertexLabels && faces.map" in viewer_jsx
 
@@ -347,7 +345,7 @@ def test_task_13_5_raycasting_hidden_surface_removal_algorithm():
        - 5 cạnh thấy: BC, CD, SB, SC, SD -> is_occluded == False, render_style == 'solid'
     2. API GET /api/v1/geometry/raycast-occlusion trả về kết quả 200 OK
     """
-    from services.geometry_service import compute_hidden_surface_raycasting
+    from lessonai.services.geometry import compute_hidden_surface_raycasting
 
     # 1. Chóp tứ giác
     res_sq = compute_hidden_surface_raycasting("pyramid_square", camera_position=(6.0, 7.0, 9.0))
@@ -393,7 +391,7 @@ def test_task_13_5_definition_of_done_top_view_and_hidden_lines():
     5. Nút 'Nét Đứt' điều khiển hiển thị cạnh khuất
     6. Bản vẽ Khai Triển Phẳng 2D hiển thị song song khi bật 'Khai Triển 2D'
     """
-    canvas_jsx = (FRONTEND_DIR / "src" / "components" / "ThreeCanvas.jsx").read_text(encoding="utf-8")
+    canvas_jsx = (FRONTEND_DIR / "src" / "features" / "geometry" / "ThreeCanvas.jsx").read_text(encoding="utf-8")
 
     # 1. Preset Top View xoay thẳng góc nhìn từ trên xuống đáy (-90 độ)
     assert "cameraPreset === 'top'" in canvas_jsx
@@ -411,7 +409,7 @@ def test_task_13_5_definition_of_done_top_view_and_hidden_lines():
     assert "line.renderOrder = 2" in canvas_jsx
 
     # 4. PresentationStage.jsx có nút Chiếu Bằng
-    stage_jsx = (FRONTEND_DIR / "src" / "components" / "PresentationStage.jsx").read_text(encoding="utf-8")
+    stage_jsx = (FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationStage.jsx").read_text(encoding="utf-8")
     assert "Chiếu Bằng" in stage_jsx
     assert "onCameraPreset?.('top')" in stage_jsx
 

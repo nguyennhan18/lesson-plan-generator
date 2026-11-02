@@ -6,11 +6,10 @@ from pathlib import Path
 import copy
 
 # Đảm bảo đường dẫn module
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src"))
 
-from main import app
-from schemas.chat_schema import SlidePatchProposal, ApplyPatchRequest, ApplyPatchResponse
-from services.chat_service import apply_slide_patch, handle_copilot_chat
+from lessonai.main import app
+from lessonai.schemas.chat_schema import SlidePatchProposal, ApplyPatchRequest, ApplyPatchResponse
+from lessonai.services.chat import apply_slide_patch, handle_copilot_chat
 
 client = TestClient(app)
 
@@ -200,47 +199,18 @@ def test_api_apply_patch_endpoint_error_handling():
     assert "nằm ngoài phạm vi" in res.json()["detail"]
 
 
-def test_e2e_full_workflow_chat_to_live_patch():
-    """
-    Test Case 7: KIỂM CHỨNG TOÀN DIỆN LUỒNG END-TO-END (DoD CHỐT HẠ TUẦN 1).
-
-    Quy trình kiểm thử:
-    1. Giáo viên gửi tin nhắn chat: 'Giải thích lại slide 2 đơn giản hơn'.
-    2. Trợ giảng AI phân tích ngữ cảnh, trả lời sư phạm và sinh ra SlidePatchProposal cho Slide 2.
-    3. Hệ thống chuyển SlidePatchProposal sang API /api/v1/chat/apply-patch để hợp nhất vào Slide Deck.
-    4. Xác thực: Slide 2 (index 1) nhận nội dung mới rút gọn và công thức AC' = a*sqrt(3).
-    5. Xác thực: Toàn bộ 4 slide còn lại (Slide 1, 3, 4, 5) giữ nguyên vẹn 100%.
-    """
-    # Bước 1 & 2: Giáo viên chat tương tác
-    chat_response = handle_copilot_chat(
-        session_id="e2e_session_week1",
-        user_message="Giải thích lại slide 2 đơn giản hơn",
-        current_slide_index=1,
-        slide_deck=SAMPLE_SLIDE_DECK
+def test_m0_chat_does_not_offer_a_patch_or_modify_the_deck(monkeypatch):
+    """Live proposals stay unavailable until M2 adds content and revision checks."""
+    from lessonai.llm.gateway import llm_gateway
+    monkeypatch.setattr(llm_gateway, "generate_text", lambda **kwargs: None)
+    original = copy.deepcopy(SAMPLE_SLIDE_DECK)
+    response = handle_copilot_chat(
+        session_id="e2e_session_week1", user_message="Giải thích lại slide 2 đơn giản hơn",
+        current_slide_index=1, slide_deck=SAMPLE_SLIDE_DECK,
     )
-
-    assert chat_response.suggested_patch is not None
-    assert chat_response.suggested_patch.target_slide_index == 1
-    assert chat_response.suggested_patch.action == "SIMPLIFY_SLIDE"
-
-    # Bước 3: Áp dụng bản vá vào bài giảng
-    updated_deck = apply_slide_patch(
-        slide_deck=SAMPLE_SLIDE_DECK,
-        patch=chat_response.suggested_patch
-    )
-
-    # Bước 4: Kiểm chứng Slide 2 thay đổi chính xác
-    slide_2 = updated_deck["slides"][1]
-    assert len(slide_2["bullet_points"]) == 3
-    assert any("AC'" in b for b in slide_2["bullet_points"])
-    assert r"a\sqrt{3}" in slide_2["main_definition_latex"]
-    assert slide_2["is_ai_patch"] is True
-
-    # Bước 5: Kiểm chứng 4 slide còn lại không hề bị ảnh hưởng
-    assert updated_deck["slides"][0]["title"] == SAMPLE_SLIDE_DECK["slides"][0]["title"]
-    assert updated_deck["slides"][2]["title"] == SAMPLE_SLIDE_DECK["slides"][2]["title"]
-    assert updated_deck["slides"][3]["title"] == SAMPLE_SLIDE_DECK["slides"][3]["title"]
-    assert updated_deck["slides"][4]["title"] == SAMPLE_SLIDE_DECK["slides"][4]["title"]
+    assert response.suggested_patch is None
+    assert "tạm ngắt" in response.ai_response
+    assert SAMPLE_SLIDE_DECK == original
 
 
 if __name__ == "__main__":

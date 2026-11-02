@@ -19,10 +19,8 @@ ROOT_DIR = Path(__file__).resolve().parents[3]
 BACKEND_SRC = ROOT_DIR / "app" / "backend" / "src"
 FRONTEND_DIR = ROOT_DIR / "app" / "frontend"
 
-if str(BACKEND_SRC) not in sys.path:
-    sys.path.insert(0, str(BACKEND_SRC))
 
-from main import app
+from lessonai.main import app
 
 client = TestClient(app)
 
@@ -35,7 +33,7 @@ def test_task_17_1_drawing_canvas_helper_utility():
     - createStroke: Khởi tạo mô hình Stroke chuẩn JSON cấu trúc (id, tool, color, size, alpha, points, slideIndex)
     - redrawAllStrokes: Vẽ lại toàn bộ các nét vẽ với độ dày và màu sắc tùy biến
     """
-    helper_path = FRONTEND_DIR / "src" / "utils" / "drawingCanvasHelper.js"
+    helper_path = FRONTEND_DIR / "src" / "features" / "presentation" / "drawingCanvasHelper.js"
     assert helper_path.exists(), f"Không tìm thấy tệp {helper_path}"
     content = helper_path.read_text(encoding="utf-8")
 
@@ -68,7 +66,7 @@ def test_task_17_1_annotation_canvas_component():
       + Khi isActive = false: pointer-events-none (không chặn click các nút bên dưới)
     - Tích hợp ResizeObserver đồng bộ kích thước theo container cha
     """
-    canvas_comp_path = FRONTEND_DIR / "src" / "components" / "AnnotationCanvas.jsx"
+    canvas_comp_path = FRONTEND_DIR / "src" / "features" / "presentation" / "AnnotationCanvas.jsx"
     assert canvas_comp_path.exists(), f"Không tìm thấy tệp {canvas_comp_path}"
     content = canvas_comp_path.read_text(encoding="utf-8")
 
@@ -93,7 +91,7 @@ def test_task_17_1_stage_annotation_canvas_integration():
     - Truyền đầy đủ props: isActive={isDrawingMode}, tool={currentTool}, color={drawingColor},
       size={brushSize}, slideIndex={currentSlide}, strokes={currentStrokes}, onStrokesChange={handleStrokesChange}
     """
-    stage_path = FRONTEND_DIR / "src" / "components" / "PresentationStage.jsx"
+    stage_path = FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationStage.jsx"
     assert stage_path.exists(), f"Không tìm thấy tệp {stage_path}"
     content = stage_path.read_text(encoding="utf-8")
 
@@ -118,7 +116,7 @@ def test_task_17_2_bezier_curve_smoothing_utility():
     - TOOL_PRESETS: Cấu hình chuẩn cho Bút mực (pen - alpha 1.0) và Bút dạ quang (highlighter - alpha 0.35)
     - getAdjustedLineWidth: Điều chỉnh độ dày nét theo lực nhấn bút cảm ứng (e.pressure)
     """
-    bezier_path = FRONTEND_DIR / "src" / "utils" / "bezierSmoothing.js"
+    bezier_path = FRONTEND_DIR / "src" / "features" / "presentation" / "bezierSmoothing.js"
     assert bezier_path.exists(), f"Không tìm thấy tệp {bezier_path}"
     content = bezier_path.read_text(encoding="utf-8")
 
@@ -142,15 +140,15 @@ def test_task_17_2_bezier_curve_smoothing_utility():
 def test_task_17_2_annotation_canvas_bezier_integration():
     """
     Task 17.2: Kiểm tra AnnotationCanvas áp dụng thuật toán Bezier:
-    - Import drawSmoothStroke from '../utils/bezierSmoothing'
+    - Import drawSmoothStroke from './bezierSmoothing.js'
     - Áp dụng quadraticCurveTo trong handlePointerMove khi vẽ trực tiếp
     - Hỗ trợ bút dạ quang (highlighter) với square cap và độ mờ alpha
     """
-    canvas_path = FRONTEND_DIR / "src" / "components" / "AnnotationCanvas.jsx"
+    canvas_path = FRONTEND_DIR / "src" / "features" / "presentation" / "AnnotationCanvas.jsx"
     assert canvas_path.exists(), f"Không tìm thấy tệp {canvas_path}"
     content = canvas_path.read_text(encoding="utf-8")
 
-    assert "import { drawSmoothStroke } from '../utils/bezierSmoothing'" in content
+    assert "import { drawSmoothStroke } from './bezierSmoothing.js'" in content
     assert "quadraticCurveTo" in content
     assert "highlighter" in content
 
@@ -163,7 +161,7 @@ def test_task_17_2_floating_bar_pen_controls_integration():
     - Bảng chọn màu 5 màu sư phạm (PEDAGOGICAL_COLORS)
     - Nhận đầy đủ props: isDrawingMode, onToggleDrawingMode, currentTool, onSelectTool, drawingColor, onSelectColor
     """
-    bar_path = FRONTEND_DIR / "src" / "components" / "PresentationFloatingBar.jsx"
+    bar_path = FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationFloatingBar.jsx"
     assert bar_path.exists(), f"Không tìm thấy tệp {bar_path}"
     content = bar_path.read_text(encoding="utf-8")
 
@@ -184,7 +182,7 @@ def test_task_17_3_eraser_hit_testing_utility():
     - findHitStrokeIndex: Tìm chỉ số Stroke bị chạm theo thứ tự nét mới nhất trước
     - removeHitStrokes: Loại bỏ toàn bộ các nét vẽ bị chạm và trả về danh sách erasedIds
     """
-    eraser_path = FRONTEND_DIR / "src" / "utils" / "eraserHitTesting.js"
+    eraser_path = FRONTEND_DIR / "src" / "features" / "presentation" / "eraserHitTesting.js"
     assert eraser_path.exists(), f"Không tìm thấy tệp {eraser_path}"
     content = eraser_path.read_text(encoding="utf-8")
 
@@ -204,12 +202,12 @@ def test_task_17_3_eraser_hit_testing_utility():
 def test_task_17_3_annotation_canvas_eraser_integration():
     """
     Task 17.3: Kiểm tra tích hợp công cụ Tẩy nét (Eraser) trong AnnotationCanvas.jsx:
-    - Import removeHitStrokes from '../utils/eraserHitTesting'
+    - Import removeHitStrokes from './eraserHitTesting.js'
     - Xử lý tool === 'eraser' trong handlePointerDown, handlePointerMove, handlePointerUp
     - Hiển thị vòng tròn con trỏ đầu tẩy trực quan (eraserCursor.visible) khi ở chế độ Eraser
     - Gọi onStrokesChange(curr, prev) khi hoàn tất lượt tẩy để ghi nhận lịch sử Undo
     """
-    canvas_path = FRONTEND_DIR / "src" / "components" / "AnnotationCanvas.jsx"
+    canvas_path = FRONTEND_DIR / "src" / "features" / "presentation" / "AnnotationCanvas.jsx"
     assert canvas_path.exists(), f"Không tìm thấy tệp {canvas_path}"
     content = canvas_path.read_text(encoding="utf-8")
 
@@ -232,7 +230,7 @@ def test_task_17_3_stage_undo_redo_stack_and_clear_all():
       + Phím Ctrl+Z / Cmd+Z: Hoàn tác (Undo)
       + Phím Ctrl+Y / Cmd+Shift+Z / Ctrl+Shift+Z: Làm lại (Redo)
     """
-    stage_path = FRONTEND_DIR / "src" / "components" / "PresentationStage.jsx"
+    stage_path = FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationStage.jsx"
     assert stage_path.exists(), f"Không tìm thấy tệp {stage_path}"
     content = stage_path.read_text(encoding="utf-8")
 
@@ -264,7 +262,7 @@ def test_task_17_3_floating_bar_eraser_and_history_controls():
     - Nút Làm lại (Redo - Ctrl+Y) với trạng thái disabled khi canRedo = false
     - Nút Xóa toàn bộ (Trash2) với trạng thái disabled khi hasStrokes = false
     """
-    bar_path = FRONTEND_DIR / "src" / "components" / "PresentationFloatingBar.jsx"
+    bar_path = FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationFloatingBar.jsx"
     assert bar_path.exists(), f"Không tìm thấy tệp {bar_path}"
     content = bar_path.read_text(encoding="utf-8")
 
@@ -290,7 +288,7 @@ def test_task_17_4_whiteboard_overlay_component():
     - Tích hợp cụm công cụ: Bút, Dạ quang, Tẩy, Bảng màu sư phạm, Undo, Redo, Clear
     - Nhúng AnnotationCanvas với slideIndex="whiteboard" độc lập với các slide bài giảng
     """
-    wb_path = FRONTEND_DIR / "src" / "components" / "WhiteboardOverlay.jsx"
+    wb_path = FRONTEND_DIR / "src" / "features" / "presentation" / "WhiteboardOverlay.jsx"
     assert wb_path.exists(), f"Không tìm thấy tệp {wb_path}"
     content = wb_path.read_text(encoding="utf-8")
 
@@ -313,7 +311,7 @@ def test_task_17_4_slide_deck_drawings_storage_utility():
     - saveSlideDrawingsToStorage: Lưu trữ trạng thái nét vẽ theo deckId
     - clearSlideDrawingsFromStorage: Xóa sạch dữ liệu vẽ lưu trữ
     """
-    storage_path = FRONTEND_DIR / "src" / "utils" / "slideDeckStorage.js"
+    storage_path = FRONTEND_DIR / "src" / "shared" / "storage" / "slideDeckStorage.js"
     assert storage_path.exists(), f"Không tìm thấy tệp {storage_path}"
     content = storage_path.read_text(encoding="utf-8")
 
@@ -333,7 +331,7 @@ def test_task_17_4_stage_whiteboard_and_slide_persistence_integration():
     - Quản lý Undo / Redo cho Whiteboard khi đang mở bảng
     - Render <WhiteboardOverlay ... /> và truyền props xuống PresentationFloatingBar
     """
-    stage_path = FRONTEND_DIR / "src" / "components" / "PresentationStage.jsx"
+    stage_path = FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationStage.jsx"
     assert stage_path.exists(), f"Không tìm thấy tệp {stage_path}"
     content = stage_path.read_text(encoding="utf-8")
 
@@ -361,7 +359,7 @@ def test_task_17_4_floating_bar_whiteboard_button_and_thumbnail_indicators():
     - Nút Bảng (W) với biểu tượng Grid3X3 và hiệu ứng active khi đang mở bảng
     - Thumbnail hiển thị huy hiệu số lượng nét vẽ nếu slide có ghi chú: ✎ {count}
     """
-    bar_path = FRONTEND_DIR / "src" / "components" / "PresentationFloatingBar.jsx"
+    bar_path = FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationFloatingBar.jsx"
     assert bar_path.exists(), f"Không tìm thấy tệp {bar_path}"
     content = bar_path.read_text(encoding="utf-8")
 
@@ -530,21 +528,21 @@ def test_task_17_5_dod_comprehensive_checklist():
     """
     # 1. Kiểm tra tồn tại toàn bộ các tệp kiến trúc
     files_to_check = [
-        FRONTEND_DIR / "src" / "utils" / "drawingCanvasHelper.js",
-        FRONTEND_DIR / "src" / "utils" / "bezierSmoothing.js",
-        FRONTEND_DIR / "src" / "utils" / "eraserHitTesting.js",
-        FRONTEND_DIR / "src" / "components" / "AnnotationCanvas.jsx",
-        FRONTEND_DIR / "src" / "components" / "WhiteboardOverlay.jsx",
-        FRONTEND_DIR / "src" / "components" / "PresentationStage.jsx",
-        FRONTEND_DIR / "src" / "components" / "PresentationFloatingBar.jsx",
-        FRONTEND_DIR / "src" / "utils" / "slideDeckStorage.js"
+        FRONTEND_DIR / "src" / "features" / "presentation" / "drawingCanvasHelper.js",
+        FRONTEND_DIR / "src" / "features" / "presentation" / "bezierSmoothing.js",
+        FRONTEND_DIR / "src" / "features" / "presentation" / "eraserHitTesting.js",
+        FRONTEND_DIR / "src" / "features" / "presentation" / "AnnotationCanvas.jsx",
+        FRONTEND_DIR / "src" / "features" / "presentation" / "WhiteboardOverlay.jsx",
+        FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationStage.jsx",
+        FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationFloatingBar.jsx",
+        FRONTEND_DIR / "src" / "shared" / "storage" / "slideDeckStorage.js"
     ]
 
     for f in files_to_check:
         assert f.exists(), f"Thiếu tệp kiến trúc: {f}"
 
     # 2. Kiểm tra bộ phím tắt trong PresentationStage.jsx
-    stage_content = (FRONTEND_DIR / "src" / "components" / "PresentationStage.jsx").read_text(encoding="utf-8")
+    stage_content = (FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationStage.jsx").read_text(encoding="utf-8")
     assert "e.key === 'p' || e.key === 'P'" in stage_content
     assert "e.key === 'h' || e.key === 'H'" in stage_content
     assert "e.key === 'e' || e.key === 'E'" in stage_content

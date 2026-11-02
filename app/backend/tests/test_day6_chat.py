@@ -1,20 +1,26 @@
 import pytest
+import pytest
 from fastapi.testclient import TestClient
 import sys
 import os
 from datetime import datetime, timedelta
 
 # Đảm bảo đường dẫn module
-sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "src"))
 
-from main import app
-from schemas.chat_schema import (
+from lessonai.main import app
+from lessonai.schemas.chat_schema import (
     ChatInteractRequest,
     ChatInteractResponse,
     ChatMessage,
     SlidePatchProposal
 )
-from services.chat_service import ChatSessionManager, handle_copilot_chat, session_manager
+from lessonai.services.chat import ChatSessionManager, handle_copilot_chat, session_manager
+
+
+@pytest.fixture(autouse=True)
+def offline_chat_gateway(monkeypatch):
+    from lessonai.llm.gateway import llm_gateway
+    monkeypatch.setattr(llm_gateway, "generate_text", lambda **kwargs: None)
 
 
 client = TestClient(app)
@@ -151,60 +157,27 @@ def test_chat_session_slide_index_tracking():
     assert messages[2].slide_index == 2
 
 
-def test_copilot_dod_explain_slide_2_simpler():
-    """
-    Kiểm tra tiêu chí DoD Ngày 6:
-    'Gõ tin nhắn chat Giải thích lại slide 2 đơn giản hơn, AI trả lời đúng trọng tâm và gợi ý nội dung mới trong khung chat.'
-    """
-    session_id = "dod_session_test"
+def test_copilot_m0_explanation_keeps_draft_without_sample_patch():
     response = handle_copilot_chat(
-        session_id=session_id,
-        user_message="Giải thích lại slide 2 đơn giản hơn",
-        current_slide_index=1
+        session_id="dod_session_test", user_message="Giải thích lại slide 2 đơn giản hơn",
+        current_slide_index=1,
     )
-
-    assert response.session_id == session_id
+    assert response.session_id == "dod_session_test"
     assert response.current_slide_index == 1
-    # Phải có nội dung giải thích chi tiết
-    assert len(response.ai_response) > 50
-    # Phải có liên quan đến đường chéo AC' hoặc Pytago hoặc a\sqrt{3}
-    assert any(term in response.ai_response for term in ["AC'", "đường chéo", "Pytago", "a\\sqrt{3}", "a\\sqrt{2}"])
-    # Phải có hành động gợi ý SIMPLIFY_SLIDE
-    assert response.suggested_action == "SIMPLIFY_SLIDE"
-    # Phải có bản vá đề xuất SlidePatchProposal định kiểu mạnh cho Day 7
-    assert response.suggested_patch is not None
-    assert isinstance(response.suggested_patch, SlidePatchProposal)
-    assert response.suggested_patch.target_slide_index == 1
-    assert response.suggested_patch.action == "SIMPLIFY_SLIDE"
-    assert response.suggested_patch.bullet_points is not None
-    assert len(response.suggested_patch.bullet_points) == 3
-    assert response.suggested_patch.main_definition_latex is not None
+    assert "tạm ngắt" in response.ai_response
+    assert response.suggested_action == "GENERAL_ADVICE"
+    assert response.suggested_patch is None
+    assert "AC'" not in response.ai_response
 
 
-def test_copilot_add_quiz_proposal():
-    """
-    Kiểm tra Trợ giảng AI sinh đề xuất câu hỏi trắc nghiệm củng cố (ADD_QUIZ).
-
-    Lý do thiết kế (Why):
-    - Khi giáo viên yêu cầu kiểm tra bài trên lớp, AI phải tự động sinh câu hỏi trắc nghiệm
-      4 phương án, đáp án đúng và lời giải thích vào SlidePatchProposal để hiển thị một chạm lên slide.
-    """
-    session_id = "quiz_proposal_test"
+def test_copilot_m0_quiz_does_not_invent_a_question():
     response = handle_copilot_chat(
-        session_id=session_id,
-        user_message="Thêm câu hỏi trắc nghiệm kiểm tra nhanh",
-        current_slide_index=0
+        session_id="quiz_proposal_test", user_message="Thêm câu hỏi trắc nghiệm kiểm tra nhanh",
+        current_slide_index=0,
     )
-
-    assert response.suggested_action == "ADD_QUIZ"
-    assert response.suggested_patch is not None
-    assert isinstance(response.suggested_patch, SlidePatchProposal)
-    assert response.suggested_patch.action == "ADD_QUIZ"
-    assert response.suggested_patch.quiz is not None
-    quiz = response.suggested_patch.quiz
-    assert "question" in quiz
-    assert len(quiz["options"]) == 4
-    assert quiz["correct_answer"] == "B"
+    assert response.suggested_action == "GENERAL_ADVICE"
+    assert response.suggested_patch is None
+    assert "bản soạn được giữ nguyên" in response.ai_response
 
 
 def test_api_chat_interact_endpoint():
@@ -226,10 +199,8 @@ def test_api_chat_interact_endpoint():
     assert "timestamp" in data
     # Kiểm tra tuần tự hóa SlidePatchProposal trả về trong JSON
     assert "suggested_patch" in data
-    assert data["suggested_patch"] is not None
-    assert data["suggested_patch"]["target_slide_index"] == 1
-    assert data["suggested_patch"]["action"] == "SIMPLIFY_SLIDE"
-    assert "bullet_points" in data["suggested_patch"]
+    assert data["suggested_patch"] is None
+    assert data["suggested_action"] == "GENERAL_ADVICE"
 
 
 def test_api_chat_conversation_continuity():

@@ -14,9 +14,9 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).resolve().parents[3]
 FRONTEND_DIR = ROOT_DIR / "app" / "frontend"
 INDEX_HTML = FRONTEND_DIR / "index.html"
-MATHLIVE_MODAL = FRONTEND_DIR / "src" / "components" / "MathLiveModal.jsx"
-PRESENTATION_STAGE = FRONTEND_DIR / "src" / "components" / "PresentationStage.jsx"
-SLIDE_EDITOR = FRONTEND_DIR / "src" / "components" / "SlideEditorScreen.jsx"
+MATHLIVE_MODAL = FRONTEND_DIR / "src" / "shared" / "math" / "MathLiveModal.jsx"
+PRESENTATION_STAGE = FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationStage.jsx"
+SLIDE_EDITOR = FRONTEND_DIR / "src" / "features" / "slide-editor" / "SlideEditorScreen.jsx"
 APP_JSX = FRONTEND_DIR / "src" / "App.jsx"
 
 
@@ -56,7 +56,9 @@ def test_task_8_2_double_click_modal_popup():
 
     # Kiểm tra App.jsx đã chặn xung đột phím tắt toàn cục khi gõ trong MATH-FIELD
     app_code = APP_JSX.read_text(encoding="utf-8")
-    assert "'MATH-FIELD'" in app_code, "App.jsx cần loại trừ MATH-FIELD khỏi phím tắt chuyển slide toàn cục"
+    assert "usePresentationControls" in app_code
+    controls_code = (FRONTEND_DIR / "src" / "features" / "presentation" / "usePresentationControls.js").read_text(encoding="utf-8")
+    assert "'MATH-FIELD'" in controls_code, "Phím tắt trình chiếu cần loại trừ MATH-FIELD"
 
 
 def test_task_8_3_vietnamese_math_virtual_keyboard():
