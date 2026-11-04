@@ -1,4 +1,3 @@
-import { postJson } from '../../shared/api/client.js';
 import React, { useState, useEffect } from 'react';
 import {
   FileText,
@@ -16,10 +15,13 @@ import {
   Loader2,
   ChevronRight
 } from 'lucide-react';
+import LessonPlanReview from './LessonPlanReview';
+import LessonPlanEditor from './LessonPlanEditor';
 import MathText from '../../shared/math/MathText';
 
 export default function LessonPlanScreen({
   lessonPlan,
+  onChangePlan,
   isGenerating,
   onGenerateFromAi,
   onExportDocx,
@@ -28,7 +30,7 @@ export default function LessonPlanScreen({
   externalProficiency,
   externalOutcome
 }) {
-  const [topic, setTopic] = useState('Tính đơn điệu và cực trị của hàm số');
+  const [topic, setTopic] = useState('');
   const [subject, setSubject] = useState('Toán học');
   const [grade, setGrade] = useState('12');
   const [proficiency, setProficiency] = useState(externalProficiency || 'standard');
@@ -36,16 +38,8 @@ export default function LessonPlanScreen({
 
   // Khung Chương trình Toán 12 từ API /api/v1/curriculum/math12
   const [curriculum, setCurriculum] = useState([]);
-  const [selectedChapterId, setSelectedChapterId] = useState('M12-C1');
-  const [selectedLessonId, setSelectedLessonId] = useState('M12-C1-B1');
-  const [ragStats, setRagStats] = useState({ slides: 82, questions: 261, periods: 4 });
-
-  // Trạng thái Modal Xem Trước Tài Nguyên RAG (Task 5.2)
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
-  const [previewData, setPreviewData] = useState(null);
-  const [previewTab, setPreviewTab] = useState('yccd'); // 'yccd' | 'slides' | 'questions'
-
+  const [selectedChapterId, setSelectedChapterId] = useState('');
+  const [selectedLessonId, setSelectedLessonId] = useState('');
   // Tải danh mục Khung CT 2018 Toán 12 khi mount
   useEffect(() => {
     let isCancelled = false;
@@ -57,19 +51,6 @@ export default function LessonPlanScreen({
       .then((data) => {
         if (isCancelled || !data?.chapters?.length) return;
         setCurriculum(data.chapters);
-
-        // Tìm bài M12-C1-B1 mặc định
-        const ch1 = data.chapters[0];
-        if (ch1?.lessons?.length) {
-          const l1 = ch1.lessons[0];
-          setSelectedChapterId(ch1.chapter_id);
-          setSelectedLessonId(l1.lesson_id);
-          setRagStats({
-            slides: l1.available_slides_count || 0,
-            questions: l1.available_questions_count || 0,
-            periods: l1.periods || 2
-          });
-        }
       })
       .catch((err) => {
         console.warn('[LessonPlanScreen] Không tải được cây CT 2018:', err);
@@ -93,72 +74,10 @@ export default function LessonPlanScreen({
     }
   }, [externalOutcome]);
 
-  // DANH MỤC CÁC BÀI TOÁN TOÁN 12 CHUẨN CT GDPT 2018 (SGK KẾT NỐI TRI THỨC)
-  const textbookPresets = [
-    {
-      label: "1. Đơn Điệu & Cực Trị (Chương 1)",
-      lessonId: "M12-C1-B1",
-      chapterId: "M12-C1",
-      topic: "Tính đơn điệu và cực trị của hàm số",
-      subject: "Toán học",
-      grade: "12",
-      outcome: "Học sinh thành thạo xét dấu f'(x), lập bảng biến thiên, xác định chính xác các khoảng đồng biến, nghịch biến và tọa độ điểm cực đại, cực tiểu của hàm số."
-    },
-    {
-      label: "2. Khảo Sát Đồ Thị Bậc 3 (Chương 1)",
-      lessonId: "M12-C1-B4",
-      chapterId: "M12-C1",
-      topic: "Khảo sát sự biến thiên và vẽ đồ thị hàm số bậc ba",
-      subject: "Toán học",
-      grade: "12",
-      outcome: "Học sinh lập bảng biến thiên, tìm điểm cực trị, điểm uốn nhận làm tâm đối xứng và vẽ đồ thị hàm số bậc ba chuẩn xác."
-    },
-    {
-      label: "3. Tọa Độ Oxyz Không Gian (Chương 2)",
-      lessonId: "M12-C2-B2",
-      chapterId: "M12-C2",
-      topic: "Hệ trục tọa độ trong không gian Oxyz",
-      subject: "Toán học",
-      grade: "12",
-      outcome: "Học sinh nắm vững tọa độ điểm, biểu thức tọa độ của vectơ, tính tích vô hướng, độ dài vectơ và khoảng cách giữa hai điểm trong không gian Oxyz."
-    },
-    {
-      label: "4. Phương Sai & Độ Lệch Chuẩn (Chương 3)",
-      lessonId: "M12-C3-B2",
-      chapterId: "M12-C3",
-      topic: "Phương sai và độ lệch chuẩn của mẫu số liệu ghép nhóm",
-      subject: "Toán học",
-      grade: "12",
-      outcome: "Học sinh lập bảng giá trị đại diện c_i, tính số trung bình, phương sai s^2 và độ lệch chuẩn s để đánh giá mức độ phân tán và độ rủi ro thực tế."
-    },
-    {
-      label: "5. Ứng Dụng Tích Phân (Chương 4)",
-      lessonId: "M12-C4-B3",
-      chapterId: "M12-C4",
-      topic: "Ứng dụng hình học của tích phân tính diện tích hình phẳng",
-      subject: "Toán học",
-      grade: "12",
-      outcome: "Học sinh vận dụng công thức Newton-Leibniz và tích phân từng phần tính diện tích hình phẳng giới hạn bởi đồ thị hàm số và các trục tọa độ."
-    },
-    {
-      label: "6. Xác Suất Toàn Phần & Bayes (Chương 6)",
-      lessonId: "M12-C6-B2",
-      chapterId: "M12-C6",
-      topic: "Công thức xác suất toàn phần và công thức Bayes",
-      subject: "Toán học",
-      grade: "12",
-      outcome: "Học sinh biểu diễn bài toán bằng sơ đồ hình cây, vận dụng chính xác công thức xác suất toàn phần và định lý Bayes trong bài toán thực tế."
-    }
-  ];
-
   // Xử lý đổi Chương
   const handleChapterSelect = (chId) => {
     setSelectedChapterId(chId);
-    const ch = curriculum.find((c) => c.chapter_id === chId);
-    if (ch?.lessons?.length) {
-      const firstLesson = ch.lessons[0];
-      handleLessonSelect(firstLesson.lesson_id, chId);
-    }
+    setSelectedLessonId('');
   };
 
   // Xử lý đổi Bài học
@@ -174,54 +93,9 @@ export default function LessonPlanScreen({
       if (Array.isArray(l.yccd) && l.yccd.length > 0) {
         setOutcome(l.yccd.join('; '));
       }
-      setRagStats({
-        slides: l.available_slides_count || 0,
-        questions: l.available_questions_count || 0,
-        periods: l.periods || 2
-      });
     }
   };
 
-  const handleSelectPreset = (p) => {
-    setTopic(p.topic);
-    setSubject(p.subject);
-    setGrade(p.grade);
-    setOutcome(p.outcome);
-    if (p.lessonId) setSelectedLessonId(p.lessonId);
-    if (p.chapterId) setSelectedChapterId(p.chapterId);
-
-    // Cập nhật ragStats nếu tìm thấy bài trong curriculum
-    const ch = curriculum.find((c) => c.chapter_id === p.chapterId);
-    const l = ch?.lessons?.find((item) => item.lesson_id === p.lessonId);
-    if (l) {
-      setRagStats({
-        slides: l.available_slides_count || 0,
-        questions: l.available_questions_count || 0,
-        periods: l.periods || 2
-      });
-    }
-  };
-
-  const handleOpenPreview = async () => {
-    setIsPreviewOpen(true);
-    setIsLoadingPreview(true);
-    try {
-      const res = await postJson('/api/v1/rag/preview', {
-          lesson_id: selectedLessonId,
-          topic: topic,
-          proficiency: proficiency || 'standard',
-          k_slides: 4,
-          k_questions: 4
-        });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      setPreviewData(data);
-    } catch (err) {
-      console.error('[LessonPlanScreen] Lỗi khi gọi preview RAG:', err);
-    } finally {
-      setIsLoadingPreview(false);
-    }
-  };
 
   const handleTriggerGenerate = () => {
     if (!topic.trim()) {
@@ -245,7 +119,7 @@ export default function LessonPlanScreen({
   const knowledgeText =
     Array.isArray(lessonPlan?.knowledge_goals) && lessonPlan.knowledge_goals.length > 0
       ? lessonPlan.knowledge_goals.join(' • ')
-      : lessonPlan?.objectives?.knowledge || 'Nắm vững kiến thức trọng tâm SGK.';
+      : lessonPlan?.objectives?.knowledge || 'Chưa có mục tiêu kiến thức.';
 
   const competencyList =
     Array.isArray(lessonPlan?.competency_goals) && lessonPlan.competency_goals.length > 0
@@ -256,12 +130,12 @@ export default function LessonPlanScreen({
 
   const competencyText = competencyList
     ? competencyList.join(' • ')
-    : lessonPlan?.objectives?.competencies || 'Phát triển tư duy logic và giải quyết vấn đề toán học.';
+    : lessonPlan?.objectives?.competencies || 'Chưa có mục tiêu năng lực.';
 
   const characterText =
     Array.isArray(lessonPlan?.character_goals) && lessonPlan.character_goals.length > 0
       ? lessonPlan.character_goals.join(' • ')
-      : lessonPlan?.objectives?.qualities || 'Chăm chỉ, trách nhiệm và tính kỷ luật trong học tập.';
+      : lessonPlan?.objectives?.qualities || 'Chưa có mục tiêu phẩm chất.';
 
   const equipmentList =
     Array.isArray(lessonPlan?.teaching_equipment) && lessonPlan.teaching_equipment.length > 0
@@ -281,7 +155,7 @@ export default function LessonPlanScreen({
             Soạn Kế Hoạch Bài Dạy Chuẩn Công Văn 5512
           </h2>
           <p className="text-xs text-[#707070] mt-0.5">
-            Chuyên sâu Toán 12 (CT GDPT 2018 - SGK Kết nối tri thức) • Tích hợp Pedagogical RAG
+            Soạn bài từ nội dung và mục tiêu do giáo viên lựa chọn
           </p>
         </div>
         <button
@@ -298,21 +172,7 @@ export default function LessonPlanScreen({
           <div className="text-xs font-bold text-[#141414] flex items-center gap-1.5">
             <BookOpen size={15} /> Khung Chương Trình Toán 12 (CT GDPT 2018 - Kết Nối Tri Thức):
           </div>
-          <div className="flex items-center gap-2 text-xs">
-            <span className="px-3 py-1 rounded-full bg-[#f3f3f3] border border-[#e0e0e0] text-[#141414] font-medium flex items-center gap-1.5">
-              <Database size={12} className="text-[#141414]" />
-              <span>Kho RAG: {ragStats.slides} slide • {ragStats.questions} bài tập ({ragStats.periods} tiết)</span>
-            </span>
-            <button
-              type="button"
-              onClick={handleOpenPreview}
-              className="px-3 py-1 rounded-full bg-[#ffffff] hover:bg-[#f3f3f3] text-[#141414] border border-[#e0e0e0] font-semibold flex items-center gap-1 transition cursor-pointer"
-              title="Xem trước slide mẫu và câu hỏi thực tế trong kho Pedagogical RAG"
-            >
-              <Eye size={12} />
-              <span>Xem Trước Kho RAG</span>
-            </button>
-          </div>
+
         </div>
 
         {/* 2 Dropdown Chương và Bài học */}
@@ -324,6 +184,7 @@ export default function LessonPlanScreen({
               onChange={(e) => handleChapterSelect(e.target.value)}
               className="w-full bg-[#f0f0f0] border-none rounded-xl px-3 py-2 text-[#141414] font-medium focus:ring-2 focus:ring-[#141414] outline-none cursor-pointer"
             >
+              <option value="">Chọn chương</option>
               {curriculum.length > 0 ? (
                 curriculum.map((ch) => (
                   <option key={ch.chapter_id} value={ch.chapter_id}>
@@ -331,7 +192,7 @@ export default function LessonPlanScreen({
                   </option>
                 ))
               ) : (
-                <option value="M12-C1">Chương I. Ứng dụng đạo hàm khảo sát hàm số</option>
+                <option value="">Chưa có danh mục chương</option>
               )}
             </select>
           </div>
@@ -343,6 +204,7 @@ export default function LessonPlanScreen({
               onChange={(e) => handleLessonSelect(e.target.value)}
               className="w-full bg-[#f0f0f0] border-none rounded-xl px-3 py-2 text-[#141414] font-medium focus:ring-2 focus:ring-[#141414] outline-none cursor-pointer"
             >
+              <option value="">Chọn bài</option>
               {lessonsInChapter.length > 0 ? (
                 lessonsInChapter.map((l) => (
                   <option key={l.lesson_id} value={l.lesson_id}>
@@ -350,35 +212,12 @@ export default function LessonPlanScreen({
                   </option>
                 ))
               ) : (
-                <option value="M12-C1-B1">Bài 1: Tính đơn điệu và cực trị của hàm số</option>
+                <option value="">Chưa chọn bài</option>
               )}
             </select>
           </div>
         </div>
 
-        {/* Cụm Preset 1-Click nhanh */}
-        <div className="pt-2 border-t border-[#f0f0f0]">
-          <div className="text-[11px] text-[#707070] mb-1.5 font-medium">Hoặc nạp nhanh 6 chủ đề tiêu biểu:</div>
-          <div className="flex flex-wrap gap-1.5">
-            {textbookPresets.map((preset, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => handleSelectPreset(preset)}
-                className={`px-3 py-1 rounded-full border text-xs font-semibold transition flex items-center gap-1 cursor-pointer ${
-                  selectedLessonId === preset.lessonId
-                    ? 'bg-[#141414] text-white border-[#141414]'
-                    : 'bg-[#ffffff] hover:bg-[#f3f3f3] border-[#e0e0e0] text-[#141414]'
-                }`}
-              >
-                {preset.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-12 gap-5">
         {/* Cột trái: Form cấu hình bài dạy */}
         <div className="col-span-12 lg:col-span-5 p-5 rounded-[24px] bg-[#ffffff] border border-[#e0e0e0] space-y-4 text-xs">
           <div className="flex items-center justify-between pb-2 border-b border-[#e0e0e0]">
@@ -396,7 +235,7 @@ export default function LessonPlanScreen({
               type="text"
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
-              placeholder="VD: Tính đơn điệu, Khảo sát hàm số, Hệ tọa độ Oxyz, Phương sai ghép nhóm, Tích phân..."
+              placeholder="Nhập tên bài dạy của thầy/cô"
               className="w-full bg-[#f0f0f0] border-none rounded-2xl px-3.5 py-2.5 text-[#141414] text-sm focus:ring-2 focus:ring-[#141414] outline-none font-medium"
             />
           </div>
@@ -474,7 +313,7 @@ export default function LessonPlanScreen({
               <Sparkles size={13} className="text-[#141414]" /> Pedagogical RAG Toán 12 KNTT:
             </div>
             <p className="text-[#707070]">
-              Hệ thống sẽ neo tự động giáo án vào YCCĐ chuẩn, lấy slide bài giảng thực tế từ 1.847 slide KNTT 12 và bổ sung câu hỏi trắc nghiệm có lời giải 3 bước.
+              Chỉ học liệu đã được duyệt mới được dùng làm nguồn. Bài AI tạo là bản nháp; cần đối chiếu đề, giả thiết, lời giải và nguồn trước khi giảng dạy.
             </p>
           </div>
 
@@ -498,7 +337,7 @@ export default function LessonPlanScreen({
                 <FileText size={16} className="text-[#141414]" /> Kế Hoạch Bài Dạy (CV 5512)
               </h3>
               <span className="px-2.5 py-0.5 rounded-full bg-[#f3f3f3] text-[#10b981] border border-[#e0e0e0] text-[11px] font-semibold flex items-center gap-1">
-                <CheckCircle size={12} /> Hợp chuẩn 100%
+                <CheckCircle size={12} /> Cần đối chiếu nội dung
               </span>
             </div>
 
@@ -538,12 +377,14 @@ export default function LessonPlanScreen({
 
           {lessonPlan ? (
             <div className="space-y-4">
+              <LessonPlanReview plan={lessonPlan} onChange={onChangePlan}/>
+              <LessonPlanEditor plan={lessonPlan} onChange={onChangePlan}/>
               <div className="p-3.5 rounded-2xl bg-[#f3f3f3] border border-[#e0e0e0]">
                 <div className="flex items-center justify-between gap-2">
                   <h4 className="text-sm font-bold text-[#141414]">{lessonPlan.lesson_title}</h4>
                   <span className="px-2.5 py-0.5 rounded-full bg-[#ffffff] text-[#141414] border border-[#e0e0e0] text-[11px] font-semibold flex items-center gap-1 shrink-0">
                     <BookOpen size={12} />
-                    <span>Nguồn RAG: KNTT 12</span>
+                    <span>{lessonPlan.review_token?"Đã lưu xác nhận giáo án":"BẢN NHÁP — cần duyệt nội dung"}</span>
                   </span>
                 </div>
                 <div className="text-[11px] text-[#707070] mt-1">
@@ -600,7 +441,7 @@ export default function LessonPlanScreen({
                             Hoạt động {act.activity_number || i + 1}: <MathText text={actTitle} />
                           </span>
                           <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-[#ffffff] border border-[#e0e0e0] text-[#141414] font-mono shrink-0 font-semibold">
-                            {act.time_minutes || 10} phút
+                            {act.time_minutes ?? "Chưa có thời lượng"} phút
                           </span>
                         </div>
 
@@ -661,264 +502,7 @@ export default function LessonPlanScreen({
         </div>
       </div>
 
-      {/* MODAL XEM TRƯỚC TÀI NGUYÊN RAG (TASK 5.2) */}
-      {isPreviewOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-4xl max-h-[85vh] bg-[#ffffff] rounded-[24px] border border-[#e0e0e0] shadow-2xl flex flex-col overflow-hidden text-[#141414]">
-            {/* Modal Header */}
-            <div className="p-4 border-b border-[#e0e0e0] flex items-center justify-between shrink-0 bg-[#ffffff]">
-              <div className="flex items-center gap-2">
-                <Database size={18} className="text-[#141414]" />
-                <h3 className="text-sm font-bold text-[#141414]">
-                  Tài Nguyên Sư Phạm Pedagogical RAG — {selectedLessonId}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsPreviewOpen(false)}
-                className="p-1.5 rounded-full text-[#707070] hover:text-[#141414] hover:bg-[#f3f3f3] transition cursor-pointer"
-              >
-                <X size={18} />
-              </button>
-            </div>
 
-            {/* Modal Sub-header & Navigation Tabs - Stadium Track */}
-            <div className="px-4 py-2 border-b border-[#f0f0f0] bg-[#ffffff] flex flex-wrap items-center justify-between gap-2 shrink-0">
-              <div className="text-xs text-[#707070] font-medium truncate">
-                Bài dạy: <span className="text-[#141414] font-semibold">{topic}</span>
-              </div>
-              <div className="flex items-center gap-1 bg-[#f3f3f3] p-1 rounded-full border border-[#e0e0e0] text-xs">
-                <button
-                  type="button"
-                  onClick={() => setPreviewTab('yccd')}
-                  className={`px-3 py-1 rounded-full font-semibold transition cursor-pointer ${
-                    previewTab === 'yccd'
-                      ? 'bg-[#ffffff] text-[#141414] shadow-sm'
-                      : 'text-[#707070] hover:text-[#141414]'
-                  }`}
-                >
-                  YCCĐ & Dàn Ý
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPreviewTab('slides')}
-                  className={`px-3 py-1 rounded-full font-semibold transition cursor-pointer ${
-                    previewTab === 'slides'
-                      ? 'bg-[#ffffff] text-[#141414] shadow-sm'
-                      : 'text-[#707070] hover:text-[#141414]'
-                  }`}
-                >
-                  Slide Mẫu KNTT ({previewData?.slides_preview?.length || ragStats.slides})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPreviewTab('questions')}
-                  className={`px-3 py-1 rounded-full font-semibold transition cursor-pointer ${
-                    previewTab === 'questions'
-                      ? 'bg-[#ffffff] text-[#141414] shadow-sm'
-                      : 'text-[#707070] hover:text-[#141414]'
-                  }`}
-                >
-                  Câu Hỏi & Lời Giải ({previewData?.questions_preview?.length || ragStats.questions})
-                </button>
-              </div>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-4 overflow-y-auto flex-1 space-y-4 text-xs bg-[#ffffff]">
-              {isLoadingPreview ? (
-                <div className="py-12 text-center text-[#707070] flex flex-col items-center justify-center gap-2">
-                  <Loader2 size={24} className="animate-spin text-[#141414]" />
-                  <span>Đang truy xuất kho dữ liệu sư phạm KNTT 12 trong &lt; 30ms...</span>
-                </div>
-              ) : previewData ? (
-                <>
-                  {/* TAB 1: YCCĐ & DÀN Ý */}
-                  {previewTab === 'yccd' && (
-                    <div className="space-y-4">
-                      <div className="p-4 rounded-2xl bg-[#f3f3f3] border border-[#e0e0e0] space-y-2">
-                        <strong className="text-[#141414] block text-xs font-bold uppercase tracking-wider">
-                          Mục Tiêu Yêu Cầu Cần Đạt (Khung CT 2018):
-                        </strong>
-                        <ul className="space-y-1.5 pl-2">
-                          {(previewData.yccd || []).map((y, idx) => (
-                            <li key={idx} className="flex items-start gap-2 text-[#141414]">
-                              <Check size={14} className="text-[#10b981] mt-0.5 shrink-0" />
-                              <span>{y}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      {previewData.deck_outline && previewData.deck_outline.length > 0 && (
-                        <div className="p-4 rounded-2xl bg-[#f3f3f3] border border-[#e0e0e0] space-y-2">
-                          <strong className="text-[#141414] block text-xs font-bold uppercase tracking-wider">
-                            Dàn Ý Slide Bài Giảng Giáo Viên Gốc (KNTT 12):
-                          </strong>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                            {previewData.deck_outline.map((out, idx) => (
-                              <div
-                                key={idx}
-                                className="p-2.5 rounded-xl bg-[#ffffff] border border-[#e0e0e0] flex items-center gap-2 text-[#141414] text-[11px]"
-                              >
-                                <ChevronRight size={12} className="text-[#141414] shrink-0" />
-                                <span className="truncate">{out}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {previewData.keywords && previewData.keywords.length > 0 && (
-                        <div className="space-y-1.5">
-                          <span className="text-[#707070] block text-[11px] font-semibold">
-                            Từ khóa chuyên môn trọng tâm:
-                          </span>
-                          <div className="flex flex-wrap gap-1.5">
-                            {previewData.keywords.map((kw, idx) => (
-                              <span
-                                key={idx}
-                                className="px-2.5 py-0.5 rounded-full bg-[#f3f3f3] border border-[#e0e0e0] text-[#141414] text-[11px] font-medium"
-                              >
-                                #{kw}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* TAB 2: SLIDE MẪU */}
-                  {previewTab === 'slides' && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {(previewData.slides_preview || []).map((s, idx) => (
-                        <div
-                          key={idx}
-                          className="p-3.5 rounded-2xl bg-[#f3f3f3] border border-[#e0e0e0] space-y-2 flex flex-col justify-between"
-                        >
-                          <div className="space-y-1.5">
-                            <div className="flex items-center justify-between gap-1.5">
-                              <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-[#ffffff] text-[#141414] border border-[#e0e0e0]">
-                                {s.activity_type || 'Nội dung'}
-                              </span>
-                              <span className="text-[10px] text-[#707070] font-mono">
-                                {s.layout_hint || 'IMAGE_TEXT'}
-                              </span>
-                            </div>
-                            <h4 className="font-bold text-[#141414] text-xs">{s.title}</h4>
-                            {s.bullet_points && s.bullet_points.length > 0 && (
-                              <ul className="list-disc pl-4 text-[#141414] space-y-1 text-[11px]">
-                                {s.bullet_points.slice(0, 3).map((bp, bidx) => (
-                                  <li key={bidx}>
-                                    <MathText text={bp} />
-                                  </li>
-                                ))}
-                              </ul>
-                            )}
-                          </div>
-
-                          {s.main_definition_latex && (
-                            <div className="p-2.5 rounded-xl bg-[#ffffff] border border-[#e0e0e0] text-[11px] text-[#141414] overflow-x-auto">
-                              <MathText text={s.main_definition_latex} />
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* TAB 3: CÂU HỎI & LỜI GIẢI 3 BƯỚC */}
-                  {previewTab === 'questions' && (
-                    <div className="space-y-3">
-                      {(previewData.questions_preview || []).map((q, idx) => (
-                        <div
-                          key={idx}
-                          className="p-4 rounded-2xl bg-[#f3f3f3] border border-[#e0e0e0] space-y-2.5"
-                        >
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-xs font-bold text-[#141414]">
-                              Câu {idx + 1} ({q.difficulty === 'hard' ? 'Nâng cao' : q.difficulty === 'easy' ? 'Nhận biết' : 'Thông hiểu'})
-                            </span>
-                            <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-[#141414] text-white font-mono font-bold">
-                              Đáp án: {q.answer || 'A'}
-                            </span>
-                          </div>
-
-                          <div className="text-[#141414] font-medium">
-                            <MathText text={q.question} />
-                          </div>
-
-                          {/* Phương án trắc nghiệm */}
-                          {q.quiz_options && q.quiz_options.length > 0 && (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">
-                              {q.quiz_options.map((opt, oidx) => (
-                                <div
-                                  key={oidx}
-                                  className={`p-2.5 rounded-xl border text-[11px] ${
-                                    opt.is_correct
-                                      ? 'bg-[#ffffff] border-[#141414] text-[#141414] font-semibold'
-                                      : 'bg-[#ffffff] border-[#e0e0e0] text-[#141414]'
-                                  }`}
-                                >
-                                  <div>
-                                    <strong>{opt.label || opt.option}: </strong>
-                                    <MathText text={opt.text} />
-                                  </div>
-                                  {opt.distractor_rationale && (
-                                    <div className="text-[10px] text-[#ef4444] mt-1 italic">
-                                      ⚠️ Bẫy sai lầm: {opt.distractor_rationale}
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Lời giải 3 bước chuẩn RAG */}
-                          {q.worked_solution_steps && q.worked_solution_steps.length > 0 && (
-                            <div className="p-3 rounded-xl bg-[#ffffff] border border-[#e0e0e0] space-y-1.5 text-[11px]">
-                              <strong className="text-[#141414] block font-bold">Lời giải 3 bước sư phạm:</strong>
-                              {q.worked_solution_steps.map((st, sidx) => {
-                                const stepTitle = typeof st === 'object' ? st.step : `Bước ${sidx + 1}`;
-                                const stepMath = typeof st === 'object' ? st.math || st.note : st;
-                                return (
-                                  <div key={sidx} className="text-[#141414] pl-2 border-l-2 border-[#141414]">
-                                    <strong>{stepTitle}: </strong>
-                                    <MathText text={stepMath} />
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="py-8 text-center text-[#707070]">
-                  Không có dữ liệu xem trước cho bài học này.
-                </div>
-              )}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="p-3.5 border-t border-[#e0e0e0] bg-[#ffffff] flex items-center justify-between shrink-0">
-              <span className="text-[11px] text-[#707070]">
-                Pedagogical RAG Engine • In-Memory BM25 • Khung CT GDPT 2018
-              </span>
-              <button
-                type="button"
-                onClick={() => setIsPreviewOpen(false)}
-                className="px-4 py-2 rounded-full bg-[#141414] hover:bg-[#262626] text-white font-semibold text-xs transition cursor-pointer"
-              >
-                Đóng Xem Trước
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -13,11 +13,14 @@ def generate_slide_deck(
     use_rag: bool = True,
     class_proficiency: Optional[ClassProficiency] = ClassProficiency.STANDARD,
     target_outcome: Optional[str] = None,
+    approved_outline: Optional[dict] = None,
+    model_provider: Optional[str] = None,
+    model_id: Optional[str] = None,
     plan: Optional[LessonPlanSchema] = None
 ) -> SlideDeckSchema:
     """
-    Soạn Slide bài giảng định tuyến qua LLM Gateway (Groq Llama 3.3 / Gemini 2.5 Flash).
-    Tích hợp Pedagogical RAG Grounding & Curated Pedagogical Fallback chống lỗi 500 khi mạng rớt hoặc hết quota.
+    Sinh bản nháp theo dàn ý được duyệt và nguồn đã kiểm duyệt.
+    Lỗi provider hoặc vi phạm hợp đồng được chuyển về caller để giữ bài hiện tại.
     """
     if isinstance(class_proficiency, ClassProficiency):
         proficiency_str = class_proficiency.value
@@ -56,31 +59,48 @@ def generate_slide_deck(
             f"{rag_instruction}"
         )
 
-    try:
-        # Gọi qua Gateway có Auto-Fallback
-        slide_deck = llm_gateway.generate_structured(
-            prompt=user_prompt,
-            system_prompt=SLIDE_SYSTEM_PROMPT,
-            response_schema=SlideDeckSchema,
-            task_type="slide"
-        )
-        # Đảm bảo gán source_refs và activity_type cho các slide nếu cần
-        if slide_deck and slide_deck.slides:
-            for s in slide_deck.slides:
-                if not s.activity_type:
-                    if s.type == SlideType.WARM_UP_SLIDE:
-                        s.activity_type = "khoi_dong"
-                    elif s.type == SlideType.CONCEPT_SLIDE:
-                        s.activity_type = "hinh_thanh_kien_thuc"
-                    elif s.type == SlideType.EXERCISE_SLIDE:
-                        s.activity_type = "luyen_tap"
-                    elif s.type == SlideType.SUMMARY_SLIDE:
-                        s.activity_type = "tong_ket"
-                if source_refs and not s.source_refs:
-                    s.source_refs = source_refs[:2]
-        return slide_deck
-    except Exception as e:
-        print(f"[AI Service] Kích hoạt Curated Fallback SlideDeck cho môn {subject}, lớp {grade}, bài '{topic}' do: {str(e)[:80]}")
-        from lessonai.services.generation.fallback import get_curated_slide_deck
-        return get_curated_slide_deck(topic=topic, subject=subject, grade=grade, lesson_id=resolved_lid, plan=plan)
-
+    if approved_outline:
+        import json
+        items = approved_outline.get("outline_slides", [])
+        if not items or len({item.get("id") for item in items}) != len(items) or any(not item.get("id") for item in items):
+            raise ValueError("Dàn ý đã duyệt thiếu ID hoặc có ID trùng")
+        user_prompt += "\nDÀN Ý ĐÃ DUYỆT (bắt buộc đúng số trang, thứ tự, tiêu đề và các ý; mỗi slide ghi source_outline_id):\n" + json.dumps(approved_outline, ensure_ascii=False)
+    slide_deck = llm_gateway.generate_structured(
+        prompt=user_prompt, system_prompt=SLIDE_SYSTEM_PROMPT,
+        response_schema=SlideDeckSchema, task_type="slide", model_provider=model_provider, model_id=model_id)
+    if not slide_deck or not slide_deck.slides:
+        raise ValueError("Nhà cung cấp chưa trả nội dung slide")
+    for field in ("review_token", "quality_report"):
+        if slide_deck.model_extra:
+            slide_deck.model_extra.pop(field, None)
+    if approved_outline:
+        items = approved_outline["outline_slides"]
+        if len(slide_deck.slides) != len(items):
+            raise ValueError("Số slide không khớp dàn ý đã duyệt; cần sinh lại")
+        for slide, item in zip(slide_deck.slides, items):
+            if slide.source_outline_id != item["id"] or slide.title != item["title"]:
+                raise ValueError("Slide không giữ định danh/thứ tự/tiêu đề dàn ý đã duyệt")
+            required = item.get("bullet_points") or item.get("key_points") or []
+            if any(point not in slide.bullet_points for point in required):
+                raise ValueError("Slide bỏ nội dung đã duyệt trong dàn ý")
+            from lessonai.services.generation.outline_contract import validate_slide_role
+            validate_slide_role(slide.model_dump(mode="json"), item)
+    from lessonai.services.content_blocks import block_errors
+    for slide in slide_deck.slides:
+        errors = list(block_errors(slide.model_dump(mode="json")))
+        if errors:
+            raise ValueError(errors[0][1])
+    allowed={(ref.get("source_type"),ref.get("id")):ref for ref in source_refs}
+    for slide in slide_deck.slides:
+        for ref in slide.source_refs or []:
+            canonical = allowed.get((ref.source_type, ref.id))
+            if canonical is None:
+                raise ValueError("AI gắn nguồn không được cung cấp trong ngữ cảnh")
+            supplied_hash = ref.model_dump().get("sha256")
+            if supplied_hash and supplied_hash != canonical.get("sha256"):
+                raise ValueError("AI gắn phiên bản nguồn không khớp ngữ cảnh")
+            # Bind attribution to the exact source version actually supplied.
+            if canonical.get("sha256"):
+                ref.sha256 = canonical["sha256"]
+    # A source ID returned by the model is an attribution to review, not proof.
+    return slide_deck

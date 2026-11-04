@@ -12,7 +12,10 @@ def generate_lesson_plan(
     lesson_id: Optional[str] = None,
     use_rag: bool = True,
     proficiency: str = "standard",
-    max_retries: int = 2
+    max_retries: int = 2,
+    approved_outline: Optional[dict] = None,
+    model_provider: Optional[str] = None,
+    model_id: Optional[str] = None
 ) -> tuple[LessonPlanSchema, ValidationResult]:
     """
     Soạn giáo án Công văn 5512 định tuyến qua LLM Gateway có Pedagogical RAG & Graceful Fallback.
@@ -41,6 +44,9 @@ def generate_lesson_plan(
         "2. Bắt buộc tuân thủ và sử dụng dữ liệu từ NGỮ CẢNH SƯ PHẠM SGK Kết nối tri thức ở trên."
         f"{rag_instruction}"
     )
+    if approved_outline:
+        import json
+        user_prompt += "\nDàn ý giáo viên đã duyệt: giữ nguyên văn tiêu đề, các ý, math_focus theo thứ tự trong goal hoặc execution của đúng hoạt động 1 khởi động, 2 hình thành kiến thức, 3 luyện tập, 4 vận dụng/tổng kết. Không bỏ nội dung:\n" + json.dumps(approved_outline, ensure_ascii=False)
     current_prompt = user_prompt
 
     last_successful_plan: Optional[LessonPlanSchema] = None
@@ -53,8 +59,15 @@ def generate_lesson_plan(
                 prompt=current_prompt,
                 system_prompt=SYSTEM_PROMPT,
                 response_schema=LessonPlanSchema,
-                task_type="lesson_plan"
+                task_type="lesson_plan", model_provider=model_provider, model_id=model_id
             )
+            import copy
+            plan.approved_outline = copy.deepcopy(approved_outline)
+            plan.review_token = None
+            plan.quality_report = None
+            if approved_outline:
+                from lessonai.services.generation.outline_contract import validate_plan_outline
+                validate_plan_outline(plan, approved_outline)
             val_result = validate_5512_lesson_plan(plan)
 
             # Lưu lại bản kế hoạch thành công gần nhất vào bộ đệm
@@ -74,33 +87,16 @@ def generate_lesson_plan(
             # GRACEFUL FALLBACK: Nếu đã từng có bản giáo án thành công ở lần thử trước,
             # hoàn trả ngay bản kế hoạch đó kèm cảnh báo, KHÔNG BAO GIỜ ném lỗi 500!
             if last_successful_plan is not None:
-                print("[AI Service] Kích hoạt Graceful Fallback: Trả về bản giáo án gần nhất đã kiểm duyệt!")
+                print("[AI Service] Kích hoạt Graceful Fallback: Trả về bản nháp gần nhất kèm kết quả kiểm tra!")
                 res = last_validation_result or ValidationResult(is_valid=True, errors=[], warnings=[])
                 res.warnings.append("Hệ thống đã tự động bảo toàn bản kế hoạch thành công gần nhất do mạng/quota gián đoạn.")
                 return last_successful_plan, res
 
             if attempt == max_retries:
-                # KÍCH HOẠT CURATED PEDAGOGICAL FALLBACK ENGINE (ZERO-CRASH ARCHITECTURE)
-                print(f"[AI Service] Kích hoạt Curated Pedagogical Fallback cho môn {subject}, lớp {grade}, bài '{topic}' do: {err_msg[:80]}")
-                try:
-                    from lessonai.services.generation.fallback import get_curated_lesson_plan
-                    curated_plan = get_curated_lesson_plan(topic=topic, subject=subject, grade=grade, lesson_id=resolved_lid)
-                    val_result = validate_5512_lesson_plan(curated_plan)
-                    val_result.warnings.append("Hệ thống đã tự động chuyển sang Kế hoạch bài dạy chuẩn SGK (Curated Pedagogical Fallback) do gián đoạn kết nối AI.")
-                    return curated_plan, val_result
-                except Exception as fb_err:
-                    print(f"[AI Service] Fallback gặp sự cố: {fb_err}")
-                    raise e
+                raise RuntimeError("Không tạo được giáo án; bản soạn được giữ nguyên") from e
 
     if last_successful_plan is not None:
         res = last_validation_result or ValidationResult(is_valid=True, errors=[], warnings=[])
         return last_successful_plan, res
 
-    try:
-        from lessonai.services.generation.fallback import get_curated_lesson_plan
-        curated_plan = get_curated_lesson_plan(topic=topic, subject=subject, grade=grade, lesson_id=resolved_lid)
-        val_result = validate_5512_lesson_plan(curated_plan)
-        return curated_plan, val_result
-    except Exception:
-        raise RuntimeError("Không thể tạo Kế hoạch bài dạy sau các lần thử.")
-
+    raise RuntimeError("Không tạo được giáo án trong số lần thử cho phép")

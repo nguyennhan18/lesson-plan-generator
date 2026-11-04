@@ -83,50 +83,8 @@ def calculate_sha256(data: bytes) -> str:
 
 
 def normalize_slide_deck_payload(deck_raw: Any) -> SlideDeckSchema:
-    """
-    Tự động chuẩn hóa dữ liệu SlideDeck trước khi kết xuất PowerPoint:
-    - Bổ sung tiêu đề mặc định nếu bị thiếu.
-    - Ép kiểu SlideType hợp lệ ('TITLE_SLIDE', 'WARM_UP_SLIDE', 'CONCEPT_SLIDE', 'EXERCISE_SLIDE', ...).
-    - Bảo toàn toàn vẹn chuỗi ảnh snapshot 3D Base64 Data URL.
-    """
-    if isinstance(deck_raw, SlideDeckSchema):
-        return deck_raw
-
-    if not isinstance(deck_raw, dict):
-        raise ValueError("Dữ liệu SlideDeck phải là dict hoặc SlideDeckSchema")
-
-    deck_copy = dict(deck_raw)
-    valid_types = {
-        'TITLE_SLIDE', 'WARM_UP_SLIDE', 'CONCEPT_SLIDE',
-        'EXERCISE_SLIDE', 'TEACHER_NOTE_SLIDE', 'SUMMARY_SLIDE'
-    }
-
-    slides = deck_copy.get("slides", [])
-    normalized_slides = []
-    for idx, s in enumerate(slides):
-        if isinstance(s, dict):
-            s_copy = dict(s)
-            # Chuẩn hóa slide_index
-            if "slide_index" not in s_copy and "slide_number" in s_copy:
-                s_copy["slide_index"] = s_copy["slide_number"]
-            elif "slide_index" not in s_copy:
-                s_copy["slide_index"] = idx + 1
-
-            # Chuẩn hóa SlideType
-            stype = str(s_copy.get("type", "")).strip()
-            if stype not in valid_types:
-                s_copy["type"] = "EXERCISE_SLIDE"
-
-            # Chuẩn hóa Tiêu đề bắt buộc
-            if not s_copy.get("title"):
-                s_copy["title"] = s_copy.get("question") or f"Trang {idx + 1}"
-
-            normalized_slides.append(s_copy)
-        else:
-            normalized_slides.append(s)
-
-    deck_copy["slides"] = normalized_slides
-    return SlideDeckSchema.model_validate(deck_copy)
+    """Use the same versioned contract as standalone PPTX; never add lesson content."""
+    return SlideDeckSchema.model_validate(deck_raw)
 
 
 def generate_dual_package_manifest(
@@ -309,21 +267,30 @@ def export_dual_package(payload: Dict[str, Any], use_concurrency: bool = True) -
     manifest_filename = "Huong_Dan_Goi_Kep_5512.txt"
 
     # 6. Tạo Manifest
-    manifest_text = generate_dual_package_manifest(
-        title=title,
-        subject=subject,
-        grade=grade,
-        docx_filename=docx_filename,
-        docx_size=len(docx_bytes),
-        docx_sha256=docx_sha256,
-        pptx_filename=pptx_filename,
-        pptx_size=len(pptx_bytes),
-        pptx_sha256=pptx_sha256,
-        slide_count=slide_count,
-        activity_count=activity_count,
-        has_3d=has_3d,
-        quiz_count=quiz_count
-    )
+    import json
+    from lessonai.api.routes.quality import check_deck
+    from lessonai.services.visual_requirements import fingerprint
+    from lessonai.services.content_quality import content_snapshot
+    deck_payload = deck_obj.model_dump(mode="json") if deck_obj else None
+    quality = check_deck(deck_payload) if deck_payload else {"status": "needs_review"}
+    from lessonai.services.lesson_quality import check_plan
+    from lessonai.services.artifact_provenance import plan_provenance
+    plan_payload = LessonPlanSchema.model_validate(plan_raw).model_dump(mode="json") if plan_raw else None
+    plan_quality = check_plan(plan_payload) if plan_payload else {"status": "absent"}
+    manifest_text = json.dumps({
+        "schema_version": 2, "title": title, "subject": subject, "grade": grade,
+        "project_id": deck_payload.get("project_id") if deck_payload else None,
+        "deck_id": deck_payload.get("deck_id") if deck_payload else None,
+        "revision": deck_payload.get("revision") if deck_payload else None,
+        "content_fingerprint": fingerprint(content_snapshot(deck_payload)) if deck_payload else None,
+        "deck_quality": quality["status"], "plan_quality": plan_quality["status"],
+        "plan_provenance": plan_provenance(plan_payload) if plan_payload else None,
+        "deck_generation_metadata": deck_payload.get("generation_metadata") if deck_payload else None,
+        "files": [entry for entry in [
+            {"name": docx_filename, "sha256": docx_sha256} if docx_bytes else None,
+            {"name": pptx_filename, "sha256": pptx_sha256} if pptx_bytes else None] if entry],
+        "notice": "Bản xuất giữ nội dung đã gửi. Cần giáo viên duyệt nội dung chưa kiểm chứng. Số trang PPTX có thể tăng để giữ toàn bộ lời giải."
+    }, ensure_ascii=False, indent=2)
 
     # 7. Đóng gói ZIP Stream với tối ưu nén
     zip_buffer = io.BytesIO()

@@ -54,3 +54,22 @@ app/backend/output/
 
 # Python packaging and build metadata
 app/backend/dist/
+
+# Browser evidence is generated locally/CI, never shipped with the application.
+app/frontend/test-results/
+app/frontend/playwright-report/
+# Remediation documentation must accompany the implementation.
+!docs/
+docs/*
+!docs/plans/
+docs/plans/*
+!docs/plans/project-remediation-post-refactor.md
+!docs/plans/remediation-m1-math-rendering.md
+!docs/plans/remediation-m2-contracts-workflows.md
+!docs/plans/remediation-framework-2026-11-03.md
+!docs/plans/remediation-acceptance-2026-11-03.md
+!reports/
+reports/*
+!reports/remediation-implementation-2026-11-03.md
+!reports/remediation-changed-files-2026-11-03.md
+!reports/evidence-remediation-2026-11-04/

@@ -6,6 +6,17 @@ from lessonai.schemas.schemas import OutlineResponse, OutlineRequest
 
 client = TestClient(app)
 
+@pytest.fixture(autouse=True)
+def provider_fixture(monkeypatch):
+    # Provider output is a test fixture only; production never falls back to this content.
+    import re
+    from lessonai.llm.gateway import llm_gateway
+    def generate(**kwargs):
+        count=int(re.search(r'(\d+) slide',kwargs['prompt']).group(1))
+        return OutlineResponse(title='Dàn ý được kiểm thử',subject='Toán học',grade=12,num_slides=count,class_proficiency='standard',outline_slides=[{'title':f'Mục {i}','slide_index':i,'bullet_points':['Ý do giáo viên chọn']} for i in range(1,count+1)])
+    monkeypatch.setattr(llm_gateway,'generate_structured',generate)
+
+
 def test_generate_presentation_outline_service():
     """Kiểm tra hàm service generate_presentation_outline trả về đúng chuẩn OutlineResponse"""
     res = generate_presentation_outline(

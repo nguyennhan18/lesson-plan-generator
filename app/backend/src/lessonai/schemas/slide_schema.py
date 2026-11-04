@@ -1,7 +1,10 @@
 from pydantic import model_validator
 from enum import Enum
 from typing import List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
+from uuid import uuid4
+from lessonai.schemas.content_blocks import ContentBlock
+from lessonai.schemas.provenance import GenerationMetadata
 ##
 class ChartType(str, Enum):
     ARITHMETIC_SEQUENCE = "arithmetic_sequence"   # giữ lại cho dãy số dạng u_n = a + d*n
@@ -10,6 +13,11 @@ class ChartType(str, Enum):
     NONE = "none"
 
 class ChartSpec(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    operation: str = "function"
+    requirement_token: Optional[str] = None
+    deck_id: Optional[str] = None
+    slide_id: Optional[str] = None
     kind: ChartType = Field(
         default=ChartType.NONE,
         description=(
@@ -42,8 +50,8 @@ class ChartSpec(BaseModel):
     )
     x_min: float = Field(default= -4.0)
     x_max: float = Field(default=4.0)
-    y_min: Optional[float] = Field(default=-1.0)
-    y_max: Optional[float] = Field(default=6.0)
+    y_min: Optional[float] = Field(default=None)
+    y_max: Optional[float] = Field(default=None)
     chart_title: Optional[str] = Field(
         default=None,
         description="Tiêu đề hiển thị trên đồ thị. VD: 'Đồ thị hàm số y = 2x'."
@@ -78,6 +86,17 @@ class QuizOptionDetail(BaseModel):
     )
 
 class SourceRef(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    @model_validator(mode="before")
+    @classmethod
+    def migrate_source(cls, value):
+        if isinstance(value, dict):
+            value = dict(value)
+            value.setdefault("source_type", value.get("source"))
+            value.setdefault("id", value.get("slide_id"))
+        return value
+
     source_type: Optional[str] = Field(default=None, description="Nguồn trích xuất: curriculum, slide_kntt12, question_bank_rag")
     id: Optional[str] = Field(default=None, description="Mã định danh của tài liệu tham chiếu")
     title: Optional[str] = Field(default=None, description="Tiêu đề tài liệu")
@@ -95,7 +114,31 @@ class SlideSchema(BaseModel):
     Schema định nghĩa cấu trúc dữ liệu cho một trang Slide trình chiếu.
     Tích hợp đầy đủ các loại Slide: Title, Khởi động, Khái niệm, Bài tập, Tóm tắt.
     """
-    slide_index: int = Field(description="STT slide (bắt đầu từ 1)")
+    model_config = ConfigDict(extra="allow")
+    slide_id: str = Field(default_factory=lambda: str(uuid4()))
+    revision: int = Field(default=0, ge=0)
+    source_outline_id: Optional[str] = None
+    scene_spec: Optional[dict] = None
+    blocks: List[ContentBlock] = Field(default_factory=list)
+    question: Optional[str] = None
+    generation_metadata: Optional[GenerationMetadata] = None
+
+    table_data: Optional[dict] = None
+    stage: Optional[str] = None
+    key_message: Optional[str] = None
+    slide_index: int = Field(default=1, ge=1, description="STT slide (bắt đầu từ 1)")
+
+    @model_validator(mode="before")
+    @classmethod
+    def migrate_index(cls, value):
+        if isinstance(value, dict):
+            value = dict(value)
+            if "slide_number" in value:
+                if "slide_index" in value and value["slide_index"] != value["slide_number"]:
+                    raise ValueError("slide_number và slide_index không khớp")
+                value["slide_index"] = value.pop("slide_number")
+        return value
+
     type: SlideType = Field(default=SlideType.CONCEPT_SLIDE, description="Loại slide: TITLE_SLIDE, WARM_UP_SLIDE, CONCEPT_SLIDE, EXERCISE_SLIDE, SUMMARY_SLIDE")
     layout: Optional[SlideLayout] = Field(default=SlideLayout.SINGLE_COLUMN, description="Bố cục giao diện hiển thị slide: TITLE_ONLY, SINGLE_COLUMN, TWO_COLUMN, CONCEPT_HIGHLIGHT, IMAGE_TEXT, QUIZ_OPTION")
     title: str = Field(description="Tiêu đề chính của slide")
@@ -143,39 +186,6 @@ class SlideSchema(BaseModel):
         default=None,
         description="Chế độ sư phạm tổ chức hoạt động (Thảo luận cặp đôi, Thảo luận nhóm 4, Cá nhân suy ngẫm...)"
     )
-    @model_validator(mode = "after")
-    def validate_quiz_options(self) -> "SlideSchema":
-        is_quiz = self.layout == SlideLayout.QUIZ_OPTION
-        has_options = bool(self.quiz_options)
-
-        # Không phải slide trắc nghiệm và không có phương án -> bỏ qua
-        if not is_quiz and not has_options:
-            return self
-
-        # Slide QUIZ_OPTION bắt buộc phải có phương án
-        if not has_options:
-            raise ValueError("Slide QUIZ_OPTION phải có quiz_options")
-
-        # Đúng 1 đáp án đúng
-        correct_count = sum(opt.is_correct for opt in self.quiz_options)
-        if correct_count != 1:
-            raise ValueError(
-                f"Cần đúng 1 phương án đúng, hiện có {correct_count}"
-            )
-
-        # Mọi phương án sai phải có distractor_rationale
-        missing = [
-            opt.label
-            for opt in self.quiz_options
-            if not opt.is_correct
-            and not (opt.distractor_rationale and opt.distractor_rationale.strip())
-        ]
-        if missing:
-            raise ValueError(
-                f"Phương án sai thiếu distractor_rationale: {', '.join(missing)}"
-            )
-
-        return self
 class ThemeType(str, Enum):
     MATH_ACADEMIC = "math_academic"
     MATH_INFOGRAPHIC = "math_infographic"
@@ -186,13 +196,28 @@ class SlideDeckSchema(BaseModel):
     """
     Schema tổng thể cho cả bộ Slide trình chiếu bài giảng.
     """
+    model_config = ConfigDict(extra="allow")
+    generation_metadata: Optional[GenerationMetadata] = None
+    schema_version: int = Field(default=2, ge=1, le=2)
+    project_id: str = Field(default_factory=lambda: str(uuid4()))
+    deck_id: str = Field(default_factory=lambda: str(uuid4()))
+    revision: int = Field(default=0, ge=0)
+
+    @model_validator(mode="after")
+    def validate_identity(self):
+        ids = [s.slide_id for s in self.slides]
+        if any(not value for value in ids) or len(set(ids)) != len(ids):
+            raise ValueError("ID slide trống hoặc bị trùng")
+        for index, slide in enumerate(self.slides, 1):
+            slide.slide_index = index
+        return self
+
     presentation_title: str = Field(description="Tiêu đề bài giảng slide")
     subject: str = Field(description="Tên môn học")
     grade: int = Field(description="Khối lớp")
     theme: Optional[ThemeType] = Field(default=ThemeType.MATH_ACADEMIC, description="Chủ đề màu sắc thiết kế")
-    slides: List[SlideSchema] = Field(description="Danh sách các trang slide trong bài giảng")
+    slides: List[SlideSchema] = Field(max_length=200, description="Danh sách các trang slide trong bài giảng")
     snapshot_3d_base64: Optional[str] = Field(
         default=None,
         description="Task 14.2: Chuỗi Base64 Data URL dự phòng toàn cục cho cả bộ Slide"
     )
-

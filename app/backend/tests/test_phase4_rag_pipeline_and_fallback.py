@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 from lessonai.main import app
 from lessonai.schemas.schemas import LessonRequest
 from lessonai.schemas.slide_schema import SlideType, SlideLayout
-from lessonai.services.generation.fallback import get_curated_lesson_plan, get_curated_slide_deck
+from curated_examples import get_curated_lesson_plan, get_curated_slide_deck
 from lessonai.services.validation import validate_5512_lesson_plan
 from lessonai.rag.curriculum_registry import infer_lesson_id
 
@@ -75,41 +75,3 @@ def test_backward_compatibility_grade10_and_11():
     assert plan_11.grade == 11
     assert "Cấp số cộng" in plan_11.lesson_title
     assert deck_11.grade == 11
-
-
-def test_api_endpoints_generate_lesson_plan_and_slide_with_rag():
-    """Kiểm tra gọi qua FastAPI endpoint với tham số RAG"""
-    # 1. API sinh Giáo án cho bài Chương 3
-    req_body = {
-        "topic": "Phương sai và độ lệch chuẩn của mẫu số liệu ghép nhóm",
-        "subject": "Toán học",
-        "grade": 12,
-        "lesson_id": "M12-C3-B2",
-        "use_rag": True,
-        "class_proficiency": "standard"
-    }
-    resp = client.post("/api/v1/lesson-plan/generate", json=req_body)
-    assert resp.status_code == 200
-    data = resp.json()
-    assert data["is_valid"] is True
-    assert "plan" in data
-    assert data["plan"]["lesson_title"] != ""
-    assert len(data["plan"]["activities"]) == 4
-
-    # 2. API sinh Slide
-    slide_req_body = {
-        "topic": "Phương sai và độ lệch chuẩn của mẫu số liệu ghép nhóm",
-        "subject": "Toán học",
-        "grade": 12,
-        "lesson_id": "M12-C3-B2",
-        "use_rag": True,
-        "plan": data["plan"]
-    }
-    resp_slide = client.post("/api/v1/slide/generate", json=slide_req_body)
-    assert resp_slide.status_code == 200
-    deck_data = resp_slide.json()
-    assert "slides" in deck_data
-    assert len(deck_data["slides"]) >= 5
-    # Kiểm tra có ít nhất 1 slide gắn source_refs
-    has_refs = any(bool(s.get("source_refs")) for s in deck_data["slides"])
-    assert has_refs, "Thiếu source_refs trong kết quả Slide API"

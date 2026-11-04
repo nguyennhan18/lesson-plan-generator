@@ -227,8 +227,7 @@ class Math12HybridRetriever:
         """
         candidates = self.slides_by_lesson.get(lesson_id, [])
         if not candidates:
-            # Fallback nếu bài học chưa có slide riêng
-            candidates = self.slides[:20]
+            return []
 
         # 1. Lọc cứng theo activity_type nếu có
         if activity_type:
@@ -268,8 +267,7 @@ class Math12HybridRetriever:
         """
         candidates = self.questions_by_lesson.get(lesson_id, [])
         if not candidates:
-            # Fallback lấy từ Chương tương ứng hoặc kho chung
-            candidates = self.questions[:20]
+            return []
 
         # Phân hóa độ khó theo học lực
         diff_weights = {

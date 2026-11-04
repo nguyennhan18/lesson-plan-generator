@@ -42,3 +42,13 @@ inventory:
 
 lint-data:
 	$(PYTHON) scripts/quality/deck_lint.py
+
+# Portable checks intentionally do not require the local, unpublished corpus.
+test-portable:
+	GEMINI_API_KEY= GROQ_API_KEY= OPENROUTER_API_KEY= $(PYTHON) -m pytest -c app/backend/pyproject.toml app/backend/tests -m "not corpus_integration"
+
+test-e2e: build
+	npm --prefix app/frontend run test:e2e
+
+prepare-source-review:
+	$(PYTHON) scripts/quality/prepare-source-review.py --output $(REVIEW_OUTPUT)-sources.json

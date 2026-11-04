@@ -69,9 +69,14 @@ def calculate_parametric_geometry(
     - Gốc tọa độ O(0, 0, 0)
     - Trục Oz thẳng đứng, đỉnh chóp S có tọa độ (0, 0, h)
     """
-    h = max(0.5, min(20.0, float(height)))
-    a = max(0.5, min(20.0, float(base_edge)))
-    norm_type = str(polyhedron_type or "pyramid_square").lower().strip()
+    if polyhedron_type is None or height is None or base_edge is None:
+        raise ValueError("Thiếu loại hình hoặc số đo")
+    h, a = float(height), float(base_edge)
+    if not all(math.isfinite(v) and .5 <= v <= 20 for v in (h, a)):
+        raise ValueError("Số đo ngoài phạm vi hỗ trợ")
+    norm_type = str(polyhedron_type).lower().strip()
+    if norm_type not in {"pyramid_square", "rectangular_pyramid", "pyramid4", "pyramid_triangle", "triangular_pyramid", "pyramid3", "tetrahedron", "prism_triangle", "triangular_prism", "prism", "cube"}:
+        raise ValueError("Loại hình chưa được hỗ trợ")
 
     vertices: Dict[str, Vertex3D] = {}
     measurements: Dict[str, float] = {}
@@ -986,8 +991,3 @@ def compute_hidden_surface_raycasting(
         "algorithm": "Möller–Trumbore Ray-Triangle Occlusion Intersection",
         "pedagogical_rule": "Cạnh bị mặt phẳng che khuất khỏi góc nhìn Camera được gán render_style = 'dashed' (Nét Đứt)."
     }
-
-
-
-
-

@@ -1,6 +1,7 @@
 from fastapi import HTTPException
 from fastapi.responses import Response
 from lessonai.schemas.schemas import LessonRequest
+from lessonai.schemas.slide_schema import SlideDeckSchema
 from lessonai.services.generation import generate_slide_deck
 from lessonai.exporters.graph_generator import generate_math_plot, is_plottable
 from lessonai.core.feature_availability import ExpressionProcessingUnavailable
@@ -9,7 +10,7 @@ from lessonai.services.rendering import enrich_slide_deck_with_renders
 
 router = APIRouter()
 
-@router.post("/api/v1/slide/generate")
+@router.post("/api/v1/slide/generate", response_model=SlideDeckSchema)
 def generate_slide_endpoint(req: LessonRequest):
     """
     API 4: Nhận yêu cầu từ người dùng, gọi Gemini AI sinh cấu trúc JSON Slide bài giảng (SlideDeckSchema).
@@ -18,6 +19,7 @@ def generate_slide_endpoint(req: LessonRequest):
     """
     try:
         slide_deck = generate_slide_deck(
+            approved_outline=req.approved_outline, model_provider=req.model_provider, model_id=req.model_id,
             topic=req.topic,
             subject=req.subject,
             grade=req.grade,
@@ -28,18 +30,11 @@ def generate_slide_endpoint(req: LessonRequest):
             target_outcome=req.target_outcome
         )
         deck_dict = slide_deck.model_dump()
+        from lessonai.services.content_quality import evaluate_deck
+        deck_dict["quality_report"] = evaluate_deck(deck_dict)
         return enrich_slide_deck_with_renders(deck_dict)
-    except Exception as e:
-        print(f"[API] Sự cố sinh slide ({e}). Tự động kích hoạt Curated Fallback SlideDeck...")
-        from lessonai.services.generation.fallback import get_curated_slide_deck
-        fallback_deck = get_curated_slide_deck(
-            topic=req.topic,
-            subject=req.subject,
-            grade=req.grade,
-            lesson_id=req.lesson_id,
-            plan=req.plan
-        )
-        return enrich_slide_deck_with_renders(fallback_deck.model_dump())
+    except Exception as error:
+        raise HTTPException(503, detail={"code": "generation_unavailable", "message": "Không tạo được slide đúng yêu cầu. Bản soạn được giữ nguyên; cần thử lại hoặc sửa dàn ý."}) from error
 
 
 @router.post("/api/v1/slide/enrich")
@@ -54,18 +49,18 @@ def enrich_slide_endpoint(deck: dict):
 @router.post("/api/v1/chart/render")
 def render_chart_endpoint(spec: dict):
     """Render đồ thị từ cấu hình chart_spec và trả về file ảnh PNG trực tiếp"""
+    from lessonai.services.visual_requirements import VisualError
+    from lessonai.core.jobs import JobError
+    from lessonai.services.math_expression import ExpressionError
     try:
-        from lessonai.exporters.graph_generator import expression_chart_is_disabled
-        if expression_chart_is_disabled(spec):
-            raise ExpressionProcessingUnavailable()
-        if not is_plottable(spec):
-            raise HTTPException(status_code=400, detail="Cấu hình chart_spec không thể vẽ thành đồ thị hàm số")
         png_bytes = generate_math_plot(spec)
         return Response(content=png_bytes, media_type="image/png")
-    except HTTPException:
-        raise
-    except ExpressionProcessingUnavailable as error:
-        raise HTTPException(status_code=503, detail={"code": error.code, "message": str(error)}) from error
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Lỗi vẽ đồ thị: {str(e)}")
-
+    except VisualError as error:
+        raise HTTPException(409, detail={"code": error.code, "message": str(error)}) from error
+    except ExpressionError as error:
+        raise HTTPException(422, detail=error.detail()) from error
+    except JobError as error:
+        status = 503 if error.code == "job_busy" else 504 if error.code == "job_timeout" else 422
+        raise HTTPException(status, detail={"code": error.code, "message": str(error)}) from error
+    except (ValueError,KeyError,TypeError) as error:
+        raise HTTPException(422, detail={"code": "chart_invalid", "message": str(error)}) from error

@@ -82,30 +82,6 @@ def test_task_17_1_annotation_canvas_component():
     assert "setPointerCapture" in content
 
 
-def test_task_17_1_stage_annotation_canvas_integration():
-    """
-    Task 17.1: Kiểm tra tích hợp AnnotationCanvas trong PresentationStage.jsx:
-    - Import AnnotationCanvas from './AnnotationCanvas'
-    - Khởi tạo state: isDrawingMode, currentTool, drawingColor, brushSize, slideDrawingsMap
-    - Render <AnnotationCanvas ... /> bên trong khung hình 16:9 của slide
-    - Truyền đầy đủ props: isActive={isDrawingMode}, tool={currentTool}, color={drawingColor},
-      size={brushSize}, slideIndex={currentSlide}, strokes={currentStrokes}, onStrokesChange={handleStrokesChange}
-    """
-    stage_path = FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationStage.jsx"
-    assert stage_path.exists(), f"Không tìm thấy tệp {stage_path}"
-    content = stage_path.read_text(encoding="utf-8")
-
-    assert "import AnnotationCanvas from './AnnotationCanvas'" in content
-    assert "isDrawingMode" in content
-    assert "slideDrawingsMap" in content
-    assert "<AnnotationCanvas" in content
-    assert "isActive={isDrawingMode}" in content
-    assert "tool={currentTool}" in content
-    assert "color={drawingColor}" in content
-    assert "size={brushSize}" in content
-    assert "slideIndex={currentSlide}" in content
-    assert "strokes={currentStrokes}" in content
-    assert "onStrokesChange={handleStrokesChange}" in content
 
 
 def test_task_17_2_bezier_curve_smoothing_utility():
@@ -218,40 +194,6 @@ def test_task_17_3_annotation_canvas_eraser_integration():
     assert "border-rose-400 bg-rose-500" in content
 
 
-def test_task_17_3_stage_undo_redo_stack_and_clear_all():
-    """
-    Task 17.3: Kiểm tra quản lý Ngăn xếp Hoàn tác (Undo/Redo Stack) & Clear All trong PresentationStage.jsx:
-    - Quản lý slideUndoStacks và slideRedoStacks theo từng slide
-    - handleUndoStrokes: Lấy trạng thái trước từ undoStack, lưu trạng thái hiện tại vào redoStack
-    - handleRedoStrokes: Lấy trạng thái từ redoStack, lưu trạng thái hiện tại vào undoStack
-    - handleClearAllStrokes: Xóa toàn bộ nét của slide hiện tại và lưu vào undoStack để có thể hoàn tác
-    - Bắt sự kiện phím tắt toàn cục:
-      + Phím E: Bật công cụ Tẩy (tool = 'eraser')
-      + Phím Ctrl+Z / Cmd+Z: Hoàn tác (Undo)
-      + Phím Ctrl+Y / Cmd+Shift+Z / Ctrl+Shift+Z: Làm lại (Redo)
-    """
-    stage_path = FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationStage.jsx"
-    assert stage_path.exists(), f"Không tìm thấy tệp {stage_path}"
-    content = stage_path.read_text(encoding="utf-8")
-
-    assert "slideUndoStacks" in content
-    assert "slideRedoStacks" in content
-    assert "handleUndoStrokes" in content
-    assert "handleRedoStrokes" in content
-    assert "handleClearAllStrokes" in content
-
-    # Kiểm tra phím tắt
-    assert "handleUndoStrokes()" in content
-    assert "handleRedoStrokes()" in content
-    assert "setCurrentTool('eraser')" in content
-
-    # Kiểm tra truyền props xuống PresentationFloatingBar
-    assert "canUndo=" in content
-    assert "canRedo=" in content
-    assert "onUndo=" in content
-    assert "onRedo=" in content
-    assert "onClearCanvas=" in content
-    assert "hasStrokes=" in content
 
 
 def test_task_17_3_floating_bar_eraser_and_history_controls():
@@ -321,35 +263,6 @@ def test_task_17_4_slide_deck_drawings_storage_utility():
     assert "export function clearSlideDrawingsFromStorage" in content
 
 
-def test_task_17_4_stage_whiteboard_and_slide_persistence_integration():
-    """
-    Task 17.4: Kiểm tra tích hợp Whiteboard và Lưu trữ theo Slide trong PresentationStage.jsx:
-    - Import WhiteboardOverlay, loadSlideDrawingsFromStorage, saveSlideDrawingsToStorage
-    - Khởi tạo slideDrawingsMap từ storage qua loadSlideDrawingsFromStorage(deckId)
-    - Tự động đồng bộ saveSlideDrawingsToStorage(slideDrawingsMap, deckId) khi có thay đổi
-    - Bắt phím tắt W: Bật/tắt Bảng phụ (isWhiteboardOpen)
-    - Quản lý Undo / Redo cho Whiteboard khi đang mở bảng
-    - Render <WhiteboardOverlay ... /> và truyền props xuống PresentationFloatingBar
-    """
-    stage_path = FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationStage.jsx"
-    assert stage_path.exists(), f"Không tìm thấy tệp {stage_path}"
-    content = stage_path.read_text(encoding="utf-8")
-
-    assert "import WhiteboardOverlay from './WhiteboardOverlay'" in content
-    assert "loadSlideDrawingsFromStorage" in content
-    assert "saveSlideDrawingsToStorage" in content
-    assert "isWhiteboardOpen" in content
-    assert "setIsWhiteboardOpen" in content
-    assert "<WhiteboardOverlay" in content
-
-    # Phím tắt W
-    assert "e.key === 'w' || e.key === 'W'" in content
-    assert "setIsWhiteboardOpen((prev) => !prev)" in content
-
-    # Truyền props xuống PresentationFloatingBar
-    assert "isWhiteboardOpen={isWhiteboardOpen}" in content
-    assert "onToggleWhiteboard={setIsWhiteboardOpen}" in content
-    assert "slideDrawingsMap={slideDrawingsMap}" in content
 
 
 def test_task_17_4_floating_bar_whiteboard_button_and_thumbnail_indicators():
@@ -509,47 +422,3 @@ def test_task_17_5_definition_of_done_end_to_end_annotation_canvas_flow():
     whiteboard_strokes = [{"id": "wb_proof_01", "tool": "pen", "points": [{"x": 200, "y": 200}]}]
     assert len(whiteboard_strokes) == 1
     assert len(slide_drawings_map[0]) == 1  # Không bị ảnh hưởng lẫn nhau
-
-
-def test_task_17_5_dod_comprehensive_checklist():
-    """
-    Task 17.5: Kiểm tra bảng tiêu chí Definition of Done (DoD) Toàn diện của Ngày 17:
-    - 5 tệp mã nguồn Frontend cốt lõi được xây dựng chuẩn mực:
-      1. drawingCanvasHelper.js: High-DPI setup, coordinate transform, stroke factory
-      2. bezierSmoothing.js: Quadratic Bezier curve smoothing, pedagogical colors, tool presets
-      3. eraserHitTesting.js: Orthogonal vector projection, point-to-segment distance, object eraser
-      4. AnnotationCanvas.jsx: Pointer events listener, real-time Bezier drawing, circular eraser ring
-      5. WhiteboardOverlay.jsx: Fullscreen whiteboard with 3 themes (blackboard, chalkboard, whiteboard)
-    - 2 tệp tích hợp giao diện & lưu trữ:
-      6. PresentationStage.jsx: Undo/Redo stacks, slide inking persistence, shortcut listeners
-      7. PresentationFloatingBar.jsx: Pen, Highlighter, Eraser, Undo, Redo, Clear, Whiteboard buttons
-    - Phím tắt chuẩn mực quốc tế:
-      P (Bút mực), H (Bút dạ quang), E (Tẩy nét), W (Bảng phụ), Ctrl+Z (Undo), Ctrl+Y (Redo)
-    """
-    # 1. Kiểm tra tồn tại toàn bộ các tệp kiến trúc
-    files_to_check = [
-        FRONTEND_DIR / "src" / "features" / "presentation" / "drawingCanvasHelper.js",
-        FRONTEND_DIR / "src" / "features" / "presentation" / "bezierSmoothing.js",
-        FRONTEND_DIR / "src" / "features" / "presentation" / "eraserHitTesting.js",
-        FRONTEND_DIR / "src" / "features" / "presentation" / "AnnotationCanvas.jsx",
-        FRONTEND_DIR / "src" / "features" / "presentation" / "WhiteboardOverlay.jsx",
-        FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationStage.jsx",
-        FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationFloatingBar.jsx",
-        FRONTEND_DIR / "src" / "shared" / "storage" / "slideDeckStorage.js"
-    ]
-
-    for f in files_to_check:
-        assert f.exists(), f"Thiếu tệp kiến trúc: {f}"
-
-    # 2. Kiểm tra bộ phím tắt trong PresentationStage.jsx
-    stage_content = (FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationStage.jsx").read_text(encoding="utf-8")
-    assert "e.key === 'p' || e.key === 'P'" in stage_content
-    assert "e.key === 'h' || e.key === 'H'" in stage_content
-    assert "e.key === 'e' || e.key === 'E'" in stage_content
-    assert "e.key === 'w' || e.key === 'W'" in stage_content
-    assert "(e.key === 'z' || e.key === 'Z')" in stage_content
-    assert "(e.key === 'y' || e.key === 'Y')" in stage_content
-
-
-
-

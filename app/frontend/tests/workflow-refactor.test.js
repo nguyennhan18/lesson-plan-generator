@@ -19,7 +19,7 @@ beforeEach(() => {
         : url.endsWith('export-slide')
           ? 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
           : 'application/zip';
-      return { ok: true, headers: { get: () => contentType }, blob: async () => new Blob(['office file']) };
+      return { ok: true, headers: { get: () => contentType }, blob: async () => new Blob([new Uint8Array([80,75,3,4]),'office file']) };
     },
     alert: message => alerts.push(message),
     window: {
@@ -71,23 +71,23 @@ test('Word supports a lesson without slides', async () => {
   assert.deepEqual(calls[0].payload, plan);
 });
 
-test('PowerPoint captures the current 3D view without mutating stored slides', async () => {
+test('PowerPoint sends an immutable deck and never propagates the current view', async () => {
   const deck = makeDeck();
   const before = structuredClone(deck);
   await exportActions({ slideDeck: deck, threeCanvasCaptureRef: { current: () => 'new-image' } }).handleExportPptx();
   assert.equal(calls[0].url, '/api/v1/lesson-plan/export-slide');
-  assert.equal(calls[0].payload.snapshot_3d_base64, 'new-image');
+  assert.equal(calls[0].payload.snapshot_3d_base64, undefined);
   assert.equal(calls[0].payload.slides[0].snapshot_3d_base64, 'old');
-  assert.equal(calls[0].payload.slides[1].snapshot_3d_base64, 'new-image');
+  assert.equal(calls[0].payload.slides[1].snapshot_3d_base64, undefined);
   assert.equal(calls[0].payload.slides[2].snapshot_3d_base64, undefined);
   assert.deepEqual(deck, before);
   assert.equal(downloads[0].name, 'Slide_Slide thử.pptx');
 });
 
-test('PowerPoint uses the browser capture fallback when the ref has no image', async () => {
+test('PowerPoint ignores the deprecated global browser capture', async () => {
   window.__threeCanvasCaptureSnapshot = () => 'browser-image';
   await exportActions().handleExportPptx();
-  assert.equal(calls[0].payload.slides[1].snapshot_3d_base64, 'browser-image');
+  assert.equal(calls[0].payload.slides[1].snapshot_3d_base64, undefined);
 });
 
 test('ZIP sends both documents and preserves existing snapshots without a capture', async () => {
@@ -222,7 +222,7 @@ test('presentation shortcut toggles blackout and tool docks', () => {
 
 function generationActions(initial = {}) {
   const state = {
-    outline: { topic: 'Hình lập phương', subject: 'Toán học', grade: 12, lesson_id: 'M12-CD-B1' },
+    outline: { outline_slides:[{id:'o1',title:'Đề',bullet_points:[]}], topic: 'Hình lập phương', subject: 'Toán học', grade: 12, lesson_id: 'M12-CD-B1' },
     presentationConfig: { use_rag: true, class_proficiency: 'advanced' },
     classProficiency: 'standard', recommendedOutcome: 'Vận dụng',
     isGeneratingOutline: false, activeScreen: 'outline', isAiGenerating: false,
@@ -254,7 +254,7 @@ test('generation calls lesson then slides with the returned plan and updates App
   assert.equal(calls[0].payload.lesson_id, 'M12-CD-B1');
   assert.deepEqual(calls[1].payload.plan, plan);
   assert.deepEqual(ui.state.lessonPlan, plan);
-  assert.deepEqual(ui.state.slideDeck, deck);
+  assert.deepEqual(ui.state.slideDeck, {...deck,project_id:undefined});
   assert.equal(ui.state.currentSlide, 0);
   assert.equal(ui.state.activeScreen, 'presentation');
   assert.equal(ui.state.isAiGenerating, false);
@@ -277,7 +277,7 @@ for (const failureAt of ['lesson', 'slides']) {
     assert.equal(ui.state.generationStep, '');
     assert.equal(ui.state.activeScreen, 'outline');
     assert.equal(ui.state.slideDeck, null);
-    assert.equal(ui.state.lessonPlan, failureAt === 'lesson' ? null : plan);
+    assert.equal(ui.state.lessonPlan, null);
     assert.match(alerts[0], /HTTP 503/);
   });
 }
@@ -301,13 +301,14 @@ test('outline request preserves configuration and normalizes response fields', a
   assert.equal(ui.state.activeScreen, 'outline');
 });
 
-test('outline uses local fallback and clears loading on network failure', async t => {
+test('outline preserves the draft and clears loading on network failure', async t => {
   t.mock.method(console, 'warn', () => {});
   globalThis.fetch = async () => { throw new Error('offline'); };
   const ui = generationActions();
   await ui.handleGenerateOutline({ topic: 'Đồ thị hàm số' });
-  assert.equal(ui.state.outline.outline_slides.length, 6);
-  assert.equal(ui.state.outline.topic, 'Đồ thị hàm số');
+  assert.equal(ui.state.outline.outline_slides.length, 1);
+  assert.equal(ui.state.outline.topic, 'Hình lập phương');
+  assert.match(alerts[0], /offline/);
   assert.equal(ui.state.isGeneratingOutline, false);
   assert.equal(ui.state.activeScreen, 'outline');
 });

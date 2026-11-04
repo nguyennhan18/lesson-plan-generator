@@ -1,6 +1,7 @@
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator
 from .slide_schema import ClassProficiency
+from .provenance import GenerationMetadata
 # 4 bước dạy học CV 5512
 class ExecutionSteps(BaseModel):
     step_1_assign: str = Field(description="Bước 1: Chuyển giao nhiệm vụ (GV giao bài)")
@@ -16,6 +17,11 @@ class LessonActivity(BaseModel):
     execution: ExecutionSteps = Field(description="Chi tiết 4 bước tổ chức")
 # Bản thiết kế giáo án
 class LessonPlanSchema(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    generation_metadata: Optional[GenerationMetadata] = None
+    approved_outline: Optional[Dict[str, Any]] = None
+    review_token: Optional[str] = Field(default=None, max_length=4000)
+    quality_report: Optional[Dict[str, Any]] = None
     lesson_title: str = Field(description="Tên bài dạy (VD: Bài 1: Tính đơn điệu và cực trị của hàm số)")
     subject: str = Field(default="Toán học", description="Tên môn học (Toán học)")
     grade: int = Field(default=12, description="Khối lớp (12)")
@@ -26,7 +32,26 @@ class LessonPlanSchema(BaseModel):
     teaching_equipment: List[str] = Field(default_factory=list, description="Thiết bị dạy học và học liệu dành cho GV và HS")
     activities: List[LessonActivity] = Field(description="Danh sách 4 hoạt động bài dạy")
 
+class LessonGenerationResponse(BaseModel):
+    is_valid: bool
+    errors: List[str]
+    warnings: List[str]
+    plan: LessonPlanSchema
+
+
 class LessonRequest(BaseModel):
+    @field_validator("topic")
+    @classmethod
+    def nonempty_topic(cls, value):
+        value = value.strip()
+        if not value or len(value) > 2000:
+            raise ValueError("Chủ đề cần từ 1 đến 2000 ký tự")
+        return value
+
+    approved_outline: Optional[Dict[str, Any]] = None
+    model_provider: Optional[str] = None
+    model_id: Optional[str] = None
+
     topic: str = Field(
         description="Tên bài dạy / chủ đề",
         json_schema_extra={"example": "Tính đơn điệu và cực trị của hàm số"}
@@ -71,7 +96,7 @@ class LessonRequest(BaseModel):
                 from lessonai.rag.curriculum_registry import infer_lesson_id
                 self.lesson_id = infer_lesson_id(self.topic)
             except Exception:
-                self.lesson_id = "M12-C1-B1"
+                self.lesson_id = None
 
         return self
 
@@ -99,12 +124,12 @@ class RAGPreviewRequest(BaseModel):
                 from lessonai.rag.curriculum_registry import infer_lesson_id
                 self.lesson_id = infer_lesson_id(self.topic)
             except Exception:
-                self.lesson_id = "M12-C1-B1"
+                self.lesson_id = None
         return self
 
 
 class OutlineSlideItem(BaseModel):
-    id: str = Field(default="", description="ID duy nhất của slide trong dàn ý")
+    id: str = Field(default_factory=lambda: __import__("uuid").uuid4().hex, description="ID duy nhất của slide trong dàn ý")
     slide_index: int = Field(default=1, description="STT slide")
     slide_number: Optional[int] = Field(default=None, description="Alias cho STT slide")
     title: str = Field(description="Tiêu đề slide")
@@ -131,6 +156,14 @@ class OutlineSlideItem(BaseModel):
 
 
 class OutlineRequest(BaseModel):
+    @field_validator("topic")
+    @classmethod
+    def nonempty_topic(cls, value):
+        value = value.strip()
+        if not value or len(value) > 2000:
+            raise ValueError("Chủ đề cần từ 1 đến 2000 ký tự")
+        return value
+
     topic: str = Field(description="Tên bài dạy / Đề tài thuyết trình")
     subject: str = Field(default="Toán học")
     grade: int = Field(default=12)
@@ -139,7 +172,7 @@ class OutlineRequest(BaseModel):
     class_proficiency: Optional[str] = Field(default="standard")
     use_rag: bool = Field(default=True)
     model_provider: Optional[str] = Field(default="gemini")
-    model_id: Optional[str] = Field(default="gemini-2.5-flash")
+    model_id: Optional[str] = Field(default=None)
     tone: Optional[str] = Field(default="academic")
     language: Optional[str] = Field(default="vi")
 
@@ -152,7 +185,7 @@ class OutlineRequest(BaseModel):
                 from lessonai.rag.curriculum_registry import infer_lesson_id
                 self.lesson_id = infer_lesson_id(self.topic)
             except Exception:
-                self.lesson_id = "M12-C1-B1"
+                self.lesson_id = None
         return self
 
 
@@ -174,5 +207,3 @@ class OutlineResponse(BaseModel):
         elif not self.title and self.topic:
             self.title = self.topic
         return self
-
-

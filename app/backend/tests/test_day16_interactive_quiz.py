@@ -62,23 +62,6 @@ def test_task_16_1_interactive_quiz_card_component():
     assert "style={{ width: `${pct}%` }}" in content
 
 
-def test_task_16_1_quiz_card_integration_in_presentation_stage():
-    """
-    Task 16.1: Kiểm tra tích hợp InteractiveQuizCard trong PresentationStage.jsx:
-    - Import InteractiveQuizCard from './InteractiveQuizCard'
-    - Render <InteractiveQuizCard ... /> trong nhánh isQuizLayout
-    - Truyền slide, currentSlide, votedOption, onVote={handleVote}, votes, onResetVotes, isPresentationMode
-    """
-    stage_path = FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationStage.jsx"
-    assert stage_path.exists(), f"Không tìm thấy tệp {stage_path}"
-    content = stage_path.read_text(encoding="utf-8")
-
-    assert "import InteractiveQuizCard from './InteractiveQuizCard'" in content
-    assert "<InteractiveQuizCard" in content
-    assert "slide={slide}" in content
-    assert "votedOption={votedOption}" in content
-    assert "onVote={handleVote}" in content
-    assert "isPresentationMode={isPresentationMode}" in content
 
 
 def test_task_16_2_quiz_audio_feedback_synthesizer():
@@ -322,71 +305,3 @@ def test_task_16_4_quiz_card_solution_button_and_modal_integration():
     assert "<DetailedSolutionModal" in content
     assert "isOpen={isSolutionModalOpen}" in content
     assert "slide={slide}" in content
-
-
-def test_task_16_5_definition_of_done_e2e_quiz_flow():
-    """
-    Task 16.5: Kiểm thử tích hợp End-to-End toàn diện & Nghiệm thu Definition of Done (DoD) Ngày 16:
-    1. Schema Validation: Parse thành công slide QUIZ_OPTION với đầy đủ 4 phương án, 1 đáp án đúng và 3 distractor_rationale.
-    2. Component Ecosystem: Kiểm tra toàn bộ 7 mô-đun cốt lõi của Ngày 16:
-       - InteractiveQuizCard.jsx (giao diện 4 phương án, Live Poll, phím tắt [1..4])
-       - MisconceptionModal.jsx (hộp thoại phân tích bẫy sai lầm, tab A..D, lời khuyên sư phạm)
-       - DetailedSolutionModal.jsx (hộp thoại các bước giải tự luận chuẩn SGK, nút sao chép)
-       - quizAudioFeedback.js (tổng hợp âm thanh Web Audio API thuần 0ms độ trễ)
-       - canvasConfetti.js (động cơ hạt pháo hoa Canvas 60 FPS hỗ trợ Retina)
-       - misconceptionClassifier.js (thuật toán phân loại bẫy sai lầm Toán học)
-       - solutionStepFormatter.js (chuẩn hóa các bước giải SGK và sao chép Markdown)
-    3. Pipeline Integration: Kiểm tra InteractiveQuizCard được tích hợp hoàn chỉnh trong PresentationStage.jsx.
-    """
-    from lessonai.schemas.slide_schema import SlideSchema, SlideType, SlideLayout, QuizOptionDetail
-
-    # 1. Kiểm tra Schema Validation
-    quiz_slide = SlideSchema(
-        slide_index=1,
-        type=SlideType.EXERCISE_SLIDE,
-        layout=SlideLayout.QUIZ_OPTION,
-        title="Câu hỏi trắc nghiệm Cấp số cộng",
-        bullet_points=["Cho cấp số cộng (u_n) có $u_1 = 3$ và công sai $d = 2$. Hãy xác định số hạng thứ 10 $u_{10}$."],
-        main_definition_latex=r"u_n = u_1 + (n-1)d",
-        worked_solution_steps=[
-            "Bước 1: Giả thiết cho $u_1 = 3$, $d = 2$ và cần tìm $u_{10}$ ứng với $n = 10$.",
-            "Bước 2: Áp dụng công thức số hạng tổng quát: $u_n = u_1 + (n-1)d$.",
-            "Bước 3: Thay số vào công thức: $u_{10} = 3 + (10-1) \\cdot 2 = 3 + 18 = 21$.",
-            "Bước 4: Kết luận: $u_{10} = 21$. Đối chiếu các phương án, ta chọn đáp án [A]."
-        ],
-        quiz_options=[
-            QuizOptionDetail(label="A", text="u_{10} = 21", is_correct=True, distractor_rationale=None),
-            QuizOptionDetail(label="B", text="u_{10} = 23", is_correct=False, distractor_rationale="Học sinh nhầm số hạng tổng quát thành u_1 + nd: 3 + 10*2 = 23."),
-            QuizOptionDetail(label="C", text="u_{10} = -15", is_correct=False, distractor_rationale="Học sinh nhầm dấu công sai thành trừ: 3 - (10-1)*2 = -15."),
-            QuizOptionDetail(label="D", text="u_{10} = 30", is_correct=False, distractor_rationale="Học sinh lấy u_1 nhân n: 3 * 10 = 30.")
-        ]
-    )
-
-    assert quiz_slide.layout == SlideLayout.QUIZ_OPTION
-    assert len(quiz_slide.quiz_options) == 4
-    assert sum(opt.is_correct for opt in quiz_slide.quiz_options) == 1
-    assert len(quiz_slide.worked_solution_steps) == 4
-
-    # 2. Kiểm tra sự tồn tại của đầy đủ 7 mô-đun Ngày 16
-    files_to_check = [
-        FRONTEND_DIR / "src" / "features" / "presentation" / "InteractiveQuizCard.jsx",
-        FRONTEND_DIR / "src" / "features" / "presentation" / "MisconceptionModal.jsx",
-        FRONTEND_DIR / "src" / "features" / "presentation" / "DetailedSolutionModal.jsx",
-        FRONTEND_DIR / "src" / "features" / "presentation" / "quizAudioFeedback.js",
-        FRONTEND_DIR / "src" / "features" / "presentation" / "canvasConfetti.js",
-        FRONTEND_DIR / "src" / "features" / "presentation" / "misconceptionClassifier.js",
-        FRONTEND_DIR / "src" / "features" / "presentation" / "solutionStepFormatter.js"
-    ]
-
-    for f in files_to_check:
-        assert f.exists(), f"Thiếu tệp thành phần Ngày 16: {f}"
-        assert len(f.read_text(encoding="utf-8")) > 100, f"Tệp {f} có nội dung quá ngắn hoặc rỗng"
-
-    # 3. Kiểm tra PresentationStage.jsx tích hợp InteractiveQuizCard
-    stage_content = (FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationStage.jsx").read_text(encoding="utf-8")
-    assert "InteractiveQuizCard" in stage_content
-    assert "<InteractiveQuizCard" in stage_content
-
-
-
-

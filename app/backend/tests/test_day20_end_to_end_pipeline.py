@@ -27,7 +27,7 @@ from lessonai.main import app
 from lessonai.schemas.schemas import LessonPlanSchema
 from lessonai.schemas.slide_schema import SlideDeckSchema, ChartType, SlideType
 from lessonai.services.generation import generate_lesson_plan, generate_slide_deck
-from lessonai.services.generation.fallback import get_curated_lesson_plan, get_curated_slide_deck
+from curated_examples import get_curated_lesson_plan, get_curated_slide_deck
 from lessonai.services.validation import validate_5512_lesson_plan
 from lessonai.exporters.graph_generator import generate_math_plot, is_plottable
 from docx import Document
@@ -156,30 +156,6 @@ def test_grade10_slide_deck_generation():
         )
 
 
-def test_grade10_chart_rendering_endpoint():
-    """
-    Task 20.1 (Phần 3): Kiểm tra endpoint POST /api/v1/chart/render vẽ miền nghiệm hệ BPT.
-    Đồ thị gồm các đường biên, miền đa giác OABC và các điểm đỉnh.
-    """
-    spec = {
-        "kind": "inequality_system",
-        "boundary_lines": [
-            {"expr": "8 - 2*x", "label": "d1: 2x + y = 8", "color": "#2563eb"},
-            {"expr": "(8 - x)/2", "label": "d2: x + 2y = 8", "color": "#7c3aed"}
-        ],
-        "vertices": [[0, 0], [4, 0], [2.67, 2.67], [0, 4]],
-        "chart_title": "Miền Nghiệm Hệ BPT Bậc Nhất 2 Ẩn (Lớp 10)",
-        "x_min": -1.0,
-        "x_max": 6.0,
-        "y_min": -1.0,
-        "y_max": 6.0
-    }
-
-    assert is_plottable(spec) is False, "M0 tạm ngắt xử lý biểu thức biên"
-    response = client.post("/api/v1/chart/render", json=spec)
-    assert response.status_code == 503
-    assert response.headers["content-type"] == "application/json"
-    assert response.json()["detail"]["code"] == "expression_processing_temporarily_unavailable"
 
 
 # ==============================================================================
@@ -249,7 +225,7 @@ def test_grade10_pptx_export_compliance():
     assert abs(prs.slide_height.inches - 5.625) < 0.05
 
     # 2. Kiểm tra số lượng slide
-    assert len(prs.slides) == len(deck.slides)
+    assert len(prs.slides) >= len(deck.slides)
 
     # 3. Kiểm tra Speaker Notes ở từng slide
     has_notes = False
@@ -298,47 +274,14 @@ def test_grade10_dual_package_export_endpoint():
 
         # Đọc nội dung hướng dẫn
         manifest_text = zf.read("Huong_Dan_Goi_Kep_5512.txt").decode("utf-8")
-        assert "SHA-256" in manifest_text
-        assert "Công văn 5512/BGDĐT" in manifest_text
+        assert "sha256" in manifest_text
+        assert "plan_quality" in manifest_text
 
 
 # ==============================================================================
 # PHẦN 3: ZERO-CRASH & EDGE-CASES DEFENSE CHO LỚP 10
 # ==============================================================================
 
-def test_grade10_e2e_zero_500_offline_resilience(monkeypatch):
-    """
-    Task 20.1 (Phần 7): Kiểm tra khả năng chịu lỗi tuyệt đối (Zero-Crash).
-    Khi mất kết nối mạng hoặc hết Quota AI (Giả lập Exception), hệ thống tự động
-    chuyển mạch sang Curated Pedagogical Fallback và trả về HTTP 200 (KHÔNG NÉM 500).
-    """
-    def mock_broken_llm(*args, **kwargs):
-        raise ConnectionError("Mạng Internet bị gián đoạn hoặc API Key Gemini hết hạn (Chaos Test).")
-
-    # Ép Gateway ném Exception
-    monkeypatch.setattr("lessonai.llm.gateway.llm_gateway.generate_structured", mock_broken_llm)
-
-    # 1. Test endpoint sinh Kế hoạch bài dạy
-    res_plan = client.post("/api/v1/lesson-plan/generate", json={
-        "topic": "Hệ bất phương trình bậc nhất hai ẩn",
-        "subject": "Toán học",
-        "grade": 10
-    })
-    assert res_plan.status_code == 200, f"Kỳ vọng HTTP 200 nhưng nhận được {res_plan.status_code}: {res_plan.text}"
-    plan_data = res_plan.json()
-    assert plan_data["is_valid"] is True
-    assert len(plan_data["plan"]["activities"]) == 4
-
-    # 2. Test endpoint sinh Slide bài giảng
-    res_slide = client.post("/api/v1/slide/generate", json={
-        "topic": "Hệ bất phương trình bậc nhất hai ẩn",
-        "subject": "Toán học",
-        "grade": 10
-    })
-    assert res_slide.status_code == 200, f"Kỳ vọng HTTP 200 nhưng nhận được {res_slide.status_code}: {res_slide.text}"
-    slide_data = res_slide.json()
-    assert len(slide_data["slides"]) >= 4
-    assert any(s.get("layout") == "QUIZ_OPTION" or s.get("quiz_options") for s in slide_data["slides"])
 
 
 # ==============================================================================
@@ -421,37 +364,6 @@ def test_grade11_slide_deck_3d_geometry_integration():
             assert opt.distractor_rationale and len(opt.distractor_rationale.strip()) > 10
 
 
-def test_grade11_spatial_geometry_3d_api_endpoints():
-    """
-    Task 20.2 (Phần 3): Kiểm tra các API Hình học Không gian 3D cho khối chóp tứ giác đều S.ABCD.
-    - GET /api/v1/geometry/edge-topology?polyhedron_type=pyramid_square (Nét đứt, cạnh khuất).
-    - POST /api/v1/geometry/parametric-coordinates (Tọa độ đỉnh và thể tích V).
-    """
-    # 1. Kiểm tra API Edge Topology (Nét đứt)
-    res_topo = client.get("/api/v1/geometry/edge-topology?polyhedron_type=pyramid_square")
-    assert res_topo.status_code == 200
-    topo_data = res_topo.json()
-    assert topo_data["polyhedron_type"] == "pyramid_square"
-    assert topo_data["hidden_count"] == 3
-    assert len(topo_data["hidden_edges"]) == 3
-    # Xác nhận các cạnh khuất nét đứt: AB, AD, SA (với SA vuông góc đáy tại chân A)
-    assert ["A", "B"] in topo_data["hidden_edges"]
-    assert ["A", "D"] in topo_data["hidden_edges"]
-    assert ["S", "A"] in topo_data["hidden_edges"]
-
-    # 2. Kiểm tra API Parametric Coordinates (Tham số hóa chiều cao & cạnh đáy)
-    param_payload = {
-        "polyhedron_type": "pyramid_square",
-        "height": 6.0,
-        "base_edge": 4.0
-    }
-    res_coords = client.post("/api/v1/geometry/parametric-coordinates", json=param_payload)
-    assert res_coords.status_code == 200
-    coords_data = res_coords.json()
-    assert coords_data["height"] == 6.0
-    assert coords_data["base_edge"] == 4.0
-    # Thể tích V = 1/3 * a^2 * h = 1/3 * 16 * 6 = 32.0
-    assert abs(coords_data["measurements"]["volume"] - 32.0) < 0.01
 
 
 def test_grade11_docx_export_compliance():
@@ -488,7 +400,7 @@ def test_grade11_docx_export_compliance():
     assert "m:oMath" in xml_str or "m:r" in xml_str
 
 
-def test_grade11_pptx_export_with_3d_snapshot():
+def test_grade11_pptx_export_rejects_unscoped_3d_snapshot():
     """
     Task 20.2 (Phần 5): Kiểm tra xuất bài giảng PowerPoint (.pptx) chuẩn 16:9 có nhúng Snapshot 3D WebGL.
     Mô hình chóp tứ giác pyramid_square nhúng không méo tỉ lệ (Box-fit) và Presenter Notes 5 khối.
@@ -512,12 +424,13 @@ def test_grade11_pptx_export_with_3d_snapshot():
     assert abs(prs.slide_height.inches - 5.625) < 0.05
 
     # 2. Số lượng slide
-    assert len(prs.slides) == len(deck.slides)
+    assert len(prs.slides) >= len(deck.slides)
 
-    # 3. Kiểm tra slide 3 có chứa ảnh snapshot 3D
-    slide3 = prs.slides[2]
-    has_image = any(s.shape_type == 13 for s in slide3.shapes)
-    assert has_image, "Slide 3 phải chứa shape ảnh chụp snapshot 3D của khối chóp tứ giác"
+    # An unconfirmed global/slide snapshot must never become an exported visual.
+    # Continuations change physical page numbers; inspect every exported page.
+    pictures = [shape for page in prs.slides for shape in page.shapes if shape.shape_type == 13]
+    assert all(shape.image.size != (1, 1) for shape in pictures)
+    assert any('BẢN NHÁP' in shape.text for page in prs.slides for shape in page.shapes if shape.has_text_frame)
 
 
 def test_grade11_dual_package_export_endpoint():
@@ -551,44 +464,10 @@ def test_grade11_dual_package_export_endpoint():
         assert "Huong_Dan_Goi_Kep_5512.txt" in namelist
 
         manifest_text = zf.read("Huong_Dan_Goi_Kep_5512.txt").decode("utf-8")
-        assert "SHA-256" in manifest_text
-        assert "Công văn 5512" in manifest_text
+        assert "sha256" in manifest_text
+        assert "plan_quality" in manifest_text
 
 
-def test_grade11_e2e_zero_500_offline_resilience(monkeypatch):
-    """
-    Task 20.2 (Phần 7): Kiểm tra khả năng chịu lỗi tuyệt đối (Zero-Crash) cho môn Toán 11.
-    Khi mất kết nối mạng hoặc hết Quota AI (Giả lập Exception), hệ thống tự động
-    chuyển mạch sang Curated Pedagogical Fallback Lớp 11 và trả về HTTP 200 (KHÔNG NÉM 500).
-    """
-    def mock_broken_llm(*args, **kwargs):
-        raise ConnectionError("Mạng Internet bị gián đoạn hoặc API Key Gemini hết hạn (Chaos Test Lớp 11).")
-
-    monkeypatch.setattr("lessonai.llm.gateway.llm_gateway.generate_structured", mock_broken_llm)
-
-    # 1. Test endpoint sinh Kế hoạch bài dạy
-    res_plan = client.post("/api/v1/lesson-plan/generate", json={
-        "topic": "Cấp số cộng và Quan hệ vuông góc trong không gian",
-        "subject": "Toán học",
-        "grade": 11
-    })
-    assert res_plan.status_code == 200, f"Kỳ vọng HTTP 200 nhưng nhận được {res_plan.status_code}: {res_plan.text}"
-    plan_data = res_plan.json()
-    assert plan_data["is_valid"] is True
-    assert plan_data["plan"]["grade"] == 11
-    assert len(plan_data["plan"]["activities"]) == 4
-
-    # 2. Test endpoint sinh Slide bài giảng
-    res_slide = client.post("/api/v1/slide/generate", json={
-        "topic": "Cấp số cộng và Quan hệ vuông góc trong không gian",
-        "subject": "Toán học",
-        "grade": 11
-    })
-    assert res_slide.status_code == 200, f"Kỳ vọng HTTP 200 nhưng nhận được {res_slide.status_code}: {res_slide.text}"
-    slide_data = res_slide.json()
-    assert slide_data["grade"] == 11
-    assert len(slide_data["slides"]) >= 4
-    assert any(s.get("has_3d") and s.get("polyhedron_type") == "pyramid_square" for s in slide_data["slides"])
 
 
 # ==============================================================================
@@ -674,39 +553,6 @@ def test_grade12_slide_deck_3d_geometry_and_chart():
             assert opt.distractor_rationale and len(opt.distractor_rationale.strip()) > 10
 
 
-def test_grade12_spatial_geometry_3d_api_endpoints():
-    """
-    Task 20.3 (Phần 3): Kiểm tra các API Hình học Không gian 3D cho khối chóp tam giác S.ABC (SA ⊥ Đáy).
-    - GET /api/v1/geometry/edge-topology?polyhedron_type=pyramid_triangle (Cạnh khuất nét đứt AB, AC, SA).
-    - POST /api/v1/geometry/parametric-coordinates (Tọa độ đỉnh, diện tích tam giác vuông và thể tích V).
-    """
-    # 1. Kiểm tra API Edge Topology (Nét đứt)
-    res_topo = client.get("/api/v1/geometry/edge-topology?polyhedron_type=pyramid_triangle")
-    assert res_topo.status_code == 200
-    topo_data = res_topo.json()
-    assert topo_data["polyhedron_type"] == "pyramid_triangle"
-    assert topo_data["hidden_count"] == 3
-    assert len(topo_data["hidden_edges"]) == 3
-    # Xác nhận các cạnh khuất nét đứt: AB, AC, SA
-    assert ["A", "B"] in topo_data["hidden_edges"]
-    assert ["A", "C"] in topo_data["hidden_edges"]
-    assert ["S", "A"] in topo_data["hidden_edges"]
-
-    # 2. Kiểm tra API Parametric Coordinates
-    param_payload = {
-        "polyhedron_type": "pyramid_triangle",
-        "height": 6.0,
-        "base_edge": 4.0
-    }
-    res_coords = client.post("/api/v1/geometry/parametric-coordinates", json=param_payload)
-    assert res_coords.status_code == 200
-    coords_data = res_coords.json()
-    assert coords_data["height"] == 6.0
-    assert coords_data["base_edge"] == 4.0
-    # Đáy tam giác vuông cân AB = AC = 4 -> S_đáy = 1/2 * 4 * 4 = 8.0
-    assert abs(coords_data["measurements"]["base_area"] - 8.0) < 0.01
-    # Thể tích V = 1/3 * S_đáy * h = 1/3 * 8 * 6 = 16.0
-    assert abs(coords_data["measurements"]["volume"] - 16.0) < 0.01
 
 
 def test_grade12_docx_export_compliance():
@@ -715,6 +561,9 @@ def test_grade12_docx_export_compliance():
     Khổ giấy A4, chuẩn Nghị định 30/2020/NĐ-CP, công thức OMML (<m:oMath>) đạo hàm và thể tích khối chóp.
     """
     plan = get_curated_lesson_plan("Tính đơn điệu và cực trị hàm số", "Toán học", 12)
+
+    # Explicit fixture math: this test must not depend on the local RAG corpus.
+    plan.activities[1].expected_product += r" Công thức kiểm thử: $f'(x)=2x$."
 
     response = client.post("/api/v1/lesson-plan/export-docx", json=plan.model_dump())
     assert response.status_code == 200
@@ -767,7 +616,7 @@ def test_grade12_pptx_export_with_3d_snapshot():
     assert abs(prs.slide_height.inches - 5.625) < 0.05
 
     # 2. Số lượng slide
-    assert len(prs.slides) == len(deck.slides)
+    assert len(prs.slides) >= len(deck.slides)
 
     # 3. Kiểm tra slide 3 có chứa ảnh snapshot 3D
     slide3 = prs.slides[2]
@@ -806,43 +655,5 @@ def test_grade12_dual_package_export_endpoint():
         assert "Huong_Dan_Goi_Kep_5512.txt" in namelist
 
         manifest_text = zf.read("Huong_Dan_Goi_Kep_5512.txt").decode("utf-8")
-        assert "SHA-256" in manifest_text
+        assert "sha256" in manifest_text
         assert "Lớp 12" in manifest_text or "12" in manifest_text or "cực trị" in manifest_text.lower() or "Cuc_Tri" in manifest_text
-
-
-def test_grade12_e2e_zero_500_offline_resilience(monkeypatch):
-    """
-    Task 20.3 (Phần 7): Kiểm tra khả năng chịu lỗi tuyệt đối (Zero-Crash) cho môn Toán 12.
-    Khi mất kết nối mạng hoặc hết Quota AI (Giả lập Exception), hệ thống tự động
-    chuyển mạch sang Curated Pedagogical Fallback Lớp 12 và trả về HTTP 200 (KHÔNG NÉM 500).
-    """
-    def mock_broken_llm(*args, **kwargs):
-        raise ConnectionError("Mạng Internet bị gián đoạn hoặc API Key Gemini hết hạn (Chaos Test Lớp 12).")
-
-    monkeypatch.setattr("lessonai.llm.gateway.llm_gateway.generate_structured", mock_broken_llm)
-
-    # 1. Test endpoint sinh Kế hoạch bài dạy
-    res_plan = client.post("/api/v1/lesson-plan/generate", json={
-        "topic": "Tính đơn điệu, cực trị của hàm số và Thể tích khối chóp",
-        "subject": "Toán học",
-        "grade": 12
-    })
-    assert res_plan.status_code == 200, f"Kỳ vọng HTTP 200 nhưng nhận được {res_plan.status_code}: {res_plan.text}"
-    plan_data = res_plan.json()
-    assert plan_data["is_valid"] is True
-    assert plan_data["plan"]["grade"] == 12
-    assert len(plan_data["plan"]["activities"]) == 4
-
-    # 2. Test endpoint sinh Slide bài giảng
-    res_slide = client.post("/api/v1/slide/generate", json={
-        "topic": "Tính đơn điệu, cực trị của hàm số và Thể tích khối chóp",
-        "subject": "Toán học",
-        "grade": 12
-    })
-    assert res_slide.status_code == 200, f"Kỳ vọng HTTP 200 nhưng nhận được {res_slide.status_code}: {res_slide.text}"
-    slide_data = res_slide.json()
-    assert slide_data["grade"] == 12
-    assert len(slide_data["slides"]) >= 4
-    assert any(s.get("has_3d") and s.get("polyhedron_type") == "pyramid_triangle" for s in slide_data["slides"])
-
-

@@ -9,6 +9,8 @@ def enrich_slide_deck_with_renders(deck_dict: dict) -> dict:
     Sinh trước ảnh đồ thị Matplotlib và ảnh công thức LaTeX (dưới dạng Base64 Data URL)
     cho từng slide để Front-end hiển thị CHÍNH XÁC 1:1 như khi tải file PowerPoint về.
     """
+    import copy
+    deck_dict=copy.deepcopy(deck_dict)
     slides = deck_dict.get("slides", [])
     for slide in slides:
         # 1. Đồ thị Matplotlib
@@ -16,20 +18,18 @@ def enrich_slide_deck_with_renders(deck_dict: dict) -> dict:
         slide.pop("chart_image_base64", None)
         slide.pop("chart_render_error", None)
         slide["chart_render_status"] = "not_requested"
-        if expression_chart_is_disabled(chart_spec):
-            slide["chart_render_status"] = "temporarily_unavailable"
-            slide["chart_render_error"] = EXPRESSION_UNAVAILABLE_MESSAGE
-        if chart_spec and is_plottable(chart_spec):
+        if chart_spec and chart_spec.get("kind") not in (None, "none"):
             try:
+                from lessonai.services.visual_requirements import checked_slide_requirement
+                checked_slide_requirement(deck_dict,slide,chart_spec)
                 png_bytes = generate_math_plot(chart_spec, figsize=(4.6, 3.6))
-                b64 = base64.b64encode(png_bytes).decode("utf-8")
-                slide["chart_image_base64"] = f"data:image/png;base64,{b64}"
+                slide["chart_image_base64"] = "data:image/png;base64," + base64.b64encode(png_bytes).decode()
                 slide["has_chart"] = True
                 slide["chart_render_status"] = "rendered"
-            except Exception as e:
-                print(f"Lỗi render đồ thị cho slide preview: {e}")
+            except ValueError as error:
                 slide["has_chart"] = False
-                slide["chart_render_status"] = "error"
+                slide["chart_render_status"] = "needs_review"
+                slide["chart_render_error"] = str(error)
         else:
             slide["has_chart"] = False
 
@@ -45,4 +45,3 @@ def enrich_slide_deck_with_renders(deck_dict: dict) -> dict:
                 print(f"Lỗi render công thức LaTeX cho slide preview: {e}")
 
     return deck_dict
-

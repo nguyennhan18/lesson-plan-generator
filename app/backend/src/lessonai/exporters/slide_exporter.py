@@ -186,22 +186,21 @@ def latex_to_unicode_math(text: str) -> str:
     if not isinstance(text, str):
         return str(text or '')
 
-    text = clean_xml_string(text)
-    text = clean_latex_table_environment(text)
+    original = clean_xml_string(text)
+    text = original
     text = text.replace(r'\(', '').replace(r'\)', '').replace('$', '')
 
     # Chuẩn hóa các ký hiệu toán học so sánh phổ biến
     text = re.sub(r'\\ge(?![a-zA-Z])', r'\\geq', text)
     text = re.sub(r'\\le(?![a-zA-Z])', r'\\leq', text)
+    text = re.sub(r'\\ne(?![a-zA-Z])', r'\\neq', text)
 
     # Chuyển đổi phân số \frac{a}{b} -> a/b hoặc (a)/(b)
     def _convert_frac(match):
         num, den = match.group(1).strip(), match.group(2).strip()
-        need_paren_num = any(op in num for op in ['+', '-', ' ']) and not (num.startswith('(') and num.endswith(')'))
-        need_paren_den = any(op in den for op in ['+', '-', ' ']) and not (den.startswith('(') and den.endswith(')'))
-        n_str = f"({num})" if need_paren_num else num
-        d_str = f"({den})" if need_paren_den else den
-        return f"{n_str}/{d_str}"
+        # Parentheses preserve products and sums in BOTH numerator and denominator.
+        return f"({num})/({den})"
+
 
     text = re.sub(r'\\frac\{([^}]+)\}\{([^}]+)\}', _convert_frac, text)
 
@@ -214,14 +213,15 @@ def latex_to_unicode_math(text: str) -> str:
     def convert_script(match):
         script_type, body = match.groups()
         char_map = _SUPERSCRIPT_MAP if script_type == '^' else _SUBSCRIPT_MAP
-        return ''.join(char_map.get(ch, ch) for ch in body)
+        return ''.join(char_map[ch] for ch in body) if all(ch in char_map for ch in body) else match.group(0)
 
     text = re.sub(r'([\^_])\{([^}]+)\}', convert_script, text)
     text = re.sub(r'([\^_])([0-9a-zA-Z\+\-\=\(\)])', convert_script, text)
 
-    text = re.sub(r'\\(?:newline|quad|qquad|left|right|text|mathrm|mathbf|mathit|vec|bar|hat)', ' ', text)
-    text = text.replace('{', '').replace('}', '')
-    text = re.sub(r'\\+', ' ', text)
+    # Never erase accents, vectors, radicals or unsupported grouping to look complete.
+    text = text.replace(r'\left', '').replace(r'\right', '')
+    if re.search(r'\\[A-Za-z]|[{}]', text):
+        return '[LaTeX gốc] ' + original
 
     text = re.sub(r'[ \t]+', ' ', text)
     return text.strip()
@@ -229,15 +229,16 @@ def latex_to_unicode_math(text: str) -> str:
 
 @serialized_render
 def render_latex_to_bytes(latex_str: str) -> bytes:
-    """
-    Render công thức LaTeX ra ảnh PNG chuẩn nét (300 DPI).
-    Tự động co giãn kích thước font theo độ dài công thức (Adaptive Font Scaling)
-    và có 3 tầng Fallback an toàn tuyệt đối, chống crash 100%.
-    """
-    if not latex_str or not isinstance(latex_str, str):
-        # Trả về 1x1 transparent PNG chuẩn
-        return b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4\x00\x00\x00\rIDATx\x9cc`\x00\x00\x00\x02\x00\x01H\xaf\xa4q\x00\x00\x00\x00IEND\xaeB`\x82'
+    """Render a formula, preserving raw LaTeX when mathtext cannot parse it.
 
+    A rendering failure is explicit: never replace nonempty content with an
+    invisible pixel and report the export as successful.
+    """
+    if not isinstance(latex_str, str) or not latex_str.strip():
+        raise ValueError("Không có công thức để render")
+
+    if len(latex_str)>4000:
+        raise ValueError("Công thức quá dài để render; cần chia nhỏ")
     clean_str = latex_str.replace(r'\(', '').replace(r'\)', '').strip()
 
     clean_str = re.sub(r'\\ge(?![a-zA-Z])', r'\\geq', clean_str)
@@ -245,11 +246,8 @@ def render_latex_to_bytes(latex_str: str) -> bytes:
     clean_str = re.sub(r'\\implies(?![a-zA-Z])', r'\\Rightarrow', clean_str)
     clean_str = re.sub(r'\\iff(?![a-zA-Z])', r'\\Leftrightarrow', clean_str)
     clean_str = re.sub(r'\\to(?![a-zA-Z])', r'\\rightarrow', clean_str)
-    clean_str = clean_str.replace(r'\uparrow', r'\nearrow').replace(r'\downarrow', r'\searrow')
     clean_str = clean_str.replace(r'\quad', ' ').replace(r'\qquad', ' ')
     clean_str = clean_str.replace(r'\tg', r'\tan').replace(r'\ctg', r'\cot')
-    clean_str = re.sub(r'\\text\{([^}]+)\}', r'\1', clean_str)
-    clean_str = re.sub(r'\\mathrm\{([^}]+)\}', r'\1', clean_str)
 
     # Adaptive Font Scaling: Tự động thu nhỏ cỡ font cho công thức cực dài (> 35 ký tự)
     # Giữ nguyên 20pt cho công thức ngắn; co dần xuống 10pt cho công thức dài >= 115 ký tự
@@ -277,10 +275,10 @@ def render_latex_to_bytes(latex_str: str) -> bytes:
             # Fallback 1: render bằng Unicode text
             fig, ax = plt.subplots(figsize=(0.1, 0.1))
             ax.axis('off')
-            unicode_str = latex_to_unicode_math(latex_str)
+            unicode_str = "LaTeX gốc: " + clean_xml_string(latex_str)
             ax.text(
                 0.5, 0.5, unicode_str,
-                fontsize=calc_fallback_font, ha='center', va='center', color='#1e3a8a', fontname='Arial'
+                fontsize=calc_fallback_font, ha='center', va='center', color='#1e3a8a', fontname='DejaVu Sans'
             )
             buf = io.BytesIO()
             fig.savefig(buf, format='png', bbox_inches='tight', pad_inches=0.04, dpi=300, transparent=True)
@@ -292,8 +290,8 @@ def render_latex_to_bytes(latex_str: str) -> bytes:
                 plt.close(fig)
             except Exception:
                 pass
-            # Fallback 2: 1x1 transparent PNG tuyệt đối an toàn
-            return b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4\x00\x00\x00\rIDATx\x9cc`\x00\x00\x00\x02\x00\x01H\xaf\xa4q\x00\x00\x00\x00IEND\xaeB`\x82'
+            raise ValueError("Không thể render công thức; chưa tạo file xuất")
+
 
 
 def _plain(obj):
@@ -629,7 +627,7 @@ def build_content_slide(slide, slide_data: dict, slide_idx: int, total_slides: i
                 img_top = Inches(3.85) + (Inches(1.2) - img_h) / 2
                 slide.shapes.add_picture(io.BytesIO(png_bytes), img_left, img_top, width=img_w, height=img_h)
             except Exception as e:
-                print(f"Lỗi chèn ảnh công thức: {e}")
+                raise ValueError("Không thể chèn công thức vào slide; chưa tạo file xuất") from e
 
         # Cột Phải: Matplotlib Plot Card
         card_h = min(Inches(3.30), Inches(5.10) - content_top)
@@ -645,7 +643,7 @@ def build_content_slide(slide, slide_data: dict, slide_idx: int, total_slides: i
         except Exception as e:
             print(f"Lỗi chèn ảnh đồ thị: {e}")
 
-        # Badge Đồ thị Matplotlib Native
+        # Badge Đồ thị theo dữ kiện đã xác nhận
         p_badge = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(6.45), content_top + Inches(2.62), Inches(2.1), Inches(0.26))
         p_badge.fill.solid()
         p_badge.fill.fore_color.rgb = RGBColor(224, 242, 254)
@@ -653,7 +651,7 @@ def build_content_slide(slide, slide_data: dict, slide_idx: int, total_slides: i
         tf_pb = p_badge.text_frame
         tf_pb.vertical_anchor = MSO_ANCHOR.MIDDLE
         p_run = tf_pb.paragraphs[0].add_run()
-        p_run.text = 'Đồ thị Matplotlib Native'
+        p_run.text = 'Đồ thị theo dữ kiện đã xác nhận'
         p_run.font.name = 'Arial'
         p_run.font.size = Pt(8.5)
         p_run.font.bold = True
@@ -751,7 +749,7 @@ def build_content_slide(slide, slide_data: dict, slide_idx: int, total_slides: i
                 img_top = Inches(3.85) + (Inches(1.2) - img_h) / 2
                 slide.shapes.add_picture(io.BytesIO(png_bytes), img_left, img_top, width=img_w, height=img_h)
             except Exception as e:
-                print(f"Lỗi chèn ảnh công thức: {e}")
+                raise ValueError("Không thể chèn công thức vào slide; chưa tạo file xuất") from e
 
         # Cột Phải: Card Khung Hình Học Không Gian 3D (Task 14.3, 14.4 & Task 18.2)
         card_h = min(Inches(3.30), Inches(5.10) - content_top)
@@ -789,7 +787,7 @@ def build_content_slide(slide, slide_data: dict, slide_idx: int, total_slides: i
         tf_pb = p_badge.text_frame
         tf_pb.vertical_anchor = MSO_ANCHOR.MIDDLE
         p_run = tf_pb.paragraphs[0].add_run()
-        p_run.text = 'Mô hình 3D WebGL (SGK)'
+        p_run.text = 'Hình theo dữ kiện đã xác nhận'
         p_run.font.name = 'Arial'
         p_run.font.size = Pt(8.5)
         p_run.font.bold = True
@@ -802,7 +800,7 @@ def build_content_slide(slide, slide_data: dict, slide_idx: int, total_slides: i
             slide_data.get('polyhedron_label')
             or poly_labels.get(poly_type)
             or slide_data.get('image_prompt')
-            or 'Hình học không gian trực quan'
+            or 'Đối chiếu nhãn đỉnh và giả thiết'
         )
         pt_box = slide.shapes.add_textbox(Inches(5.7), content_top + Inches(2.9), Inches(3.6), Inches(0.35))
         pt_p = pt_box.text_frame.paragraphs[0]
@@ -892,7 +890,7 @@ def build_content_slide(slide, slide_data: dict, slide_idx: int, total_slides: i
                 img_top = Inches(3.85) + (Inches(1.2) - img_h) / 2
                 slide.shapes.add_picture(io.BytesIO(png_bytes), img_left, img_top, width=img_w, height=img_h)
             except Exception as e:
-                print(f"Lỗi chèn ảnh công thức: {e}")
+                raise ValueError("Không thể chèn công thức vào slide; chưa tạo file xuất") from e
 
     # 3. Footer tinh tế ở chân slide
     ft_l = slide.shapes.add_textbox(Inches(0.6), Inches(5.26), Inches(5.0), Inches(0.25))
@@ -1202,11 +1200,54 @@ def build_speaker_notes(
     return final_notes_text
 
 
+def _append_table_pages(prs, source, data, subject, grade):
+    """Native editable tables with bounded cell lines and row heights."""
+    import textwrap
+    from lessonai.services.content_blocks import table_rows
+    rows = table_rows(data)
+    columns = len(rows[0])
+    if columns > 8:
+        raise ValueError("Bảng có hơn 8 cột; hãy chia bảng trước khi xuất để bảo đảm đọc được")
+    chars = max(8, int(68 / columns))
+    segments = []
+    for row in rows:
+        cells = [textwrap.wrap(latex_to_unicode_math(str(cell)), width=chars, break_long_words=True) or [""] for cell in row]
+        for offset in range(0, max(map(len, cells)), 8):
+            part = ["\n".join(cell[offset:offset+8]) for cell in cells]
+            lines = max(len(cell[offset:offset+8]) for cell in cells)
+            segments.append((part, .12 + .32 * lines))
+    pages, current, height = [], [], 0
+    for cells, row_height in segments:
+        if current and height + row_height > 3.65:
+            pages.append(current); current, height = [], 0
+        current.append((cells, row_height)); height += row_height
+    if current:
+        pages.append(current)
+    for rows_on_page in pages:
+        page = prs.slides.add_slide(prs.slide_layouts[6])
+        heading = page.shapes.add_textbox(Inches(.5), Inches(.3), Inches(9), Inches(.7))
+        heading.text_frame.text = str(source.get('title', '')) + " — Bảng (tiếp)"
+        for run in heading.text_frame.paragraphs[0].runs:
+            run.font.size = Pt(22)
+        table = page.shapes.add_table(len(rows_on_page), columns, Inches(.6), Inches(1.2), Inches(8.8), Inches(sum(h for _, h in rows_on_page))).table
+        for i, (cells, height) in enumerate(rows_on_page):
+            table.rows[i].height = Inches(height)
+            for j, text in enumerate(cells):
+                cell = table.cell(i, j)
+                cell.text = text
+                cell.margin_top = cell.margin_bottom = Inches(.03)
+                cell.margin_left = cell.margin_right = Inches(.06)
+                for paragraph in cell.text_frame.paragraphs:
+                    for run in paragraph.runs:
+                        run.font.size = Pt(18)
+        build_speaker_notes(page, source, subject=subject, grade=grade)
+
+
 def export_slide_deck_to_pptx(data: Union[Dict[str, Any], SlideDeckSchema]) -> io.BytesIO:
     """
     Chuyển đổi dữ liệu SlideDeck thành file PowerPoint (.pptx) chuẩn 16:9 Widescreen.
-    Đồng bộ 100% về bố cục, màu sắc, font chữ và đồ thị Matplotlib với giao diện Web Studio.
-    Cho phép Giáo viên chỉnh sửa, thay đổi nội dung, đổi màu tự do 100% trong PowerPoint.
+    Giữ nội dung được cung cấp; hình dùng dữ kiện đã xác nhận.
+    Công thức và đồ thị được chèn dưới dạng ảnh; bố cục cần nghiệm thu trực quan.
     """
     if isinstance(data, (SlideDeckSchema, dict)):
         deck_dict = _plain(data)
@@ -1222,9 +1263,27 @@ def export_slide_deck_to_pptx(data: Union[Dict[str, Any], SlideDeckSchema]) -> i
     prs.slide_width = Inches(10.0)
     prs.slide_height = Inches(5.625)
 
-    deck_snapshot = deck_dict.get("snapshot_3d_base64") or deck_dict.get("snapshot_3d")
+    if not slides_data:
+        raise ValueError("Không có slide để xuất")
+    from lessonai.api.routes.quality import check_deck
+    report = check_deck(deck_dict)
+    # Every exported page explicitly carries the content-review state.
+    draft = report["status"] != "ready"
+
+
+    from lessonai.services.content_blocks import block_errors
+    for source in slides_data:
+        errors = list(block_errors(source))
+        if errors:
+            raise ValueError(errors[0][1])
 
     for idx, slide_data in enumerate(slides_data):
+        slide_data=dict(slide_data)
+        from lessonai.services.visual_requirements import checked_slide_requirement
+        for field in ("chart_spec","scene_spec"):
+            if slide_data.get(field):
+                try:checked_slide_requirement(deck_dict,slide_data,slide_data[field])
+                except ValueError:slide_data.pop(field,None)
         slide = prs.slides.add_slide(prs.slide_layouts[6])
 
         # Xóa các placeholder thừa nếu có
@@ -1249,28 +1308,108 @@ def export_slide_deck_to_pptx(data: Union[Dict[str, Any], SlideDeckSchema]) -> i
         elif is_quiz:
             build_quiz_slide(slide, slide_data, idx + 1, total_slides, subject, grade)
         else:
-            # Task 14.3 & Task 18.2: Tự động kế thừa snapshot 3D từ deck_snapshot nếu slide có has_3d/polyhedron_type/layout
-            if not slide_data.get("snapshot_3d_base64"):
-                if slide_data.get("snapshot_3d"):
-                    slide_data["snapshot_3d_base64"] = slide_data["snapshot_3d"]
-                elif deck_snapshot and (
-                    slide_data.get("has_3d")
-                    or slide_data.get("polyhedron_type")
-                    or slide_data.get("layout") == "IMAGE_TEXT"
-                ):
-                    slide_data["snapshot_3d_base64"] = deck_snapshot
+            slide_data = dict(slide_data)
+            for key in ("snapshot_3d_base64", "snapshot_3d", "image_base64"):
+                slide_data.pop(key, None)
+            if slide_data.get("scene_spec"):
+                try:
+                    from lessonai.services.geometry_scene import render_scene_png
+                    import base64
+                    slide_data["snapshot_3d_base64"] = "data:image/png;base64," + base64.b64encode(render_scene_png(slide_data["scene_spec"], deck_dict.get("deck_id"), slide_data.get("slide_id"))).decode()
+                except ValueError:
+                    pass  # Preserved in source; missing/invalid visual is reported on the draft.
             build_content_slide(slide, slide_data, idx + 1, total_slides, subject, grade)
 
         # Draft export stays on the requested lesson and makes unavailable charts visible.
-        if expression_chart_is_disabled(slide_data.get("chart_spec")):
+        if draft:
             notice = slide.shapes.add_textbox(Inches(0.6), Inches(5.08), Inches(8.8), Inches(0.25))
-            notice.text_frame.text = "BẢN NHÁP: Đồ thị đang tạm ngắt; cần kiểm tra trước khi giảng dạy."
+            notice.text_frame.text = "BẢN NHÁP — Nội dung/hình cần kiểm tra trước khi giảng dạy."
             for run in notice.text_frame.paragraphs[0].runs:
                 run.font.size = Pt(10)
                 run.font.color.rgb = RGBColor(0x9A, 0x34, 0x12)
 
         # 3. Kịch bản lời thoại giáo viên & Bóc tách bẫy sai lầm (Task 18.3 Speaker Notes Pane)
         build_speaker_notes(slide, slide_data, is_quiz=is_quiz, subject=subject, grade=grade)
+
+        steps = slide_data.get("worked_solution_steps") or []
+        import textwrap
+        chunks = []
+        for number, step in enumerate(steps, 1):
+            text = latex_to_unicode_math(str(step))
+            lines = textwrap.wrap(text, width=85, break_long_words=False, replace_whitespace=False) or [""]
+            for offset in range(0, len(lines), 8):
+                chunks.append((number, "\n".join(lines[offset:offset+8])))
+        for number, body in chunks:
+            solution_page = prs.slides.add_slide(prs.slide_layouts[6])
+            build_speaker_notes(solution_page, slide_data, is_quiz=False, subject=subject, grade=grade)
+            heading = solution_page.shapes.add_textbox(Inches(.5), Inches(.3), Inches(9), Inches(.7))
+            heading.text_frame.text = f"{slide_data.get('title', '')} — Bước {number}"
+            for run in heading.text_frame.paragraphs[0].runs:
+                run.font.size = Pt(22)
+            box = solution_page.shapes.add_textbox(Inches(.6), Inches(1.2), Inches(8.8), Inches(3.8))
+            box.text_frame.word_wrap = True
+            box.text_frame.text = body
+            for paragraph in box.text_frame.paragraphs:
+                for run in paragraph.runs:
+                    run.font.size = Pt(20)
+            if draft:
+                label = solution_page.shapes.add_textbox(Inches(.6), Inches(5.1), Inches(8.8), Inches(.3))
+                label.text_frame.text = "BẢN NHÁP — cần duyệt nội dung"
+                for run in label.text_frame.paragraphs[0].runs:
+                    run.font.size = Pt(10)
+
+        source = slides_data[idx]
+        blocks=list(source.get("blocks") or [])
+        if source.get("table_data"):
+            blocks.append({"type":"table","rows":source["table_data"]})
+        if sum(len(str(value)) for value in source.get("bullet_points") or [])>250:
+            blocks.append({"type":"text","text":"\n".join(source.get("bullet_points") or [])})
+        for block in blocks:
+            if block.get("type") == "table":
+                _append_table_pages(prs, source, block.get("rows") or block.get("data"), subject, grade)
+                continue
+            if block.get("type")=="image":
+                stream=decode_base64_data_url(block.get("data_url"))
+                if not stream:
+                    raise ValueError("Không đọc được hình nhúng trong khối nội dung")
+                if stream:
+                    page=prs.slides.add_slide(prs.slide_layouts[6])
+                    from PIL import Image
+                    with Image.open(stream) as im: w,h=im.size
+                    stream.seek(0)
+                    left,top,width,height=compute_aspect_preserving_fit(w,h,.6,.7,8.8,4.2)
+                    page.shapes.add_picture(stream,Inches(left),Inches(top),width=Inches(width),height=Inches(height))
+                    build_speaker_notes(page,source,subject=subject,grade=grade)
+                    if draft:page.shapes.add_textbox(Inches(.6),Inches(5.1),Inches(8.8),Inches(.3)).text_frame.text="BẢN NHÁP — cần duyệt nội dung"
+                continue
+            value=block.get("text") or block.get("latex") or block.get("rows") or block.get("data") or ""
+            if isinstance(value,dict):value=value.get("rows",value)
+            if isinstance(value,list):value="\n".join(" | ".join(map(str,row)) if isinstance(row,list) else str(row) for row in value)
+            lines=[]
+            for row in str(value).splitlines():lines.extend(textwrap.wrap(row,width=65,break_long_words=False) or [""])
+            for offset in range(0,len(lines),7):
+                page=prs.slides.add_slide(prs.slide_layouts[6])
+                heading=page.shapes.add_textbox(Inches(.5),Inches(.3),Inches(9),Inches(.7))
+                heading.text_frame.text=str(source.get("title", ""))+" — Nội dung tiếp"
+                for run in heading.text_frame.paragraphs[0].runs:run.font.size=Pt(22)
+                body=page.shapes.add_textbox(Inches(.6),Inches(1.2),Inches(8.8),Inches(3.8))
+                body.text_frame.word_wrap=True;body.text_frame.text="\n".join(lines[offset:offset+7])
+                for paragraph in body.text_frame.paragraphs:
+                    for run in paragraph.runs:run.font.size=Pt(20)
+                build_speaker_notes(page,source,subject=subject,grade=grade)
+                if draft:page.shapes.add_textbox(Inches(.6),Inches(5.1),Inches(8.8),Inches(.3)).text_frame.text="BẢN NHÁP — cần duyệt nội dung"
+
+    # Reserve the same footer area on originals and continuation pages.
+    for number,page in enumerate(prs.slides,1):
+        for shape in list(page.shapes):
+            if shape.has_text_frame and (round(shape.top.inches,2)==5.26 or (shape.top.inches>=5.0 and shape.text.startswith("BẢN NHÁP"))):
+                page.shapes._spTree.remove(shape._element)
+        footer=page.shapes.add_textbox(Inches(.6),Inches(5.26),Inches(7.1),Inches(.25))
+        footer.text_frame.text="BẢN NHÁP — Nội dung/hình cần kiểm tra trước khi giảng dạy." if draft else str(deck_dict.get("presentation_title",""))
+        for run in footer.text_frame.paragraphs[0].runs:run.font.size=Pt(9)
+        number_box=page.shapes.add_textbox(Inches(8),Inches(5.26),Inches(1.4),Inches(.25))
+        number_box.text_frame.text=f"Trang {number}/{len(prs.slides)}"
+        for run in number_box.text_frame.paragraphs[0].runs:run.font.size=Pt(9)
 
     pptx_bytes = io.BytesIO()
     prs.save(pptx_bytes)

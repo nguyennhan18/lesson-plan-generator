@@ -112,14 +112,11 @@ def test_quiz_slide_missing_distractor_rationale():
             }
         ]
     }
-    with pytest.raises(ValidationError) as exc_info:
-        SlideSchema(**slide_dict)
-    error_messages = str(exc_info.value)
-
-    assert "Phương án sai thiếu distractor_rationale: B" in error_messages
-    assert "B" in error_messages
-    assert "C" in error_messages
-    assert "D" in error_messages
+    from lessonai.services.content_quality import evaluate_deck
+    draft=SlideSchema(**slide_dict).model_dump(mode='json')
+    report=evaluate_deck({'slides':[draft]})
+    assert report['status']=='blocked'
+    assert any(issue['field']=='quiz_options' for issue in report['issues'])
 
 
 
@@ -161,10 +158,11 @@ def test_quiz_slide_invalid_correct_count():
             }
         ]
     }
-    with pytest.raises(ValidationError) as exc_info:
-        SlideSchema(**slide_dict)
-    error_messages = str(exc_info.value)
-    assert "Cần đúng 1 phương án đúng, hiện có 2" in error_messages
+    from lessonai.services.content_quality import evaluate_deck
+    draft=SlideSchema(**slide_dict).model_dump(mode='json')
+    report=evaluate_deck({'slides':[draft]})
+    assert report['status']=='blocked'
+    assert any('đúng 1 đáp án' in issue['message'] for issue in report['issues'])
 
 
 def test_lesson_request_with_proficiency():

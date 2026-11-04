@@ -1,0 +1,26 @@
+
+> quantum-studio-frontend@6.0.0 test:e2e
+> playwright test
+
+[WebServer] INFO:     Started server process [10729]
+[WebServer] INFO:     Waiting for application startup.
+[WebServer] INFO:     Application startup complete.
+[WebServer] INFO:     Uvicorn running on http://127.0.0.1:18080 (Press CTRL+C to quit)
+
+Running 11 tests using 1 worker
+
+(node:10750) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/workflows.spec.js:13:1 › fresh profile is empty; editing and reload preserve a real project (958ms)
+  ✓   2 e2e/workflows.spec.js:26:1 › confirmed plot, canonical geometry, solution reveal and export use the live API (3.5s)
+  ✓   3 e2e/workflows.spec.js:55:1 › separate projects preserve IDs and never share drawings or remembered content (558ms)
+  ✓   4 e2e/workflows.spec.js:65:1 › real analytics upload starts with no fake data and reports exact groups (1.2s)
+  ✓   5 e2e/workflows.spec.js:72:1 › editing math invalidates the old visual and saves the new exact formula (1.0s)
+  ✓   6 e2e/workflows.spec.js:85:1 › late chart responses cannot replace edited input (954ms)
+  ✓   7 e2e/workflows.spec.js:95:1 › a failed restore keeps the active project intact until recovery (896ms)
+  ✓   8 e2e/workflows.spec.js:115:1 › discrete plots require explicit data and keep the confirmed values (923ms)
+  ✓   9 e2e/workflows.spec.js:131:1 › lesson authoring has no sample browser or preassigned source label (491ms)
+  ✓  10 e2e/workflows.spec.js:140:1 › annotations, undo and poll counts stay with their slide across reload (1.4s)
+  ✓  11 e2e/workflows.spec.js:169:1 › export and navigation require saving the visible slide edits (1.2s)
+
+  11 passed (16.5s)

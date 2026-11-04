@@ -13,17 +13,16 @@ const plotterBundle = buildSync({
   bundle: true, write: false, platform: 'node', format: 'cjs', external: ['react']
 }).outputFiles[0].text;
 
-test('M0 plotter keeps an untrusted expression as draft text and shows unavailability', () => {
+test('plotter keeps untrusted input as text and never evaluates it locally', () => {
   const module = { exports: {} };
   const sandbox = { module, exports: module.exports, require };
   runInNewContext(plotterBundle, sandbox, { timeout: 1000, contextCodeGeneration: { strings: false, wasm: false } });
   const expression = '(globalThis.lessonReviewMarker = 731, x)';
   const markup = renderToStaticMarkup(React.createElement(module.exports.default, { defaultExpr: expression }));
   assert.equal(sandbox.lessonReviewMarker, undefined);
-  assert.match(markup, /temporarily_unavailable/);
-  assert.match(markup, /role="status"/);
+  assert.match(markup, /Đối chiếu công thức/);
   assert.ok(markup.includes(expression));
-  assert.match(markup, /bản nháp/);
+  assert.match(markup, /disabled/);
   assert.doesNotMatch(markup, /<canvas|<img/);
 });
 

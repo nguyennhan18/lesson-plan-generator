@@ -21,7 +21,6 @@ import {
  * Tuân thủ FRONTEND_ARCHITECTURE.md (Mục 3.1 & Mục 7 - Input Data Pipeline)
  * - Hộp nhập lệnh thông minh (NotebookInputBox)
  * - Thanh công cụ nút cấu hình dạng viên thuốc (Pill Settings: Model, Số slide, Khối lớp, RAG SGK, Học lực)
- * - Kho bài học mẫu chuẩn SGK GDPT 2018 (Quick Curriculum Templates)
  * - Danh sách bài giảng gần đây trong bộ nhớ (Recent Presentations)
  * - Chuyển tiếp mượt mà sang Trạm 2: Duyệt Dàn Ý (Outline Workspace)
  */
@@ -38,66 +37,14 @@ export default function PresentationDashboard({
   const [numSlides, setNumSlides] = useState(8);
   const [classProficiency, setClassProficiency] = useState('standard');
   const [modelProvider, setModelProvider] = useState('gemini');
-  const [modelId, setModelId] = useState('gemini-2.5-flash');
+  const [modelId, setModelId] = useState('');
   const [useRag, setUseRag] = useState(true);
   const [textContent, setTextContent] = useState('concise'); // 'concise' | 'detailed'
-
-  // Danh mục 6 bài học mẫu chuẩn SGK Toán 12 & 10 Kết Nối Tri Thức
-  const sampleTemplates = [
-    {
-      id: 'M12-C1-B4',
-      grade: 12,
-      badge: 'Đại số 12 • KNTT',
-      topic: 'Khảo sát sự biến thiên và vẽ đồ thị hàm số bậc ba',
-      visualType: 'Đồ thị 2D (Oxy)',
-      desc: 'Tập xác định, đạo hàm y\', bảng biến thiên, điểm uốn và đồ thị hàm bậc ba'
-    },
-    {
-      id: 'M12-C2-B2',
-      grade: 12,
-      badge: 'Hình học 12 • KNTT',
-      topic: 'Hệ trục tọa độ trong không gian Oxyz',
-      visualType: 'Mô hình 3D (Three.js)',
-      desc: 'Các trục Ox, Oy, Oz, mặt phẳng tọa độ và tọa độ điểm M(x, y, z) trong không gian'
-    },
-    {
-      id: 'M12-C1-B1',
-      grade: 12,
-      badge: 'Giải tích 12 • KNTT',
-      topic: 'Tính đơn điệu và cực trị của hàm số',
-      visualType: 'Bảng biến thiên & Quiz',
-      desc: 'Quy tắc xét dấu y\', định lý điều kiện cần và đủ cho cực trị địa phương'
-    },
-    {
-      id: 'M12-GEO-3D',
-      grade: 12,
-      badge: 'Hình học không gian',
-      topic: 'Thể tích khối chóp tứ giác đều S.ABCD',
-      visualType: 'Mô hình 3D & Khai triển 2D',
-      desc: 'Trực quan hóa đường cao SH, diện tích đáy vuông và thể tích V = 1/3 * B * h'
-    },
-    {
-      id: 'M12-C4-B2',
-      grade: 12,
-      badge: 'Giải tích 12 • KNTT',
-      topic: 'Tích phân và công thức Newton - Leibniz',
-      visualType: 'Đồ thị & Tích phân',
-      desc: 'Định nghĩa tích phân từ a đến b, công thức Newton-Leibniz và ứng dụng hình học'
-    },
-    {
-      id: 'M10-C2-B2',
-      grade: 10,
-      badge: 'Đại số 10 • KNTT',
-      topic: 'Hệ bất phương trình bậc nhất hai ẩn',
-      visualType: 'Miền nghiệm Oxy',
-      desc: 'Biểu diễn miền đa giác nghiệm trên hệ trục tọa độ và bài toán tối ưu thực tế'
-    }
-  ];
 
   const handleSubmit = (e) => {
     e?.preventDefault();
     if (!topic.trim()) {
-      alert('Vui lòng nhập chủ đề bài giảng hoặc chọn một bài học mẫu!');
+      alert('Vui lòng nhập chủ đề bài giảng !');
       return;
     }
 
@@ -108,19 +55,12 @@ export default function PresentationDashboard({
       num_slides: numSlides,
       class_proficiency: classProficiency,
       model_provider: modelProvider,
-      model_id: modelId,
+      model_id: modelId || null,
       use_rag: useRag,
       text_content: textContent,
       tone: 'academic',
       language: 'vi'
     });
-  };
-
-  const handleSelectTemplate = (tmpl) => {
-    setTopic(tmpl.topic);
-    setGrade(tmpl.grade);
-    setSubject('Toán học');
-    setUseRag(true);
   };
 
   return (
@@ -150,7 +90,7 @@ export default function PresentationDashboard({
                 <span>Chủ đề / Bài dạy cần soạn thảo:</span>
               </label>
               <span className="text-[11px] text-[#707070]">
-                Hỗ trợ Toán 10, 11, 12 (KNTT / Cánh Diều / Chân Trời)
+                Bản nháp cần kiểm tra trước khi giảng dạy
               </span>
             </div>
 
@@ -159,7 +99,7 @@ export default function PresentationDashboard({
                 rows={3}
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                placeholder="Ví dụ: Hệ trục tọa độ trong không gian Oxyz, Khảo sát hàm số bậc ba, Khối chóp tứ giác đều S.ABCD..."
+                placeholder="Nhập chủ đề, mục tiêu và dữ kiện cần dùng trong bài giảng."
                 className="w-full bg-[#f0f0f0] border-none rounded-2xl p-4 text-sm sm:text-base text-[#141414] placeholder-[#adadad] outline-none focus:ring-2 focus:ring-[#141414] transition font-medium resize-none leading-relaxed"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
@@ -248,8 +188,8 @@ export default function PresentationDashboard({
                   <Cpu size={12} /> Model:
                 </span>
                 {[
-                  { id: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' },
-                  { id: 'llama-3.3-70b', label: 'Groq Llama 3.3' }
+                  { id: '', label: 'Gemini tự động' },
+                  { id: 'llama-3.3-70b-versatile', label: 'Groq Llama 3.3' }
                 ].map((m) => (
                   <button
                     key={m.id}
@@ -317,57 +257,6 @@ export default function PresentationDashboard({
                 </>
               )}
             </button>
-          </div>
-        </div>
-
-        {/* 3. Kho bài giảng SGK mẫu định sẵn (Quick Templates) */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-base sm:text-lg font-bold text-[#141414]">
-                Kho Bài Dạy Mẫu Chuẩn SGK GDPT 2018
-              </h2>
-              <p className="text-xs text-[#707070] mt-0.5">
-                Bấm vào một chủ đề để tự động nạp cấu hình và chuyển nhanh sang duyệt Dàn ý
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
-            {sampleTemplates.map((tmpl) => (
-              <div
-                key={tmpl.id}
-                onClick={() => handleSelectTemplate(tmpl)}
-                className={`p-4 rounded-2xl border transition cursor-pointer flex flex-col justify-between space-y-3 ${
-                  topic === tmpl.topic
-                    ? 'bg-[#f3f3f3] border-[#141414] ring-1 ring-[#141414]'
-                    : 'bg-[#ffffff] border-[#e0e0e0] hover:bg-[#f3f3f3]'
-                }`}
-              >
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="px-2.5 py-0.5 rounded-full bg-[#f3f3f3] border border-[#e0e0e0] text-[#141414] text-[10px] font-semibold">
-                      {tmpl.badge}
-                    </span>
-                    <span className="text-[10px] text-[#0066ff] font-medium font-mono">
-                      {tmpl.visualType}
-                    </span>
-                  </div>
-
-                  <h3 className="text-sm font-bold text-[#141414] leading-snug line-clamp-2">
-                    {tmpl.topic}
-                  </h3>
-                  <p className="text-xs text-[#707070] line-clamp-2 leading-relaxed">
-                    {tmpl.desc}
-                  </p>
-                </div>
-
-                <div className="flex items-center justify-between pt-1 border-t border-[#e0e0e0] text-xs font-semibold text-[#141414]">
-                  <span>Sử dụng bài này</span>
-                  <ArrowRight size={13} className="text-[#141414]" />
-                </div>
-              </div>
-            ))}
           </div>
         </div>
 

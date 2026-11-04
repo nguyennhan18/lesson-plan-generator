@@ -28,5 +28,4 @@ def generate_outline_endpoint(req: OutlineRequest):
             language=req.language
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Lỗi khi tạo dàn ý bài giảng: {str(e)}")
-
+        raise HTTPException(status_code=503, detail={"code": "generation_unavailable", "message": "Không tạo được dàn ý. Bản soạn được giữ nguyên; hãy kiểm tra nhà cung cấp."}) from e

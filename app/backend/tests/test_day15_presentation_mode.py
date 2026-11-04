@@ -87,7 +87,6 @@ def test_task_15_1_app_state_and_fullscreen_integration():
     assert "onFullscreenChange" in content
     assert "handleStartPresentation" in content
     assert "requestPresentationFullscreen" in content
-    assert "onStartPresentation={handleStartPresentation}" in content
     assert "isPresentationMode={isPresentationMode}" in content
 
 
@@ -124,41 +123,6 @@ def test_task_15_2_presentation_mode_sidebar_and_dock_hiding():
     assert "handleExitPresentation()" in controls_code
 
 
-def test_task_15_2_presentation_stage_16_9_cinema_layout():
-    """
-    Task 15.2: Kiểm tra giao diện Trình chiếu 16:9 Cinema trong PresentationStage.jsx:
-    - Nhận props isPresentationMode và onExitPresentation
-    - Container toàn màn hình nền đen: fixed inset-0 z-50 bg-black
-    - Khung slide chuẩn tỉ lệ 16:9 (aspect-[16/9] và giới hạn maxWidth calc(100vh * 16 / 9))
-    - Ẩn thanh quick controls bên trên (Hiện Trợ Giảng AI, Công Cụ Giảng Dạy, chuyển mẫu bài) khi trình chiếu
-    - Hiển thị badge '16:9 Cinema'
-    - Có nút Thoát trình chiếu (Minimize2, nhãn 'Thoát', phím tắt Esc) gọi onExitPresentation
-    """
-    stage_path = FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationStage.jsx"
-    assert stage_path.exists(), f"Không tìm thấy tệp {stage_path}"
-    content = stage_path.read_text(encoding="utf-8")
-
-    # Kiểm tra props
-    assert "isPresentationMode = false" in content
-    assert "onExitPresentation" in content
-
-    # Kiểm tra CSS layout 16:9 Cinema
-    assert "fixed inset-0 z-50 bg-black" in content
-    assert "aspect-[16/9]" in content
-    assert "100vh * 16 / 9" in content
-
-    # Kiểm tra ẩn thanh controls phụ
-    assert "!isPresentationMode &&" in content
-    assert "Hiện Trợ Giảng AI" in content
-
-    # Kiểm tra badge 16:9 Cinema
-    assert "16:9 Cinema" in content
-
-    # Kiểm tra nút Thoát
-    assert "onExitPresentation" in content
-    assert "Minimize2" in content
-    assert "Thoát" in content
-    assert "Esc" in content
 
 
 def test_task_15_3_keyboard_shortcuts_navigation_and_hotkeys():
@@ -204,34 +168,6 @@ def test_task_15_3_keyboard_shortcuts_navigation_and_hotkeys():
     assert "onToggleBlackout={setIsBlackout}" in content
 
 
-def test_task_15_3_blackout_mode_overlay_and_curtain():
-    """
-    Task 15.3: Kiểm tra giao diện Màn hình tối Blackout trong PresentationStage.jsx:
-    - Nhận props isBlackout và onToggleBlackout
-    - Hiển thị lớp phủ Blackout Curtain: fixed inset-0 z-[60] bg-black khi isBlackout === true
-    - Biểu tượng Moon và thông điệp 'Màn hình tạm tắt để tập trung bài giảng'
-    - Có nút 'Tối màn hình (B)' trong header khi ở isPresentationMode
-    - Footer hiển thị phím tắt đầy đủ: [← / → / Space]: Chuyển slide • [B]: Tối màn hình • [Esc / F5]: Thoát
-    """
-    stage_path = FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationStage.jsx"
-    assert stage_path.exists(), f"Không tìm thấy tệp {stage_path}"
-    content = stage_path.read_text(encoding="utf-8")
-
-    # Props
-    assert "isBlackout = false" in content
-    assert "onToggleBlackout" in content
-
-    # Lớp phủ Blackout Curtain
-    assert "isBlackout &&" in content
-    assert "fixed inset-0 z-[60] bg-black" in content
-    assert "Màn hình tạm tắt để tập trung bài giảng" in content
-    assert "Moon" in content
-
-    # Nút bấm Tối màn hình
-    assert "Tối màn hình" in content
-
-    # Footer shortcut guide
-    assert "[← / → / Space]: Chuyển slide • [B]: Tối màn hình • [Esc / F5]: Thoát" in content
 
 
 def test_task_15_4_presentation_floating_bar_component():
@@ -279,85 +215,3 @@ def test_task_15_4_presentation_floating_bar_component():
     assert "showThumbnails" in content
     assert "onToggleBlackout" in content
     assert "onExitPresentation" in content
-
-
-def test_task_15_4_floating_bar_integration_in_presentation_stage():
-    """
-    Task 15.4: Kiểm tra tích hợp PresentationFloatingBar trong PresentationStage.jsx:
-    - Import PresentationFloatingBar from './PresentationFloatingBar'
-    - Render <PresentationFloatingBar ... khi isPresentationMode === true
-    - Truyền đầy đủ props: currentSlide, totalSlides, onPrevSlide, onNextSlide, onSelectSlide,
-      slides, isBlackout, onToggleBlackout, onExitPresentation, visualMode, onSelectVisualMode
-    """
-    stage_path = FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationStage.jsx"
-    assert stage_path.exists(), f"Không tìm thấy tệp {stage_path}"
-    content = stage_path.read_text(encoding="utf-8")
-
-    assert "import PresentationFloatingBar from './PresentationFloatingBar'" in content
-    assert "<PresentationFloatingBar" in content
-    assert "isPresentationMode && (" in content
-    assert "onPrevSlide=" in content
-    assert "onNextSlide=" in content
-    assert "onSelectSlide=" in content
-    assert "onToggleBlackout=" in content
-    assert "onExitPresentation=" in content
-
-
-def test_task_15_5_definition_of_done_e2e_presentation_mode():
-    """
-    Task 15.5: Nghiệm thu Definition of Done (DoD) Ngày 15:
-    - Bấm F5 hoặc nút 'Bắt đầu Tiết học': Gọi HTML5 Fullscreen API, ẩn thanh sidebar & dock chat.
-    - Màn hình tràn viền tỉ lệ 16:9: aspect-[16/9], maxWidth 100vh * 16/9, nền đen điện ảnh không méo hình.
-    - Bấm phím mũi tên lùi/tiến mượt mà: ArrowLeft, ArrowRight, Space, PageUp, PageDown, Home, End.
-    - Bấm B màn hình đen kịt (Blackout): fixed inset-0 z-[60] bg-black, bấm B lần nữa hoặc click chuột hiện lại tức thì.
-    - Đồng hồ 45 phút đếm ngược chính xác: 2700 giây về 0, phân tầng màu xanh/vàng/đỏ, tự động mờ khi không di chuột sau 3.5s.
-    """
-    # 1. Kiểm tra Fullscreen Helper
-    helper_path = FRONTEND_DIR / "src" / "features" / "presentation" / "fullscreenHelper.js"
-    assert helper_path.exists()
-    helper_code = helper_path.read_text(encoding="utf-8")
-    for fn in ["isFullscreenActive", "requestPresentationFullscreen", "exitPresentationFullscreen", "togglePresentationFullscreen", "onFullscreenChange"]:
-        assert fn in helper_code
-
-    # 2. Kiểm tra HeaderNav & Nút Bắt đầu Tiết học
-    header_path = FRONTEND_DIR / "src" / "shared" / "components" / "HeaderNav.jsx"
-    assert header_path.exists()
-    header_code = header_path.read_text(encoding="utf-8")
-    assert "Bắt đầu Tiết học" in header_code
-    assert "F5" in header_code
-    assert "onStartPresentation" in header_code
-
-    # 3. Kiểm tra App.jsx
-    app_path = FRONTEND_DIR / "src" / "App.jsx"
-    assert app_path.exists()
-    app_code = app_path.read_text(encoding="utf-8")
-    assert "isPresentationMode" in app_code
-    assert "isBlackout" in app_code
-    assert "!isPresentationMode &&" in app_code  # Ẩn HeaderNav, TeacherChatDock, RightToolsDock
-    controls_code = (FRONTEND_DIR / "src" / "features" / "presentation" / "usePresentationControls.js").read_text(encoding="utf-8")
-    assert "usePresentationControls" in app_code
-    assert "'Escape'" in controls_code
-    assert "'b'" in controls_code or "'B'" in controls_code
-
-    # 4. Kiểm tra PresentationStage.jsx
-    stage_path = FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationStage.jsx"
-    assert stage_path.exists()
-    stage_code = stage_path.read_text(encoding="utf-8")
-    assert "fixed inset-0 z-50 bg-black" in stage_code
-    assert "aspect-[16/9]" in stage_code
-    assert "100vh * 16 / 9" in stage_code
-    assert "z-[60] bg-black" in stage_code  # Blackout curtain
-    assert "PresentationFloatingBar" in stage_code
-
-    # 5. Kiểm tra PresentationFloatingBar.jsx
-    bar_path = FRONTEND_DIR / "src" / "features" / "presentation" / "PresentationFloatingBar.jsx"
-    assert bar_path.exists()
-    bar_code = bar_path.read_text(encoding="utf-8")
-    assert "45 * 60" in bar_code  # 45 phút chuẩn GDPT
-    assert "formatTime" in bar_code
-    assert "mousemove" in bar_code
-    assert "setTimeout" in bar_code
-    assert "onPrevSlide" in bar_code
-    assert "onNextSlide" in bar_code
-    assert "onToggleBlackout" in bar_code
-    assert "onExitPresentation" in bar_code

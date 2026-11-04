@@ -1,25 +1,239 @@
 {
+  "openapi": "3.1.0",
+  "info": {
+    "title": "LessonAI-5512",
+    "description": "Hệ thống tự động sinh Kế hoạch bài dạy theo Công văn 5512 và Slide bài giảng",
+    "version": "0.2.0"
+  },
   "paths": {
+    "/api/v1/session": {
+      "post": {
+        "summary": "Create Owner",
+        "operationId": "create_owner_api_v1_session_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/": {
       "get": {
+        "summary": "Root",
         "operationId": "root__get",
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "text/html": {
                 "schema": {
                   "type": "string"
                 }
               }
-            },
-            "description": "Successful Response"
+            }
           }
+        }
+      }
+    },
+    "/ui": {
+      "get": {
+        "summary": "Ui Page",
+        "operationId": "ui_page_ui_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/health": {
+      "get": {
+        "summary": "Health Check",
+        "description": "Kiểm tra trạng thái server và cấu hình API key",
+        "operationId": "health_check_api_v1_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/system/clean-temp-files": {
+      "post": {
+        "tags": [
+          "System & Maintenance"
+        ],
+        "summary": "Clean Temp Files Endpoint",
+        "description": "Task 19.4: Dọn dẹp các tệp tin tạm (Word, PPTX, ZIP, PNG đồ thị, cache) hết hạn lưu trữ\ntrên máy chủ hoặc ép dọn sạch toàn bộ khi force_all=True.",
+        "operationId": "clean_temp_files_endpoint_api_v1_system_clean_temp_files_post",
+        "parameters": [
+          {
+            "name": "max_age_seconds",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 3600,
+              "title": "Max Age Seconds"
+            }
+          },
+          {
+            "name": "force_all",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Force All"
+            }
+          },
+          {
+            "name": "dry_run",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Dry Run"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/system/temp-stats": {
+      "get": {
+        "tags": [
+          "System & Maintenance"
+        ],
+        "summary": "Get Temp Stats Endpoint",
+        "description": "Task 19.4: Tra cứu thống kê số lượng và dung lượng tệp tin tạm hiện có trên server.",
+        "operationId": "get_temp_stats_endpoint_api_v1_system_temp_stats_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/system/cleanup-memory": {
+      "post": {
+        "tags": [
+          "System & Maintenance"
+        ],
+        "summary": "Cleanup Memory Endpoint",
+        "description": "Task 19.4: Giải phóng tài nguyên bộ nhớ rò rỉ (đóng toàn bộ figure Matplotlib & Garbage Collection).",
+        "operationId": "cleanup_memory_endpoint_api_v1_system_cleanup_memory_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/curriculum/math12": {
+      "get": {
+        "summary": "Get Math12 Curriculum Endpoint",
+        "description": "Trả về toàn bộ Khung Chương trình Toán 12 (CT GDPT 2018 - SGK Kết nối tri thức với cuộc sống),\nbao gồm danh mục Chương, Bài học, YCCĐ, từ khóa và số lượng slide / câu hỏi có sẵn trong kho RAG.",
+        "operationId": "get_math12_curriculum_endpoint_api_v1_curriculum_math12_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/rag/preview": {
+      "post": {
+        "summary": "Preview Rag Materials Endpoint",
+        "description": "The sample browser was removed from the production authoring workflow.",
+        "operationId": "preview_rag_materials_endpoint_api_v1_rag_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RAGPreviewRequest"
+              }
+            }
+          },
+          "required": true
         },
-        "summary": "Root"
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/presentation/outline": {
       "post": {
+        "summary": "Generate Outline Endpoint",
         "description": "Trạm 2 Outline API theo FRONTEND_ARCHITECTURE.md (Mục 3.2 & Mục 7):\nNhận chủ đề và cấu hình, sinh Dàn ý các slide (tiêu đề, hoạt động, visual_type, gạch đầu dòng)\nđể giáo viên duyệt và chỉnh sửa trước khi sinh slide chi tiết.",
         "operationId": "generate_outline_endpoint_api_presentation_outline_post",
         "requestBody": {
@@ -34,40 +248,38 @@
         },
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/OutlineResponse"
                 }
               }
-            },
-            "description": "Successful Response"
+            }
           },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Validation Error"
+            }
           }
-        },
-        "summary": "Generate Outline Endpoint"
+        }
       }
     },
-    "/api/v1/chart/render": {
+    "/api/v1/presentation/outline": {
       "post": {
-        "description": "Render đồ thị từ cấu hình chart_spec và trả về file ảnh PNG trực tiếp",
-        "operationId": "render_chart_endpoint_api_v1_chart_render_post",
+        "summary": "Generate Outline Endpoint",
+        "description": "Trạm 2 Outline API theo FRONTEND_ARCHITECTURE.md (Mục 3.2 & Mục 7):\nNhận chủ đề và cấu hình, sinh Dàn ý các slide (tiêu đề, hoạt động, visual_type, gạch đầu dòng)\nđể giáo viên duyệt và chỉnh sửa trước khi sinh slide chi tiết.",
+        "operationId": "generate_outline_endpoint_api_v1_presentation_outline_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "additionalProperties": true,
-                "title": "Spec",
-                "type": "object"
+                "$ref": "#/components/schemas/OutlineRequest"
               }
             }
           },
@@ -75,36 +287,38 @@
         },
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/OutlineResponse"
+                }
               }
-            },
-            "description": "Successful Response"
+            }
           },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Validation Error"
+            }
           }
-        },
-        "summary": "Render Chart Endpoint"
+        }
       }
     },
-    "/api/v1/chat/apply-patch": {
+    "/api/v1/lesson-plan/generate": {
       "post": {
-        "description": "Task 7.1: Nhận yêu cầu áp dụng bản vá đề xuất và trả về dữ liệu slide đã cập nhật.\n\nLý do thiết kế (Why):\n- Đóng vai trò là API kiểm định và đồng bộ trạng thái giữa Front-end và Backend.\n- Cho phép kiểm thử tự động toàn diện luồng Live Patching bằng TestClient.",
-        "operationId": "apply_patch_endpoint_api_v1_chat_apply_patch_post",
+        "summary": "Generate Lesson Plan Endpoint",
+        "description": "API 1: Nhận bài dạy từ người dùng, gọi AI Gemini sinh Giáo án & kiểm tra qua Validator 5512.",
+        "operationId": "generate_lesson_plan_endpoint_api_v1_lesson_plan_generate_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ApplyPatchRequest"
+                "$ref": "#/components/schemas/LessonRequest"
               }
             }
           },
@@ -112,616 +326,31 @@
         },
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ApplyPatchResponse"
+                  "$ref": "#/components/schemas/LessonGenerationResponse"
                 }
               }
-            },
-            "description": "Successful Response"
+            }
           },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Apply Patch Endpoint",
-        "tags": [
-          "Chat Co-pilot"
-        ]
-      }
-    },
-    "/api/v1/chat/history/{session_id}": {
-      "get": {
-        "description": "Lấy danh sách các tin nhắn trong phiên hội thoại hiện tại",
-        "operationId": "get_chat_history_endpoint_api_v1_chat_history__session_id__get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "session_id",
-            "required": true,
-            "schema": {
-              "title": "Session Id",
-              "type": "string"
             }
           }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Get Chat History Endpoint",
-        "tags": [
-          "Chat Co-pilot"
-        ]
-      }
-    },
-    "/api/v1/chat/interact": {
-      "post": {
-        "description": "Task 6.1: Nhận tương tác hội thoại từ giáo viên, chuyển tới Trợ giảng AI\nphân tích ngữ cảnh slide hiện tại và trả về phản hồi kèm gợi ý.",
-        "operationId": "chat_interact_endpoint_api_v1_chat_interact_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ChatInteractRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ChatInteractResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Chat Interact Endpoint",
-        "tags": [
-          "Chat Co-pilot"
-        ]
-      }
-    },
-    "/api/v1/chat/session/{session_id}": {
-      "delete": {
-        "description": "Xóa lịch sử phiên hội thoại để bắt đầu phiên mới",
-        "operationId": "clear_chat_session_endpoint_api_v1_chat_session__session_id__delete",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "session_id",
-            "required": true,
-            "schema": {
-              "title": "Session Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Clear Chat Session Endpoint",
-        "tags": [
-          "Chat Co-pilot"
-        ]
-      }
-    },
-    "/api/v1/curriculum/math12": {
-      "get": {
-        "description": "Trả về toàn bộ Khung Chương trình Toán 12 (CT GDPT 2018 - SGK Kết nối tri thức với cuộc sống),\nbao gồm danh mục Chương, Bài học, YCCĐ, từ khóa và số lượng slide / câu hỏi có sẵn trong kho RAG.",
-        "operationId": "get_math12_curriculum_endpoint_api_v1_curriculum_math12_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Get Math12 Curriculum Endpoint"
-      }
-    },
-    "/api/v1/geometry/apex-coordinates": {
-      "get": {
-        "description": "Task 12.2: Endpoint GET hỗ trợ truy vấn nhanh tọa độ đỉnh S(0, 0, h) qua Query Params.",
-        "operationId": "get_apex_coordinates_get_endpoint_api_v1_geometry_apex_coordinates_get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "polyhedron_type",
-            "required": false,
-            "schema": {
-              "default": "pyramid_square",
-              "title": "Polyhedron Type",
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "height",
-            "required": false,
-            "schema": {
-              "default": 4.0,
-              "title": "Height",
-              "type": "number"
-            }
-          },
-          {
-            "in": "query",
-            "name": "base_edge",
-            "required": false,
-            "schema": {
-              "default": 4.0,
-              "title": "Base Edge",
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ParametricGeometryResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Get Apex Coordinates Get Endpoint",
-        "tags": [
-          "Geometry & 3D Parametric"
-        ]
-      }
-    },
-    "/api/v1/geometry/edge-topology": {
-      "get": {
-        "description": "Task 13.1: Endpoint truy vấn danh mục cạnh thấy (nét liền) và cạnh khuất (nét đứt) chuẩn SGK.",
-        "operationId": "get_edge_topology_endpoint_api_v1_geometry_edge_topology_get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "polyhedron_type",
-            "required": false,
-            "schema": {
-              "default": "pyramid_square",
-              "title": "Polyhedron Type",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Get Edge Topology Endpoint",
-        "tags": [
-          "Geometry & 3D Parametric"
-        ]
-      }
-    },
-    "/api/v1/geometry/parametric-coordinates": {
-      "post": {
-        "description": "Task 12.2: Endpoint tính toán tọa độ đỉnh chóp S(0, 0, h) và các thông số hình học động\ntheo thời gian thực khi Giáo viên / Học sinh kéo các thanh trượt UI (Slider Controls).",
-        "operationId": "get_parametric_coordinates_endpoint_api_v1_geometry_parametric_coordinates_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ParametricGeometryRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ParametricGeometryResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Get Parametric Coordinates Endpoint",
-        "tags": [
-          "Geometry & 3D Parametric"
-        ]
-      }
-    },
-    "/api/v1/geometry/raycast-occlusion": {
-      "get": {
-        "description": "Task 13.5: Endpoint tính toán khử mặt khuất bằng giải thuật Raycasting (Möller–Trumbore)\nxác định chính xác các cạnh khuất nét đứt từ tọa độ Camera quan sát.",
-        "operationId": "get_raycast_occlusion_endpoint_api_v1_geometry_raycast_occlusion_get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "polyhedron_type",
-            "required": false,
-            "schema": {
-              "default": "pyramid_square",
-              "title": "Polyhedron Type",
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "cam_x",
-            "required": false,
-            "schema": {
-              "default": 6.0,
-              "title": "Cam X",
-              "type": "number"
-            }
-          },
-          {
-            "in": "query",
-            "name": "cam_y",
-            "required": false,
-            "schema": {
-              "default": 7.0,
-              "title": "Cam Y",
-              "type": "number"
-            }
-          },
-          {
-            "in": "query",
-            "name": "cam_z",
-            "required": false,
-            "schema": {
-              "default": 9.0,
-              "title": "Cam Z",
-              "type": "number"
-            }
-          },
-          {
-            "in": "query",
-            "name": "height",
-            "required": false,
-            "schema": {
-              "default": 4.0,
-              "title": "Height",
-              "type": "number"
-            }
-          },
-          {
-            "in": "query",
-            "name": "base_edge",
-            "required": false,
-            "schema": {
-              "default": 4.0,
-              "title": "Base Edge",
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Get Raycast Occlusion Endpoint",
-        "tags": [
-          "Geometry & 3D Parametric"
-        ]
-      }
-    },
-    "/api/v1/geometry/unfolded-net": {
-      "get": {
-        "description": "Task 13.3: Endpoint trả về cấu trúc bản vẽ Khai Triển Phẳng 2D (Unfolded Net)\nphục vụ trực quan hóa diện tích xung quanh S_xq và diện tích toàn phần S_tp.",
-        "operationId": "get_unfolded_net_endpoint_api_v1_geometry_unfolded_net_get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "polyhedron_type",
-            "required": false,
-            "schema": {
-              "default": "pyramid_square",
-              "title": "Polyhedron Type",
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "height",
-            "required": false,
-            "schema": {
-              "default": 4.0,
-              "title": "Height",
-              "type": "number"
-            }
-          },
-          {
-            "in": "query",
-            "name": "base_edge",
-            "required": false,
-            "schema": {
-              "default": 4.0,
-              "title": "Base Edge",
-              "type": "number"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Get Unfolded Net Endpoint",
-        "tags": [
-          "Geometry & 3D Parametric"
-        ]
-      }
-    },
-    "/api/v1/geometry/vertex-labels": {
-      "get": {
-        "description": "Task 13.4: Endpoint truy vấn danh mục tên các đỉnh (S, A, B, C, D) và ý nghĩa hình học SGK.",
-        "operationId": "get_vertex_labels_endpoint_api_v1_geometry_vertex_labels_get",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "polyhedron_type",
-            "required": false,
-            "schema": {
-              "default": "pyramid_square",
-              "title": "Polyhedron Type",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Get Vertex Labels Endpoint",
-        "tags": [
-          "Geometry & 3D Parametric"
-        ]
-      }
-    },
-    "/api/v1/health": {
-      "get": {
-        "description": "Kiểm tra trạng thái server và cấu hình API key",
-        "operationId": "health_check_api_v1_health_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Health Check"
-      }
-    },
-    "/api/v1/ingest/classify-grades": {
-      "post": {
-        "operationId": "classify_grades_endpoint_api_v1_ingest_classify_grades_post",
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/Body_classify_grades_endpoint_api_v1_ingest_classify_grades_post"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Classify Grades Endpoint",
-        "tags": [
-          "Ingest"
-        ]
-      }
-    },
-    "/api/v1/ingest/parse-document": {
-      "post": {
-        "operationId": "parse_document_endpoint_api_v1_ingest_parse_document_post",
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/Body_parse_document_endpoint_api_v1_ingest_parse_document_post"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ParsedDocumentResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Parse Document Endpoint",
-        "tags": [
-          "Ingest"
-        ]
+        }
       }
     },
     "/api/v1/lesson-plan/export-docx": {
       "post": {
+        "summary": "Export Docx Endpoint",
         "description": "API 2: Nhận dữ liệu Giáo án JSON (và tùy chọn SlideDeck để đồng bộ) và trả về file Word (.docx) chuẩn CV 5512.",
         "operationId": "export_docx_endpoint_api_v1_lesson_plan_export_docx_post",
         "requestBody": {
@@ -745,68 +374,29 @@
         },
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Export Docx Endpoint"
-      }
-    },
-    "/api/v1/lesson-plan/export-dual-package": {
-      "post": {
-        "description": "API 3B (Dual-Package): Xuất trọn bộ Kế hoạch bài dạy Word (.docx) & Bài giảng Slide (.pptx)\nđã được đồng bộ hóa nội dung (Sync Dual-Mode) đóng gói trong định dạng .zip chuẩn nén,\nkèm mã băm SHA-256 xác thực và hướng dẫn sư phạm chi tiết.",
-        "operationId": "export_dual_package_endpoint_api_v1_lesson_plan_export_dual_package_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "title": "Payload",
-                "type": "object"
               }
             }
           },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Validation Error"
+            }
           }
-        },
-        "summary": "Export Dual Package Endpoint"
+        }
       }
     },
     "/api/v1/lesson-plan/export-slide": {
       "post": {
+        "summary": "Export Slide Endpoint",
         "description": "API 3: Nhận dữ liệu SlideDeck JSON và trả về file PowerPoint (.pptx) sinh qua python-pptx Hybrid (OMML + Matplotlib).",
         "operationId": "export_slide_endpoint_api_v1_lesson_plan_export_slide_post",
         "requestBody": {
@@ -821,151 +411,38 @@
         },
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
               }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Export Slide Endpoint"
-      }
-    },
-    "/api/v1/lesson-plan/generate": {
-      "post": {
-        "description": "API 1: Nhận bài dạy từ người dùng, gọi AI Gemini sinh Giáo án & kiểm tra qua Validator 5512.",
-        "operationId": "generate_lesson_plan_endpoint_api_v1_lesson_plan_generate_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LessonRequest"
-              }
             }
           },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Generate Lesson Plan Endpoint"
-      }
-    },
-    "/api/v1/presentation/outline": {
-      "post": {
-        "description": "Trạm 2 Outline API theo FRONTEND_ARCHITECTURE.md (Mục 3.2 & Mục 7):\nNhận chủ đề và cấu hình, sinh Dàn ý các slide (tiêu đề, hoạt động, visual_type, gạch đầu dòng)\nđể giáo viên duyệt và chỉnh sửa trước khi sinh slide chi tiết.",
-        "operationId": "generate_outline_endpoint_api_v1_presentation_outline_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OutlineRequest"
               }
             }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OutlineResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
           }
-        },
-        "summary": "Generate Outline Endpoint"
+        }
       }
     },
-    "/api/v1/rag/preview": {
+    "/api/v1/lesson-plan/export-dual-package": {
       "post": {
-        "description": "Xem trước tài nguyên sư phạm được Pedagogical RAG truy xuất cho bài học Toán 12:\nbao gồm YCCĐ, Dàn ý bài giảng (Skeleton), Slide mẫu đẹp nhất và Câu hỏi bài tập thực tế.",
-        "operationId": "preview_rag_materials_endpoint_api_v1_rag_preview_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RAGPreviewRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Preview Rag Materials Endpoint"
-      }
-    },
-    "/api/v1/slide/enrich": {
-      "post": {
-        "description": "Bổ sung ảnh đồ thị và công thức vào dữ liệu slide deck bất kỳ để hiển thị đúng trên front-end",
-        "operationId": "enrich_slide_endpoint_api_v1_slide_enrich_post",
+        "summary": "Export Dual Package Endpoint",
+        "description": "API 3B (Dual-Package): Xuất trọn bộ Kế hoạch bài dạy Word (.docx) & Bài giảng Slide (.pptx)\nđã được đồng bộ hóa nội dung (Sync Dual-Mode) đóng gói trong định dạng .zip chuẩn nén,\nkèm mã băm SHA-256 xác thực và hướng dẫn sư phạm chi tiết.",
+        "operationId": "export_dual_package_endpoint_api_v1_lesson_plan_export_dual_package_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "additionalProperties": true,
-                "title": "Deck",
-                "type": "object"
+                "type": "object",
+                "title": "Payload"
               }
             }
           },
@@ -973,29 +450,29 @@
         },
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
               }
-            },
-            "description": "Successful Response"
+            }
           },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Validation Error"
+            }
           }
-        },
-        "summary": "Enrich Slide Endpoint"
+        }
       }
     },
     "/api/v1/slide/generate": {
       "post": {
+        "summary": "Generate Slide Endpoint",
         "description": "API 4: Nhận yêu cầu từ người dùng, gọi Gemini AI sinh cấu trúc JSON Slide bài giảng (SlideDeckSchema).\nNếu req.plan có dữ liệu, Slide sẽ được đồng bộ chính xác theo Kế hoạch bài dạy 5512.\nTự động kết xuất ảnh đồ thị Matplotlib để Front-end hiển thị đồng bộ 100% với file PowerPoint.",
         "operationId": "generate_slide_endpoint_api_v1_slide_generate_post",
         "requestBody": {
@@ -1010,157 +487,40 @@
         },
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/SlideDeckSchema"
+                }
               }
-            },
-            "description": "Successful Response"
+            }
           },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Generate Slide Endpoint"
-      }
-    },
-    "/api/v1/system/clean-temp-files": {
-      "post": {
-        "description": "Task 19.4: Dọn dẹp các tệp tin tạm (Word, PPTX, ZIP, PNG đồ thị, cache) hết hạn lưu trữ\ntrên máy chủ hoặc ép dọn sạch toàn bộ khi force_all=True.",
-        "operationId": "clean_temp_files_endpoint_api_v1_system_clean_temp_files_post",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "max_age_seconds",
-            "required": false,
-            "schema": {
-              "default": 3600,
-              "title": "Max Age Seconds",
-              "type": "integer"
-            }
-          },
-          {
-            "in": "query",
-            "name": "force_all",
-            "required": false,
-            "schema": {
-              "default": false,
-              "title": "Force All",
-              "type": "boolean"
-            }
-          },
-          {
-            "in": "query",
-            "name": "dry_run",
-            "required": false,
-            "schema": {
-              "default": false,
-              "title": "Dry Run",
-              "type": "boolean"
             }
           }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Clean Temp Files Endpoint",
-        "tags": [
-          "System & Maintenance"
-        ]
+        }
       }
     },
-    "/api/v1/system/cleanup-memory": {
+    "/api/v1/slide/enrich": {
       "post": {
-        "description": "Task 19.4: Giải phóng tài nguyên bộ nhớ rò rỉ (đóng toàn bộ figure Matplotlib & Garbage Collection).",
-        "operationId": "cleanup_memory_endpoint_api_v1_system_cleanup_memory_post",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Cleanup Memory Endpoint",
-        "tags": [
-          "System & Maintenance"
-        ]
-      }
-    },
-    "/api/v1/system/temp-stats": {
-      "get": {
-        "description": "Task 19.4: Tra cứu thống kê số lượng và dung lượng tệp tin tạm hiện có trên server.",
-        "operationId": "get_temp_stats_endpoint_api_v1_system_temp_stats_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Get Temp Stats Endpoint",
-        "tags": [
-          "System & Maintenance"
-        ]
-      }
-    },
-    "/api/v1/test-cases": {
-      "get": {
-        "description": "Trả về danh sách các ca kiểm thử mẫu để test nhanh trên giao diện",
-        "operationId": "get_test_cases_api_v1_test_cases_get",
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          }
-        },
-        "summary": "Get Test Cases"
-      }
-    },
-    "/api/v1/validation/audit-deck": {
-      "post": {
-        "description": "Task 10.1: Endpoint kiểm duyệt sư phạm toàn bộ bộ Slide (AI Linter & Proofreader).\nQuét toàn bộ các trang slide để phát hiện lỗi chính tả tiếng Việt thường gặp\nvà trả về danh sách cảnh báo để Giáo viên chủ động rà soát (Human-in-the-loop).",
-        "operationId": "audit_deck_endpoint_api_v1_validation_audit_deck_post",
+        "summary": "Enrich Slide Endpoint",
+        "description": "Bổ sung ảnh đồ thị và công thức vào dữ liệu slide deck bất kỳ để hiển thị đúng trên front-end",
+        "operationId": "enrich_slide_endpoint_api_v1_slide_enrich_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "additionalProperties": true,
-                "title": "Deck Payload",
-                "type": "object"
+                "type": "object",
+                "title": "Deck"
               }
             }
           },
@@ -1168,159 +528,787 @@
         },
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DeckAuditResponse"
-                }
+                "schema": {}
               }
-            },
-            "description": "Successful Response"
+            }
           },
           "422": {
+            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Validation Error"
+            }
           }
-        },
-        "summary": "Audit Deck Endpoint",
-        "tags": [
-          "Validation & Pedagogical Linter"
-        ]
+        }
       }
     },
-    "/ui": {
-      "get": {
-        "operationId": "ui_page_ui_get",
+    "/api/v1/chart/render": {
+      "post": {
+        "summary": "Render Chart Endpoint",
+        "description": "Render đồ thị từ cấu hình chart_spec và trả về file ảnh PNG trực tiếp",
+        "operationId": "render_chart_endpoint_api_v1_chart_render_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Spec"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
+            "description": "Successful Response",
             "content": {
-              "text/html": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
                 "schema": {
-                  "type": "string"
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
-            },
-            "description": "Successful Response"
+            }
           }
+        }
+      }
+    },
+    "/api/v1/chat/sessions": {
+      "post": {
+        "tags": [
+          "Chat Co-pilot"
+        ],
+        "summary": "Create Session",
+        "operationId": "create_session_api_v1_chat_sessions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Data"
+              }
+            }
+          },
+          "required": true
         },
-        "summary": "Ui Page"
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/chat/interact": {
+      "post": {
+        "tags": [
+          "Chat Co-pilot"
+        ],
+        "summary": "Interact",
+        "operationId": "interact_api_v1_chat_interact_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Data"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/chat/history/{session_id}": {
+      "get": {
+        "tags": [
+          "Chat Co-pilot"
+        ],
+        "summary": "History",
+        "operationId": "history_api_v1_chat_history__session_id__get",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/chat/session/{session_id}": {
+      "delete": {
+        "tags": [
+          "Chat Co-pilot"
+        ],
+        "summary": "Reset",
+        "operationId": "reset_api_v1_chat_session__session_id__delete",
+        "parameters": [
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/chat/apply-patch": {
+      "post": {
+        "tags": [
+          "Chat Co-pilot"
+        ],
+        "summary": "Apply",
+        "operationId": "apply_api_v1_chat_apply_patch_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Data"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ingest/parse-document": {
+      "post": {
+        "tags": [
+          "Ingest"
+        ],
+        "summary": "Parse Document Endpoint",
+        "operationId": "parse_document_endpoint_api_v1_ingest_parse_document_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_parse_document_endpoint_api_v1_ingest_parse_document_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ingest/classify-grades": {
+      "post": {
+        "tags": [
+          "Ingest"
+        ],
+        "summary": "Classify Grades Endpoint",
+        "operationId": "classify_grades_endpoint_api_v1_ingest_classify_grades_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_classify_grades_endpoint_api_v1_ingest_classify_grades_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/validation/audit-deck": {
+      "post": {
+        "tags": [
+          "Validation & Pedagogical Linter"
+        ],
+        "summary": "Audit Deck Endpoint",
+        "description": "Task 10.1: Endpoint kiểm duyệt sư phạm toàn bộ bộ Slide (AI Linter & Proofreader).\nQuét toàn bộ các trang slide để phát hiện lỗi chính tả tiếng Việt thường gặp\nvà trả về danh sách cảnh báo để Giáo viên chủ động rà soát (Human-in-the-loop).",
+        "operationId": "audit_deck_endpoint_api_v1_validation_audit_deck_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Deck Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeckAuditResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/geometry/apex-coordinates": {
+      "get": {
+        "tags": [
+          "Legacy geometry"
+        ],
+        "summary": "Retired",
+        "operationId": "retired_api_v1_geometry_apex_coordinates_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/geometry/edge-topology": {
+      "get": {
+        "tags": [
+          "Legacy geometry"
+        ],
+        "summary": "Retired",
+        "operationId": "retired_api_v1_geometry_edge_topology_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/geometry/unfolded-net": {
+      "get": {
+        "tags": [
+          "Legacy geometry"
+        ],
+        "summary": "Retired",
+        "operationId": "retired_api_v1_geometry_unfolded_net_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/geometry/vertex-labels": {
+      "get": {
+        "tags": [
+          "Legacy geometry"
+        ],
+        "summary": "Retired",
+        "operationId": "retired_api_v1_geometry_vertex_labels_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/geometry/raycast-occlusion": {
+      "get": {
+        "tags": [
+          "Legacy geometry"
+        ],
+        "summary": "Retired",
+        "operationId": "retired_api_v1_geometry_raycast_occlusion_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/geometry/parametric-coordinates": {
+      "post": {
+        "tags": [
+          "Legacy geometry"
+        ],
+        "summary": "Retired",
+        "operationId": "retired_api_v1_geometry_parametric_coordinates_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/visuals/confirm": {
+      "post": {
+        "tags": [
+          "Visual requirements"
+        ],
+        "summary": "Confirm",
+        "operationId": "confirm_api_v1_visuals_confirm_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Data"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/visuals/scene": {
+      "post": {
+        "tags": [
+          "Visual requirements"
+        ],
+        "summary": "Scene",
+        "operationId": "scene_api_v1_visuals_scene_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Spec"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/quality/check": {
+      "post": {
+        "tags": [
+          "Content acceptance"
+        ],
+        "summary": "Check",
+        "operationId": "check_api_v1_quality_check_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SlideDeckSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/quality/approve": {
+      "post": {
+        "tags": [
+          "Content acceptance"
+        ],
+        "summary": "Approve",
+        "operationId": "approve_api_v1_quality_approve_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/quality/lesson-plan/check": {
+      "post": {
+        "tags": [
+          "Content acceptance"
+        ],
+        "summary": "Check Lesson Plan",
+        "operationId": "check_lesson_plan_api_v1_quality_lesson_plan_check_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LessonPlanSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LessonQualityReport"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/quality/lesson-plan/approve": {
+      "post": {
+        "tags": [
+          "Content acceptance"
+        ],
+        "summary": "Approve Lesson Plan",
+        "operationId": "approve_lesson_plan_api_v1_quality_lesson_plan_approve_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LessonReviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LessonReviewResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     }
   },
   "components": {
     "schemas": {
-      "ApplyPatchRequest": {
-        "properties": {
-          "patch": {
-            "$ref": "#/components/schemas/SlidePatchProposal",
-            "description": "Bản vá đề xuất từ trợ giảng AI cần áp dụng"
-          },
-          "slide_deck": {
-            "additionalProperties": true,
-            "description": "Cấu trúc slide deck bài giảng hiện đại",
-            "title": "Slide Deck",
-            "type": "object"
-          }
-        },
-        "required": [
-          "slide_deck",
-          "patch"
-        ],
-        "title": "ApplyPatchRequest",
-        "type": "object"
-      },
-      "ApplyPatchResponse": {
-        "properties": {
-          "message": {
-            "description": "Thông báo kết quả xử lý sư phạm",
-            "title": "Message",
-            "type": "string"
-          },
-          "slide_deck": {
-            "additionalProperties": true,
-            "description": "Toàn bộ cấu trúc slide deck đã được cập nhật",
-            "title": "Slide Deck",
-            "type": "object"
-          },
-          "success": {
-            "default": true,
-            "description": "Trạng thái áp dụng thành công",
-            "title": "Success",
-            "type": "boolean"
-          },
-          "target_slide_index": {
-            "description": "Vị trí slide vừa được cập nhật (0-indexed)",
-            "title": "Target Slide Index",
-            "type": "integer"
-          },
-          "updated_slide": {
-            "additionalProperties": true,
-            "description": "Dữ liệu chi tiết của slide sau khi áp dụng bản vá",
-            "title": "Updated Slide",
-            "type": "object"
-          }
-        },
-        "required": [
-          "target_slide_index",
-          "updated_slide",
-          "slide_deck",
-          "message"
-        ],
-        "title": "ApplyPatchResponse",
-        "type": "object"
-      },
       "Body_classify_grades_endpoint_api_v1_ingest_classify_grades_post": {
         "properties": {
           "file": {
+            "type": "string",
             "contentMediaType": "application/octet-stream",
-            "description": "File Excel/CSV chứa điểm số",
-            "title": "File",
-            "type": "string"
+            "title": "File"
           }
         },
+        "type": "object",
         "required": [
           "file"
         ],
-        "title": "Body_classify_grades_endpoint_api_v1_ingest_classify_grades_post",
-        "type": "object"
+        "title": "Body_classify_grades_endpoint_api_v1_ingest_classify_grades_post"
       },
       "Body_parse_document_endpoint_api_v1_ingest_parse_document_post": {
         "properties": {
           "file": {
+            "type": "string",
             "contentMediaType": "application/octet-stream",
-            "description": "File giáo án (.docx) or slide (.pptx) cần bóc tách",
-            "title": "File",
-            "type": "string"
+            "title": "File"
           }
         },
+        "type": "object",
         "required": [
           "file"
         ],
-        "title": "Body_parse_document_endpoint_api_v1_ingest_parse_document_post",
-        "type": "object"
+        "title": "Body_parse_document_endpoint_api_v1_ingest_parse_document_post"
       },
       "ChartSpec": {
         "properties": {
-          "boundary_lines": {
-            "anyOf": [
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Danh sách đường biên cho hệ bất phương trình. VD: [{'expr': '8 - 2*x', 'label': '2x + y = 8'}]",
-            "title": "Boundary Lines"
+          "operation": {
+            "type": "string",
+            "title": "Operation",
+            "default": "function"
           },
-          "chart_title": {
+          "requirement_token": {
             "anyOf": [
               {
                 "type": "string"
@@ -1329,10 +1317,9 @@
                 "type": "null"
               }
             ],
-            "description": "Tiêu đề hiển thị trên đồ thị. VD: 'Đồ thị hàm số y = 2x'.",
-            "title": "Chart Title"
+            "title": "Requirement Token"
           },
-          "expression": {
+          "deck_id": {
             "anyOf": [
               {
                 "type": "string"
@@ -1341,13 +1328,23 @@
                 "type": "null"
               }
             ],
-            "description": "Biểu thức hàm số theo biến x, cú pháp Python/Sympy chuẩn. VD: 'x**3 - 3*x', 'sin(x)', 'log(x)', 'sqrt(x)'. CHỈ dùng x và các hàm toán học cơ bản (sin, cos, tan, log, exp, sqrt, Abs). KHÔNG chứa code, ký tự đặc biệt hay hướng dẫn khác.",
-            "title": "Expression"
+            "title": "Deck Id"
+          },
+          "slide_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slide Id"
           },
           "kind": {
             "$ref": "#/components/schemas/ChartType",
-            "default": "none",
-            "description": "Chỉ chọn 'function_plot' hoặc 'inequality_system' đối với những slide thực sự cần minh họa trực quan (thường là 1-2 slide có layout 'IMAGE_TEXT' trong bài). BẮT BUỘC chọn 'none' đối với các slide Định nghĩa, Công thức (CONCEPT_HIGHLIGHT), Phương pháp giải & Ví dụ giải mẫu từng bước (TWO_COLUMN, SINGLE_COLUMN)."
+            "description": "Chỉ chọn 'function_plot' hoặc 'inequality_system' đối với những slide thực sự cần minh họa trực quan (thường là 1-2 slide có layout 'IMAGE_TEXT' trong bài). BẮT BUỘC chọn 'none' đối với các slide Định nghĩa, Công thức (CONCEPT_HIGHLIGHT), Phương pháp giải & Ví dụ giải mẫu từng bước (TWO_COLUMN, SINGLE_COLUMN).",
+            "default": "none"
           },
           "pedagogical_purpose": {
             "anyOf": [
@@ -1358,8 +1355,33 @@
                 "type": "null"
               }
             ],
-            "description": "Lý do trực quan hóa. VD: 'Minh họa hình dáng đồ thị hàm số f(x) = 2x để học sinh có góc nhìn hình học'.",
-            "title": "Pedagogical Purpose"
+            "title": "Pedagogical Purpose",
+            "description": "Lý do trực quan hóa. VD: 'Minh họa hình dáng đồ thị hàm số f(x) = 2x để học sinh có góc nhìn hình học'."
+          },
+          "expression": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expression",
+            "description": "Biểu thức hàm số theo biến x, cú pháp Python/Sympy chuẩn. VD: 'x**3 - 3*x', 'sin(x)', 'log(x)', 'sqrt(x)'. CHỈ dùng x và các hàm toán học cơ bản (sin, cos, tan, log, exp, sqrt, Abs). KHÔNG chứa code, ký tự đặc biệt hay hướng dẫn khác."
+          },
+          "boundary_lines": {
+            "anyOf": [
+              {
+                "items": {},
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Boundary Lines",
+            "description": "Danh sách đường biên cho hệ bất phương trình. VD: [{'expr': '8 - 2*x', 'label': '2x + y = 8'}]"
           },
           "vertices": {
             "anyOf": [
@@ -1371,30 +1393,18 @@
                 "type": "null"
               }
             ],
-            "description": "Tọa độ các đỉnh miền nghiệm đa giác trên Oxy. VD: [[0, 0], [4, 0], [2.67, 2.67], [0, 4]]",
-            "title": "Vertices"
-          },
-          "x_max": {
-            "default": 4.0,
-            "title": "X Max",
-            "type": "number"
+            "title": "Vertices",
+            "description": "Tọa độ các đỉnh miền nghiệm đa giác trên Oxy. VD: [[0, 0], [4, 0], [2.67, 2.67], [0, 4]]"
           },
           "x_min": {
-            "default": -4.0,
+            "type": "number",
             "title": "X Min",
-            "type": "number"
+            "default": -4.0
           },
-          "y_max": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": 6.0,
-            "title": "Y Max"
+          "x_max": {
+            "type": "number",
+            "title": "X Max",
+            "default": 4.0
           },
           "y_min": {
             "anyOf": [
@@ -1405,27 +1415,20 @@
                 "type": "null"
               }
             ],
-            "default": -1.0,
             "title": "Y Min"
-          }
-        },
-        "title": "ChartSpec",
-        "type": "object"
-      },
-      "ChartType": {
-        "enum": [
-          "arithmetic_sequence",
-          "function_plot",
-          "inequality_system",
-          "none"
-        ],
-        "title": "ChartType",
-        "type": "string"
-      },
-      "ChatInteractRequest": {
-        "description": "Dữ liệu yêu cầu gửi từ Front-end lên API Trợ giảng AI Co-pilot.\n\nLý do thiết kế (Why):\n- Ngoài session_id và user_message, request tích hợp ngữ cảnh sư phạm đầy đủ gồm:\n  vị trí slide (current_slide_index), môn học (subject), khối lớp (grade), và\n  đặc biệt là hồ sơ học lực (class_proficiency: 'basic' | 'standard' | 'advanced')\n  được kế thừa trực tiếp từ kết quả phân loại bảng điểm Ngày 4.\n- Nhờ có class_proficiency, Trợ giảng AI tự động điều chỉnh độ khó của câu trả lời:\n  với lớp basic sẽ ưu tiên trực quan đời sống và chia nhỏ bước (scaffolding);\n  với lớp advanced sẽ đi thẳng vào bản chất toán học và bài toán tham số.",
-        "properties": {
-          "class_proficiency": {
+          },
+          "y_max": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Y Max"
+          },
+          "chart_title": {
             "anyOf": [
               {
                 "type": "string"
@@ -1434,39 +1437,284 @@
                 "type": "null"
               }
             ],
-            "default": "standard",
-            "description": "Hồ sơ học lực lớp: 'basic' | 'standard' | 'advanced' (đồng bộ từ Day 4)",
-            "example": "standard",
-            "title": "Class Proficiency"
+            "title": "Chart Title",
+            "description": "Tiêu đề hiển thị trên đồ thị. VD: 'Đồ thị hàm số y = 2x'."
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "ChartSpec"
+      },
+      "ChartType": {
+        "type": "string",
+        "enum": [
+          "arithmetic_sequence",
+          "function_plot",
+          "inequality_system",
+          "none"
+        ],
+        "title": "ChartType"
+      },
+      "ClassProficiency": {
+        "type": "string",
+        "enum": [
+          "basic",
+          "standard",
+          "advanced"
+        ],
+        "title": "ClassProficiency"
+      },
+      "DeckAuditResponse": {
+        "properties": {
+          "is_clean": {
+            "type": "boolean",
+            "title": "Is Clean",
+            "description": "True nếu toàn bộ bộ Slide không có cảnh báo nào"
           },
-          "current_slide_index": {
-            "default": 0,
-            "description": "Vị trí trang slide giáo viên đang đứng chiếu (bắt đầu từ 0)",
-            "example": 1,
-            "title": "Current Slide Index",
-            "type": "integer"
+          "total_warnings": {
+            "type": "integer",
+            "title": "Total Warnings",
+            "description": "Tổng số cảnh báo phát hiện được"
           },
-          "grade": {
+          "warnings": {
+            "items": {
+              "$ref": "#/components/schemas/SlideWarningItem"
+            },
+            "type": "array",
+            "title": "Warnings",
+            "description": "Danh sách cảnh báo chi tiết"
+          }
+        },
+        "type": "object",
+        "required": [
+          "is_clean",
+          "total_warnings"
+        ],
+        "title": "DeckAuditResponse",
+        "description": "Kết quả trả về của API POST /api/v1/validation/audit-deck"
+      },
+      "ExecutionSteps": {
+        "properties": {
+          "step_1_assign": {
+            "type": "string",
+            "title": "Step 1 Assign",
+            "description": "Bước 1: Chuyển giao nhiệm vụ (GV giao bài)"
+          },
+          "step_2_excute": {
+            "type": "string",
+            "title": "Step 2 Excute",
+            "description": "Bước 2: Thực hiện nhiệm vụ (HS Trình bày)"
+          },
+          "step_3_report": {
+            "type": "string",
+            "title": "Step 3 Report",
+            "description": "Bước 3: Báo cáo thảo luận (HS Trình bày)"
+          },
+          "step_4_conclusion": {
+            "type": "string",
+            "title": "Step 4 Conclusion",
+            "description": "Bước 4: Kết luận nhận đình (GV chốt kiến thức)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "step_1_assign",
+          "step_2_excute",
+          "step_3_report",
+          "step_4_conclusion"
+        ],
+        "title": "ExecutionSteps"
+      },
+      "FormulaBlock": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "formula",
+            "title": "Type"
+          },
+          "latex": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Latex"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "type",
+          "latex"
+        ],
+        "title": "FormulaBlock"
+      },
+      "GenerationMetadata": {
+        "properties": {
+          "provider": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Provider"
+          },
+          "model": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Model"
+          },
+          "task": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Task"
+          },
+          "generated_at": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Generated At"
+          },
+          "prompt_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Prompt Sha256"
+          },
+          "status": {
+            "type": "string",
+            "const": "unverified_draft",
+            "title": "Status",
+            "default": "unverified_draft"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "provider",
+          "model",
+          "task",
+          "generated_at",
+          "prompt_sha256"
+        ],
+        "title": "GenerationMetadata"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "ImageBlock": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "image",
+            "title": "Type"
+          },
+          "data_url": {
+            "type": "string",
+            "title": "Data Url"
+          },
+          "alt": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Alt"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "type",
+          "data_url",
+          "alt"
+        ],
+        "title": "ImageBlock"
+      },
+      "LessonActivity": {
+        "properties": {
+          "activity_number": {
+            "type": "integer",
+            "title": "Activity Number",
+            "description": "STT hoạt động (1, 2, 3, hoặc 4)"
+          },
+          "time_minutes": {
+            "type": "integer",
+            "title": "Time Minutes",
+            "description": "Thời lượng tính bằng phút (VD: 10)"
+          },
+          "goal": {
+            "type": "string",
+            "title": "Goal",
+            "description": "Nội dung câu hỏi / bài tập giao cho HS"
+          },
+          "expected_product": {
+            "type": "string",
+            "title": "Expected Product",
+            "description": "Đáp án / sản phẩm dự kiến của HS"
+          },
+          "execution": {
+            "$ref": "#/components/schemas/ExecutionSteps",
+            "description": "Chi tiết 4 bước tổ chức"
+          }
+        },
+        "type": "object",
+        "required": [
+          "activity_number",
+          "time_minutes",
+          "goal",
+          "expected_product",
+          "execution"
+        ],
+        "title": "LessonActivity"
+      },
+      "LessonGenerationResponse": {
+        "properties": {
+          "is_valid": {
+            "type": "boolean",
+            "title": "Is Valid"
+          },
+          "errors": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Errors"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          },
+          "plan": {
+            "$ref": "#/components/schemas/LessonPlanSchema"
+          }
+        },
+        "type": "object",
+        "required": [
+          "is_valid",
+          "errors",
+          "warnings",
+          "plan"
+        ],
+        "title": "LessonGenerationResponse"
+      },
+      "LessonPlanSchema": {
+        "properties": {
+          "generation_metadata": {
             "anyOf": [
               {
-                "type": "integer"
+                "$ref": "#/components/schemas/GenerationMetadata"
               },
               {
                 "type": "null"
               }
-            ],
-            "default": 11,
-            "description": "Khối lớp (từ lớp 6 đến lớp 12)",
-            "example": 11,
-            "title": "Grade"
+            ]
           },
-          "session_id": {
-            "description": "Mã định danh phiên làm việc của giáo viên",
-            "example": "sess_teacher_9823",
-            "title": "Session Id",
-            "type": "string"
-          },
-          "slide_deck": {
+          "approved_outline": {
             "anyOf": [
               {
                 "additionalProperties": true,
@@ -1476,308 +1724,209 @@
                 "type": "null"
               }
             ],
-            "description": "Toàn bộ cấu trúc Slide Deck bài giảng hiện tại (nếu có)",
-            "title": "Slide Deck"
+            "title": "Approved Outline"
+          },
+          "review_token": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Token"
+          },
+          "quality_report": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quality Report"
+          },
+          "lesson_title": {
+            "type": "string",
+            "title": "Lesson Title",
+            "description": "Tên bài dạy (VD: Bài 1: Tính đơn điệu và cực trị của hàm số)"
           },
           "subject": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": "Toán học",
-            "description": "Tên môn học đang giảng dạy",
-            "example": "Toán học",
-            "title": "Subject"
+            "type": "string",
+            "title": "Subject",
+            "description": "Tên môn học (Toán học)",
+            "default": "Toán học"
           },
-          "user_message": {
-            "description": "Nội dung câu hỏi hoặc yêu cầu chỉnh sửa slide từ giáo viên",
-            "example": "Giải thích lại slide 2 đơn giản hơn",
-            "title": "User Message",
-            "type": "string"
-          }
-        },
-        "required": [
-          "session_id",
-          "user_message"
-        ],
-        "title": "ChatInteractRequest",
-        "type": "object"
-      },
-      "ChatInteractResponse": {
-        "description": "Dữ liệu phản hồi từ Trợ giảng AI Co-pilot gửi về Front-end.\n\nLý do thiết kế (Why):\n- Không chỉ dừng lại ở văn bản tư vấn (ai_response), response đóng gói sẵn\n  mã hành động sư phạm (suggested_action) và khối dữ liệu đề xuất sửa đổi (suggested_patch)\n  theo mô hình định kiểu chuẩn SlidePatchProposal.\n- Cấu trúc này giúp Front-end hiển thị Thẻ đề xuất trực quan và nút bấm một chạm\n  để giáo viên duyệt thay đổi trực tiếp lên slide mà không cần gõ lại thủ công (chuẩn bị cho Day 7).",
-        "properties": {
-          "ai_response": {
-            "description": "Câu trả lời phản hồi từ Trợ giảng AI",
-            "title": "Ai Response",
-            "type": "string"
+          "grade": {
+            "type": "integer",
+            "title": "Grade",
+            "description": "Khối lớp (12)",
+            "default": 12
           },
-          "current_slide_index": {
-            "default": 0,
-            "description": "Vị trí slide đang tham chiếu",
-            "title": "Current Slide Index",
-            "type": "integer"
-          },
-          "session_id": {
-            "description": "Mã phiên hội thoại",
-            "title": "Session Id",
-            "type": "string"
-          },
-          "suggested_action": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Loại hành động gợi ý: SIMPLIFY_SLIDE, ADD_QUIZ, UPDATE_FORMULA, EXPLAIN_MORE, GENERAL_ADVICE",
-            "title": "Suggested Action"
-          },
-          "suggested_patch": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SlidePatchProposal"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Bản vá đề xuất cập nhật vào slide với định kiểu mạnh (chuẩn bị cho Day 7 Live Patching)"
-          },
-          "timestamp": {
-            "description": "Thời gian trả lời (HH:MM)",
-            "title": "Timestamp",
-            "type": "string"
-          }
-        },
-        "required": [
-          "session_id",
-          "ai_response"
-        ],
-        "title": "ChatInteractResponse",
-        "type": "object"
-      },
-      "ClassProficiency": {
-        "enum": [
-          "basic",
-          "standard",
-          "advanced"
-        ],
-        "title": "ClassProficiency",
-        "type": "string"
-      },
-      "DeckAuditResponse": {
-        "description": "Kết quả trả về của API POST /api/v1/validation/audit-deck",
-        "properties": {
-          "is_clean": {
-            "description": "True nếu toàn bộ bộ Slide không có cảnh báo nào",
-            "title": "Is Clean",
-            "type": "boolean"
-          },
-          "total_warnings": {
-            "description": "Tổng số cảnh báo phát hiện được",
-            "title": "Total Warnings",
-            "type": "integer"
-          },
-          "warnings": {
-            "description": "Danh sách cảnh báo chi tiết",
+          "knowledge_goals": {
             "items": {
-              "$ref": "#/components/schemas/SlideWarningItem"
+              "type": "string"
             },
-            "title": "Warnings",
-            "type": "array"
-          }
-        },
-        "required": [
-          "is_clean",
-          "total_warnings"
-        ],
-        "title": "DeckAuditResponse",
-        "type": "object"
-      },
-      "ExecutionSteps": {
-        "properties": {
-          "step_1_assign": {
-            "description": "Bước 1: Chuyển giao nhiệm vụ (GV giao bài)",
-            "title": "Step 1 Assign",
-            "type": "string"
+            "type": "array",
+            "title": "Knowledge Goals",
+            "description": "Danh sách các mục tiêu kiến thức"
           },
-          "step_2_excute": {
-            "description": "Bước 2: Thực hiện nhiệm vụ (HS Trình bày)",
-            "title": "Step 2 Excute",
-            "type": "string"
-          },
-          "step_3_report": {
-            "description": "Bước 3: Báo cáo thảo luận (HS Trình bày)",
-            "title": "Step 3 Report",
-            "type": "string"
-          },
-          "step_4_conclusion": {
-            "description": "Bước 4: Kết luận nhận đình (GV chốt kiến thức)",
-            "title": "Step 4 Conclusion",
-            "type": "string"
-          }
-        },
-        "required": [
-          "step_1_assign",
-          "step_2_excute",
-          "step_3_report",
-          "step_4_conclusion"
-        ],
-        "title": "ExecutionSteps",
-        "type": "object"
-      },
-      "HTTPValidationError": {
-        "properties": {
-          "detail": {
+          "competency_goals": {
             "items": {
-              "$ref": "#/components/schemas/ValidationError"
+              "type": "string"
             },
-            "title": "Detail",
-            "type": "array"
-          }
-        },
-        "title": "HTTPValidationError",
-        "type": "object"
-      },
-      "LessonActivity": {
-        "properties": {
-          "activity_number": {
-            "description": "STT hoạt động (1, 2, 3, hoặc 4)",
-            "title": "Activity Number",
-            "type": "integer"
+            "type": "array",
+            "title": "Competency Goals",
+            "description": "Danh sách mục tiêu năng lực (Năng lực chung & đặc thù)"
           },
-          "execution": {
-            "$ref": "#/components/schemas/ExecutionSteps",
-            "description": "Chi tiết 4 bước tổ chức"
+          "skills_goals": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Skills Goals",
+            "description": "Danh sách mục tiêu kỹ năng"
           },
-          "expected_product": {
-            "description": "Đáp án / sản phẩm dự kiến của HS",
-            "title": "Expected Product",
-            "type": "string"
+          "character_goals": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Character Goals",
+            "description": "Danh sách mục tiêu phẩm chất (Chăm chỉ, trung thực, trách nhiệm...)"
           },
-          "goal": {
-            "description": "Nội dung câu hỏi / bài tập giao cho HS",
-            "title": "Goal",
-            "type": "string"
+          "teaching_equipment": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Teaching Equipment",
+            "description": "Thiết bị dạy học và học liệu dành cho GV và HS"
           },
-          "time_minutes": {
-            "description": "Thời lượng tính bằng phút (VD: 10)",
-            "title": "Time Minutes",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "activity_number",
-          "time_minutes",
-          "goal",
-          "expected_product",
-          "execution"
-        ],
-        "title": "LessonActivity",
-        "type": "object"
-      },
-      "LessonPlanSchema": {
-        "properties": {
           "activities": {
-            "description": "Danh sách 4 hoạt động bài dạy",
             "items": {
               "$ref": "#/components/schemas/LessonActivity"
             },
+            "type": "array",
             "title": "Activities",
-            "type": "array"
-          },
-          "character_goals": {
-            "description": "Danh sách mục tiêu phẩm chất (Chăm chỉ, trung thực, trách nhiệm...)",
-            "items": {
-              "type": "string"
-            },
-            "title": "Character Goals",
-            "type": "array"
-          },
-          "competency_goals": {
-            "description": "Danh sách mục tiêu năng lực (Năng lực chung & đặc thù)",
-            "items": {
-              "type": "string"
-            },
-            "title": "Competency Goals",
-            "type": "array"
-          },
-          "grade": {
-            "default": 12,
-            "description": "Khối lớp (12)",
-            "title": "Grade",
-            "type": "integer"
-          },
-          "knowledge_goals": {
-            "description": "Danh sách các mục tiêu kiến thức",
-            "items": {
-              "type": "string"
-            },
-            "title": "Knowledge Goals",
-            "type": "array"
-          },
-          "lesson_title": {
-            "description": "Tên bài dạy (VD: Bài 1: Tính đơn điệu và cực trị của hàm số)",
-            "title": "Lesson Title",
-            "type": "string"
-          },
-          "skills_goals": {
-            "description": "Danh sách mục tiêu kỹ năng",
-            "items": {
-              "type": "string"
-            },
-            "title": "Skills Goals",
-            "type": "array"
-          },
-          "subject": {
-            "default": "Toán học",
-            "description": "Tên môn học (Toán học)",
-            "title": "Subject",
-            "type": "string"
-          },
-          "teaching_equipment": {
-            "description": "Thiết bị dạy học và học liệu dành cho GV và HS",
-            "items": {
-              "type": "string"
-            },
-            "title": "Teaching Equipment",
-            "type": "array"
+            "description": "Danh sách 4 hoạt động bài dạy"
           }
         },
+        "additionalProperties": true,
+        "type": "object",
         "required": [
           "lesson_title",
           "knowledge_goals",
           "activities"
         ],
-        "title": "LessonPlanSchema",
-        "type": "object"
+        "title": "LessonPlanSchema"
+      },
+      "LessonQualityReport": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "blocked",
+              "needs_review",
+              "ready"
+            ],
+            "title": "Status"
+          },
+          "issues": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Issues"
+          },
+          "checks": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Checks"
+          },
+          "content_fingerprint": {
+            "type": "string",
+            "title": "Content Fingerprint"
+          },
+          "scope": {
+            "type": "string",
+            "title": "Scope"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "status",
+          "issues",
+          "checks",
+          "content_fingerprint",
+          "scope"
+        ],
+        "title": "LessonQualityReport"
       },
       "LessonRequest": {
         "properties": {
-          "class_proficiency": {
+          "approved_outline": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ClassProficiency"
+                "additionalProperties": true,
+                "type": "object"
               },
               {
                 "type": "null"
               }
             ],
-            "default": "standard",
-            "description": "Trình độ phân loại học lực của lớp (basic, standard, advanced)"
+            "title": "Approved Outline"
+          },
+          "model_provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Provider"
+          },
+          "model_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Id"
+          },
+          "topic": {
+            "type": "string",
+            "title": "Topic",
+            "description": "Tên bài dạy / chủ đề",
+            "example": "Tính đơn điệu và cực trị của hàm số"
+          },
+          "subject": {
+            "type": "string",
+            "title": "Subject",
+            "description": "Tên môn học (Mặc định: Toán học)",
+            "default": "Toán học",
+            "example": "Toán học"
           },
           "grade": {
-            "default": 12,
-            "description": "Khối lớp (Mặc định: 12)",
-            "example": 12,
+            "type": "integer",
             "title": "Grade",
-            "type": "integer"
+            "description": "Khối lớp (Mặc định: 12)",
+            "default": 12,
+            "example": 12
           },
           "lesson_id": {
             "anyOf": [
@@ -1788,8 +1937,38 @@
                 "type": "null"
               }
             ],
-            "description": "Mã bài học Toán 12 CT GDPT 2018 (VD: M12-C1-B1). Nếu để trống sẽ tự động suy luận từ topic.",
-            "title": "Lesson Id"
+            "title": "Lesson Id",
+            "description": "Mã bài học Toán 12 CT GDPT 2018 (VD: M12-C1-B1). Nếu để trống sẽ tự động suy luận từ topic."
+          },
+          "use_rag": {
+            "type": "boolean",
+            "title": "Use Rag",
+            "description": "Kích hoạt Pedagogical RAG truy xuất dữ liệu Toán 12 KNTT",
+            "default": true
+          },
+          "class_proficiency": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ClassProficiency"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Trình độ phân loại học lực của lớp (basic, standard, advanced)",
+            "default": "standard"
+          },
+          "target_outcome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Outcome",
+            "description": "Mục tiêu chuẩn đầu ra mong muốn của bài dạy"
           },
           "plan": {
             "anyOf": [
@@ -1801,75 +1980,78 @@
               }
             ],
             "description": "Kế hoạch bài dạy đã có để đồng bộ Slide"
-          },
-          "subject": {
-            "default": "Toán học",
-            "description": "Tên môn học (Mặc định: Toán học)",
-            "example": "Toán học",
-            "title": "Subject",
-            "type": "string"
-          },
-          "target_outcome": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Mục tiêu chuẩn đầu ra mong muốn của bài dạy",
-            "title": "Target Outcome"
-          },
-          "topic": {
-            "description": "Tên bài dạy / chủ đề",
-            "example": "Tính đơn điệu và cực trị của hàm số",
-            "title": "Topic",
-            "type": "string"
-          },
-          "use_rag": {
-            "default": true,
-            "description": "Kích hoạt Pedagogical RAG truy xuất dữ liệu Toán 12 KNTT",
-            "title": "Use Rag",
-            "type": "boolean"
           }
         },
+        "type": "object",
         "required": [
           "topic"
         ],
-        "title": "LessonRequest",
-        "type": "object"
+        "title": "LessonRequest"
+      },
+      "LessonReviewRequest": {
+        "properties": {
+          "plan": {
+            "$ref": "#/components/schemas/LessonPlanSchema"
+          },
+          "acknowledged": {
+            "type": "boolean",
+            "title": "Acknowledged"
+          },
+          "content_fingerprint": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$",
+            "title": "Content Fingerprint"
+          },
+          "reviewed_issue_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Reviewed Issue Ids"
+          }
+        },
+        "type": "object",
+        "required": [
+          "plan",
+          "acknowledged",
+          "content_fingerprint",
+          "reviewed_issue_ids"
+        ],
+        "title": "LessonReviewRequest"
+      },
+      "LessonReviewResponse": {
+        "properties": {
+          "review_token": {
+            "type": "string",
+            "title": "Review Token"
+          },
+          "report": {
+            "$ref": "#/components/schemas/LessonQualityReport"
+          }
+        },
+        "type": "object",
+        "required": [
+          "review_token",
+          "report"
+        ],
+        "title": "LessonReviewResponse"
       },
       "OutlineRequest": {
         "properties": {
-          "class_proficiency": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": "standard",
-            "title": "Class Proficiency"
+          "topic": {
+            "type": "string",
+            "title": "Topic",
+            "description": "Tên bài dạy / Đề tài thuyết trình"
+          },
+          "subject": {
+            "type": "string",
+            "title": "Subject",
+            "default": "Toán học"
           },
           "grade": {
-            "default": 12,
+            "type": "integer",
             "title": "Grade",
-            "type": "integer"
-          },
-          "language": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": "vi",
-            "title": "Language"
+            "default": 12
           },
           "lesson_id": {
             "anyOf": [
@@ -1882,7 +2064,14 @@
             ],
             "title": "Lesson Id"
           },
-          "model_id": {
+          "num_slides": {
+            "type": "integer",
+            "maximum": 16.0,
+            "minimum": 4.0,
+            "title": "Num Slides",
+            "default": 8
+          },
+          "class_proficiency": {
             "anyOf": [
               {
                 "type": "string"
@@ -1891,8 +2080,13 @@
                 "type": "null"
               }
             ],
-            "default": "gemini-2.5-flash",
-            "title": "Model Id"
+            "title": "Class Proficiency",
+            "default": "standard"
+          },
+          "use_rag": {
+            "type": "boolean",
+            "title": "Use Rag",
+            "default": true
           },
           "model_provider": {
             "anyOf": [
@@ -1903,20 +2097,19 @@
                 "type": "null"
               }
             ],
-            "default": "gemini",
-            "title": "Model Provider"
+            "title": "Model Provider",
+            "default": "gemini"
           },
-          "num_slides": {
-            "default": 8,
-            "maximum": 16.0,
-            "minimum": 4.0,
-            "title": "Num Slides",
-            "type": "integer"
-          },
-          "subject": {
-            "default": "Toán học",
-            "title": "Subject",
-            "type": "string"
+          "model_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Id"
           },
           "tone": {
             "anyOf": [
@@ -1927,37 +2120,10 @@
                 "type": "null"
               }
             ],
-            "default": "academic",
-            "title": "Tone"
+            "title": "Tone",
+            "default": "academic"
           },
-          "topic": {
-            "description": "Tên bài dạy / Đề tài thuyết trình",
-            "title": "Topic",
-            "type": "string"
-          },
-          "use_rag": {
-            "default": true,
-            "title": "Use Rag",
-            "type": "boolean"
-          }
-        },
-        "required": [
-          "topic"
-        ],
-        "title": "OutlineRequest",
-        "type": "object"
-      },
-      "OutlineResponse": {
-        "properties": {
-          "class_proficiency": {
-            "title": "Class Proficiency",
-            "type": "string"
-          },
-          "grade": {
-            "title": "Grade",
-            "type": "integer"
-          },
-          "lesson_id": {
+          "language": {
             "anyOf": [
               {
                 "type": "string"
@@ -1966,31 +2132,21 @@
                 "type": "null"
               }
             ],
-            "title": "Lesson Id"
-          },
-          "num_slides": {
-            "title": "Num Slides",
-            "type": "integer"
-          },
-          "outline_slides": {
-            "items": {
-              "$ref": "#/components/schemas/OutlineSlideItem"
-            },
-            "title": "Outline Slides",
-            "type": "array"
-          },
-          "subject": {
-            "title": "Subject",
-            "type": "string"
-          },
-          "theme": {
-            "default": "gallery_monochrome",
-            "title": "Theme",
-            "type": "string"
-          },
+            "title": "Language",
+            "default": "vi"
+          }
+        },
+        "type": "object",
+        "required": [
+          "topic"
+        ],
+        "title": "OutlineRequest"
+      },
+      "OutlineResponse": {
+        "properties": {
           "title": {
-            "title": "Title",
-            "type": "string"
+            "type": "string",
+            "title": "Title"
           },
           "topic": {
             "anyOf": [
@@ -2002,8 +2158,48 @@
               }
             ],
             "title": "Topic"
+          },
+          "theme": {
+            "type": "string",
+            "title": "Theme",
+            "default": "gallery_monochrome"
+          },
+          "num_slides": {
+            "type": "integer",
+            "title": "Num Slides"
+          },
+          "subject": {
+            "type": "string",
+            "title": "Subject"
+          },
+          "grade": {
+            "type": "integer",
+            "title": "Grade"
+          },
+          "class_proficiency": {
+            "type": "string",
+            "title": "Class Proficiency"
+          },
+          "lesson_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lesson Id"
+          },
+          "outline_slides": {
+            "items": {
+              "$ref": "#/components/schemas/OutlineSlideItem"
+            },
+            "type": "array",
+            "title": "Outline Slides"
           }
         },
+        "type": "object",
         "required": [
           "title",
           "num_slides",
@@ -2012,35 +2208,57 @@
           "class_proficiency",
           "outline_slides"
         ],
-        "title": "OutlineResponse",
-        "type": "object"
+        "title": "OutlineResponse"
       },
       "OutlineSlideItem": {
         "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "ID duy nhất của slide trong dàn ý"
+          },
+          "slide_index": {
+            "type": "integer",
+            "title": "Slide Index",
+            "description": "STT slide",
+            "default": 1
+          },
+          "slide_number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slide Number",
+            "description": "Alias cho STT slide"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "Tiêu đề slide"
+          },
           "activity_type": {
-            "default": "Hình thành kiến thức",
-            "description": "Khởi động, Hình thành kiến thức, Luyện tập, Vận dụng, Tổng kết",
+            "type": "string",
             "title": "Activity Type",
-            "type": "string"
+            "description": "Khởi động, Hình thành kiến thức, Luyện tập, Vận dụng, Tổng kết",
+            "default": "Hình thành kiến thức"
+          },
+          "visual_type": {
+            "type": "string",
+            "title": "Visual Type",
+            "description": "3D Geometry, 2D Function Plot, Interactive Quiz, Concept Highlight, Text & Formula",
+            "default": "Concept Highlight"
           },
           "bullet_points": {
-            "description": "Các gạch đầu dòng ý chính",
             "items": {
               "type": "string"
             },
+            "type": "array",
             "title": "Bullet Points",
-            "type": "array"
-          },
-          "has_3d": {
-            "default": false,
-            "title": "Has 3D",
-            "type": "boolean"
-          },
-          "id": {
-            "default": "",
-            "description": "ID duy nhất của slide trong dàn ý",
-            "title": "Id",
-            "type": "string"
+            "description": "Các gạch đầu dòng ý chính"
           },
           "key_points": {
             "anyOf": [
@@ -2054,8 +2272,8 @@
                 "type": "null"
               }
             ],
-            "description": "Alias cho bullet_points",
-            "title": "Key Points"
+            "title": "Key Points",
+            "description": "Alias cho bullet_points"
           },
           "math_focus": {
             "anyOf": [
@@ -2066,8 +2284,13 @@
                 "type": "null"
               }
             ],
-            "description": "Công thức hoặc trọng tâm toán học",
-            "title": "Math Focus"
+            "title": "Math Focus",
+            "description": "Công thức hoặc trọng tâm toán học"
+          },
+          "has_3d": {
+            "type": "boolean",
+            "title": "Has 3D",
+            "default": false
           },
           "polyhedron_type": {
             "anyOf": [
@@ -2079,258 +2302,32 @@
               }
             ],
             "title": "Polyhedron Type"
-          },
-          "slide_index": {
-            "default": 1,
-            "description": "STT slide",
-            "title": "Slide Index",
-            "type": "integer"
-          },
-          "slide_number": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Alias cho STT slide",
-            "title": "Slide Number"
-          },
-          "title": {
-            "description": "Tiêu đề slide",
-            "title": "Title",
-            "type": "string"
-          },
-          "visual_type": {
-            "default": "Concept Highlight",
-            "description": "3D Geometry, 2D Function Plot, Interactive Quiz, Concept Highlight, Text & Formula",
-            "title": "Visual Type",
-            "type": "string"
           }
         },
+        "type": "object",
         "required": [
           "title"
         ],
-        "title": "OutlineSlideItem",
-        "type": "object"
-      },
-      "ParametricGeometryRequest": {
-        "description": "Dữ liệu yêu cầu cập nhật tham số hình học từ thanh trượt UI",
-        "properties": {
-          "base_edge": {
-            "default": 4.0,
-            "description": "Cạnh đáy a của khối đa diện (thanh trượt 1 đến 8)",
-            "maximum": 20.0,
-            "minimum": 0.5,
-            "title": "Base Edge",
-            "type": "number"
-          },
-          "height": {
-            "default": 4.0,
-            "description": "Chiều cao h của khối đa diện (thanh trượt 1 đến 10)",
-            "maximum": 20.0,
-            "minimum": 0.5,
-            "title": "Height",
-            "type": "number"
-          },
-          "polyhedron_type": {
-            "default": "pyramid_square",
-            "description": "Loại khối: pyramid_square, pyramid_triangle, prism_triangle, cube",
-            "title": "Polyhedron Type",
-            "type": "string"
-          }
-        },
-        "title": "ParametricGeometryRequest",
-        "type": "object"
-      },
-      "ParametricGeometryResponse": {
-        "description": "Kết quả tính toán tọa độ và các đại lượng hình học theo thời gian thực",
-        "properties": {
-          "apex_coordinates": {
-            "$ref": "#/components/schemas/Vertex3D",
-            "description": "Tọa độ đỉnh chóp S(0, 0, h) trong hệ trục chuẩn hóa SGK"
-          },
-          "base_edge": {
-            "title": "Base Edge",
-            "type": "number"
-          },
-          "height": {
-            "title": "Height",
-            "type": "number"
-          },
-          "measurements": {
-            "additionalProperties": {
-              "type": "number"
-            },
-            "description": "Các đại lượng hình học: diện tích đáy, chiều cao, thể tích, độ dài cạnh bên",
-            "title": "Measurements",
-            "type": "object"
-          },
-          "polyhedron_type": {
-            "title": "Polyhedron Type",
-            "type": "string"
-          },
-          "vertices": {
-            "additionalProperties": {
-              "$ref": "#/components/schemas/Vertex3D"
-            },
-            "description": "Danh sách tọa độ các đỉnh trong không gian Descartes Oxyz",
-            "title": "Vertices",
-            "type": "object"
-          }
-        },
-        "required": [
-          "polyhedron_type",
-          "height",
-          "base_edge",
-          "apex_coordinates",
-          "vertices",
-          "measurements"
-        ],
-        "title": "ParametricGeometryResponse",
-        "type": "object"
-      },
-      "ParsedDocumentResponse": {
-        "description": "Schema chuẩn hóa dữ liệu JSON đầu ra cho cả PPTX và DOCX Parser",
-        "properties": {
-          "blocks": {
-            "anyOf": [
-              {
-                "items": {
-                  "additionalProperties": true,
-                  "type": "object"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Các khối nội dung theo thứ tự từ trên xuống",
-            "title": "Blocks"
-          },
-          "file_type": {
-            "description": "Loại tài liệu: 'pptx' hoặc 'docx'",
-            "title": "File Type",
-            "type": "string"
-          },
-          "filename": {
-            "default": "",
-            "description": "Tên file gốc tải lên",
-            "title": "Filename",
-            "type": "string"
-          },
-          "paragraphs": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Danh sách các đoạn văn",
-            "title": "Paragraphs"
-          },
-          "raw_text": {
-            "description": "Toàn bộ nội dung văn bản đã làm sạch để đưa vào AI",
-            "title": "Raw Text",
-            "type": "string"
-          },
-          "slides": {
-            "anyOf": [
-              {
-                "items": {
-                  "additionalProperties": true,
-                  "type": "object"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Chi tiết từng trang slide",
-            "title": "Slides"
-          },
-          "tables": {
-            "anyOf": [
-              {
-                "items": {
-                  "items": {
-                    "items": {
-                      "type": "string"
-                    },
-                    "type": "array"
-                  },
-                  "type": "array"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Danh sách các bảng biểu",
-            "title": "Tables"
-          },
-          "title": {
-            "description": "Tiêu đề bài giảng / giáo án nhận diện được",
-            "title": "Title",
-            "type": "string"
-          },
-          "total_paragraphs": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Tổng số đoạn văn (nếu là docx)",
-            "title": "Total Paragraphs"
-          },
-          "total_slides": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Tổng số trang slide (nếu là pptx)",
-            "title": "Total Slides"
-          },
-          "total_tables": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Tổng số bảng biểu (nếu là docx)",
-            "title": "Total Tables"
-          }
-        },
-        "required": [
-          "file_type",
-          "title",
-          "raw_text"
-        ],
-        "title": "ParsedDocumentResponse",
-        "type": "object"
+        "title": "OutlineSlideItem"
       },
       "QuizOptionDetail": {
         "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "description": "Nhãn phương án (A, B, C, D)"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text",
+            "description": "Nội dung hiển thị của phương án"
+          },
+          "is_correct": {
+            "type": "boolean",
+            "title": "Is Correct",
+            "description": "Đáp án đúng (True) hay sai (False)",
+            "default": false
+          },
           "distractor_rationale": {
             "anyOf": [
               {
@@ -2340,51 +2337,19 @@
                 "type": "null"
               }
             ],
-            "description": "Giải thích vì sao phương án này SAI về mặt Toán học: chỉ ra cụ thể công thức, bước biến đổi, điều kiện hoặc phép tính bị sai và nêu kết quả/cách làm đúng. Không suy đoán tâm lý hay thái độ của học sinh.",
-            "title": "Distractor Rationale"
-          },
-          "is_correct": {
-            "default": false,
-            "description": "Đáp án đúng (True) hay sai (False)",
-            "title": "Is Correct",
-            "type": "boolean"
-          },
-          "label": {
-            "description": "Nhãn phương án (A, B, C, D)",
-            "title": "Label",
-            "type": "string"
-          },
-          "text": {
-            "description": "Nội dung hiển thị của phương án",
-            "title": "Text",
-            "type": "string"
+            "title": "Distractor Rationale",
+            "description": "Giải thích vì sao phương án này SAI về mặt Toán học: chỉ ra cụ thể công thức, bước biến đổi, điều kiện hoặc phép tính bị sai và nêu kết quả/cách làm đúng. Không suy đoán tâm lý hay thái độ của học sinh."
           }
         },
+        "type": "object",
         "required": [
           "label",
           "text"
         ],
-        "title": "QuizOptionDetail",
-        "type": "object"
+        "title": "QuizOptionDetail"
       },
       "RAGPreviewRequest": {
         "properties": {
-          "k_questions": {
-            "default": 3,
-            "description": "Số lượng câu hỏi cần xem trước",
-            "maximum": 10.0,
-            "minimum": 1.0,
-            "title": "K Questions",
-            "type": "integer"
-          },
-          "k_slides": {
-            "default": 3,
-            "description": "Số lượng slide mẫu cần xem trước",
-            "maximum": 10.0,
-            "minimum": 1.0,
-            "title": "K Slides",
-            "type": "integer"
-          },
           "lesson_id": {
             "anyOf": [
               {
@@ -2394,21 +2359,8 @@
                 "type": "null"
               }
             ],
-            "description": "Mã bài học Toán 12, VD: M12-C1-B1",
-            "title": "Lesson Id"
-          },
-          "proficiency": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": "standard",
-            "description": "Phân hóa học lực: basic, standard, advanced",
-            "title": "Proficiency"
+            "title": "Lesson Id",
+            "description": "Mã bài học Toán 12, VD: M12-C1-B1"
           },
           "topic": {
             "anyOf": [
@@ -2419,35 +2371,10 @@
                 "type": "null"
               }
             ],
-            "description": "Tên bài dạy hoặc từ khóa cần preview",
-            "title": "Topic"
-          }
-        },
-        "title": "RAGPreviewRequest",
-        "type": "object"
-      },
-      "SlideDeckSchema": {
-        "description": "Schema tổng thể cho cả bộ Slide trình chiếu bài giảng.",
-        "properties": {
-          "grade": {
-            "description": "Khối lớp",
-            "title": "Grade",
-            "type": "integer"
+            "title": "Topic",
+            "description": "Tên bài dạy hoặc từ khóa cần preview"
           },
-          "presentation_title": {
-            "description": "Tiêu đề bài giảng slide",
-            "title": "Presentation Title",
-            "type": "string"
-          },
-          "slides": {
-            "description": "Danh sách các trang slide trong bài giảng",
-            "items": {
-              "$ref": "#/components/schemas/SlideSchema"
-            },
-            "title": "Slides",
-            "type": "array"
-          },
-          "snapshot_3d_base64": {
+          "proficiency": {
             "anyOf": [
               {
                 "type": "string"
@@ -2456,13 +2383,77 @@
                 "type": "null"
               }
             ],
-            "description": "Task 14.2: Chuỗi Base64 Data URL dự phòng toàn cục cho cả bộ Slide",
-            "title": "Snapshot 3D Base64"
+            "title": "Proficiency",
+            "description": "Phân hóa học lực: basic, standard, advanced",
+            "default": "standard"
+          },
+          "k_slides": {
+            "type": "integer",
+            "maximum": 10.0,
+            "minimum": 1.0,
+            "title": "K Slides",
+            "description": "Số lượng slide mẫu cần xem trước",
+            "default": 3
+          },
+          "k_questions": {
+            "type": "integer",
+            "maximum": 10.0,
+            "minimum": 1.0,
+            "title": "K Questions",
+            "description": "Số lượng câu hỏi cần xem trước",
+            "default": 3
+          }
+        },
+        "type": "object",
+        "title": "RAGPreviewRequest"
+      },
+      "SlideDeckSchema": {
+        "properties": {
+          "generation_metadata": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GenerationMetadata"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "schema_version": {
+            "type": "integer",
+            "maximum": 2.0,
+            "minimum": 1.0,
+            "title": "Schema Version",
+            "default": 2
+          },
+          "project_id": {
+            "type": "string",
+            "title": "Project Id"
+          },
+          "deck_id": {
+            "type": "string",
+            "title": "Deck Id"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Revision",
+            "default": 0
+          },
+          "presentation_title": {
+            "type": "string",
+            "title": "Presentation Title",
+            "description": "Tiêu đề bài giảng slide"
           },
           "subject": {
-            "description": "Tên môn học",
+            "type": "string",
             "title": "Subject",
-            "type": "string"
+            "description": "Tên môn học"
+          },
+          "grade": {
+            "type": "integer",
+            "title": "Grade",
+            "description": "Khối lớp"
           },
           "theme": {
             "anyOf": [
@@ -2473,10 +2464,33 @@
                 "type": "null"
               }
             ],
-            "default": "math_academic",
-            "description": "Chủ đề màu sắc thiết kế"
+            "description": "Chủ đề màu sắc thiết kế",
+            "default": "math_academic"
+          },
+          "slides": {
+            "items": {
+              "$ref": "#/components/schemas/SlideSchema"
+            },
+            "type": "array",
+            "maxItems": 200,
+            "title": "Slides",
+            "description": "Danh sách các trang slide trong bài giảng"
+          },
+          "snapshot_3d_base64": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot 3D Base64",
+            "description": "Task 14.2: Chuỗi Base64 Data URL dự phòng toàn cục cho cả bộ Slide"
           }
         },
+        "additionalProperties": true,
+        "type": "object",
         "required": [
           "presentation_title",
           "subject",
@@ -2484,10 +2498,10 @@
           "slides"
         ],
         "title": "SlideDeckSchema",
-        "type": "object"
+        "description": "Schema tổng thể cho cả bộ Slide trình chiếu bài giảng."
       },
       "SlideLayout": {
-        "description": "Bố cục giao diện hiển thị slide",
+        "type": "string",
         "enum": [
           "TITLE_ONLY",
           "SINGLE_COLUMN",
@@ -2497,31 +2511,175 @@
           "QUIZ_OPTION"
         ],
         "title": "SlideLayout",
-        "type": "string"
+        "description": "Bố cục giao diện hiển thị slide"
       },
-      "SlidePatchProposal": {
-        "description": "Cấu trúc bản vá đề xuất chỉnh sửa nội dung slide từ Trợ giảng AI Co-pilot.\n\nLý do thiết kế (Why):\n- Chuẩn bị nền tảng định kiểu mạnh (Strongly-typed schema) cho tính năng Live Patching của Ngày 7.\n- Định vị chính xác số thứ tự slide đích (target_slide_index) và loại thao tác (action) để\n  Front-end có thể hiển thị hộp thoại So sánh Khác biệt (Diff View) trước khi giáo viên áp dụng trực tiếp.\n- Đóng gói dữ liệu thay đổi (bullet_points, main_definition_latex, quiz...) đồng nhất với cấu trúc SlideSchema.",
+      "SlideSchema": {
         "properties": {
-          "action": {
-            "description": "Mã hành động đề xuất: 'SIMPLIFY_SLIDE' | 'REPLACE_BULLETS' | 'UPDATE_FORMULA' | 'ADD_QUIZ' | 'CUSTOM_PATCH'",
-            "example": "SIMPLIFY_SLIDE",
-            "title": "Action",
-            "type": "string"
+          "slide_id": {
+            "type": "string",
+            "title": "Slide Id"
           },
-          "bullet_points": {
+          "revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Revision",
+            "default": 0
+          },
+          "source_outline_id": {
             "anyOf": [
               {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
+                "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Danh sách gạch đầu dòng mới đề xuất thay thế",
-            "title": "Bullet Points"
+            "title": "Source Outline Id"
+          },
+          "scene_spec": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scene Spec"
+          },
+          "blocks": {
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/TextBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/FormulaBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/ImageBlock"
+                },
+                {
+                  "$ref": "#/components/schemas/TableBlock"
+                }
+              ],
+              "discriminator": {
+                "propertyName": "type",
+                "mapping": {
+                  "formula": "#/components/schemas/FormulaBlock",
+                  "image": "#/components/schemas/ImageBlock",
+                  "table": "#/components/schemas/TableBlock",
+                  "text": "#/components/schemas/TextBlock"
+                }
+              }
+            },
+            "type": "array",
+            "title": "Blocks"
+          },
+          "question": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question"
+          },
+          "generation_metadata": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GenerationMetadata"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "table_data": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Table Data"
+          },
+          "stage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage"
+          },
+          "key_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key Message"
+          },
+          "slide_index": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Slide Index",
+            "description": "STT slide (bắt đầu từ 1)",
+            "default": 1
+          },
+          "type": {
+            "$ref": "#/components/schemas/SlideType",
+            "description": "Loại slide: TITLE_SLIDE, WARM_UP_SLIDE, CONCEPT_SLIDE, EXERCISE_SLIDE, SUMMARY_SLIDE",
+            "default": "CONCEPT_SLIDE"
+          },
+          "layout": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SlideLayout"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Bố cục giao diện hiển thị slide: TITLE_ONLY, SINGLE_COLUMN, TWO_COLUMN, CONCEPT_HIGHLIGHT, IMAGE_TEXT, QUIZ_OPTION",
+            "default": "SINGLE_COLUMN"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "Tiêu đề chính của slide"
+          },
+          "subtitle": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subtitle",
+            "description": "Tiêu đề phụ (nếu có)"
+          },
+          "bullet_points": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Bullet Points",
+            "description": "Danh sách các ý văn bản đầu dòng trên slide (công thức toán bọc bằng $...$)"
           },
           "main_definition_latex": {
             "anyOf": [
@@ -2532,10 +2690,10 @@
                 "type": "null"
               }
             ],
-            "description": "Công thức toán học LaTeX mới đề xuất cập nhật",
-            "title": "Main Definition Latex"
+            "title": "Main Definition Latex",
+            "description": "Công thức toán trọng tâm dạng LaTeX thuần (không bọc $), VD: '\\int x^2 dx = \\frac{x^3}{3} + C'"
           },
-          "preview_explanation": {
+          "teacher_note": {
             "anyOf": [
               {
                 "type": "string"
@@ -2544,40 +2702,10 @@
                 "type": "null"
               }
             ],
-            "description": "Tóm tắt lý do sư phạm đề xuất thay đổi này",
-            "title": "Preview Explanation"
+            "title": "Teacher Note",
+            "description": "Kịch bản lời thoại và hướng dẫn tổ chức giảng dạy dành riêng cho Giáo viên"
           },
-          "quiz": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Câu hỏi trắc nghiệm hoặc bài tập củng cố đề xuất chèn vào slide",
-            "title": "Quiz"
-          },
-          "target_slide_index": {
-            "description": "Chỉ số slide đích cần áp dụng thay đổi (0-indexed)",
-            "example": 1,
-            "title": "Target Slide Index",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "target_slide_index",
-          "action"
-        ],
-        "title": "SlidePatchProposal",
-        "type": "object"
-      },
-      "SlideSchema": {
-        "description": "Schema định nghĩa cấu trúc dữ liệu cho một trang Slide trình chiếu.\nTích hợp đầy đủ các loại Slide: Title, Khởi động, Khái niệm, Bài tập, Tóm tắt.",
-        "properties": {
-          "activity_type": {
+          "image_prompt": {
             "anyOf": [
               {
                 "type": "string"
@@ -2586,16 +2714,8 @@
                 "type": "null"
               }
             ],
-            "description": "Loại hoạt động sư phạm CV 5512: khoi_dong, hinh_thanh_kien_thuc, luyen_tap, van_dung, tong_ket",
-            "title": "Activity Type"
-          },
-          "bullet_points": {
-            "description": "Danh sách các ý văn bản đầu dòng trên slide (công thức toán bọc bằng $...$)",
-            "items": {
-              "type": "string"
-            },
-            "title": "Bullet Points",
-            "type": "array"
+            "title": "Image Prompt",
+            "description": "Mô tả ý tưởng đồ thị / hình vẽ để sinh tự động"
           },
           "chart_spec": {
             "anyOf": [
@@ -2608,18 +2728,6 @@
             ],
             "description": "Cấu hình vẽ đồ thị hàm số tự động"
           },
-          "class_proficiency": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ClassProficiency"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": "standard",
-            "description": "Trình độ học lực phân hóa của slide (basic, standard, advanced)"
-          },
           "has_3d": {
             "anyOf": [
               {
@@ -2629,66 +2737,9 @@
                 "type": "null"
               }
             ],
-            "default": false,
+            "title": "Has 3D",
             "description": "Bật khung mô hình Hình học không gian 3D tương tác (chỉ đặt True trên slide layout 'IMAGE_TEXT' của chủ đề Hình học không gian)",
-            "title": "Has 3D"
-          },
-          "image_prompt": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Mô tả ý tưởng đồ thị / hình vẽ để sinh tự động",
-            "title": "Image Prompt"
-          },
-          "layout": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SlideLayout"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": "SINGLE_COLUMN",
-            "description": "Bố cục giao diện hiển thị slide: TITLE_ONLY, SINGLE_COLUMN, TWO_COLUMN, CONCEPT_HIGHLIGHT, IMAGE_TEXT, QUIZ_OPTION"
-          },
-          "main_definition_latex": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Công thức toán trọng tâm dạng LaTeX thuần (không bọc $), VD: '\\int x^2 dx = \\frac{x^3}{3} + C'",
-            "title": "Main Definition Latex"
-          },
-          "math_formulas": {
-            "default": [],
-            "description": "Danh sách các công thức toán phức tạp (phân số, tích phân). Mỗi công thức là một mã LaTex chuẩn.",
-            "items": {
-              "type": "string"
-            },
-            "title": "Math Formulas",
-            "type": "array"
-          },
-          "pedagogical_mode": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Chế độ sư phạm tổ chức hoạt động (Thảo luận cặp đôi, Thảo luận nhóm 4, Cá nhân suy ngẫm...)",
-            "title": "Pedagogical Mode"
+            "default": false
           },
           "polyhedron_type": {
             "anyOf": [
@@ -2699,21 +2750,8 @@
                 "type": "null"
               }
             ],
-            "description": "Loại khối đa diện 3D chuẩn SGK: 'pyramid_triangle' (Hình chóp tam giác S.ABC), 'pyramid_square' (Hình chóp tứ giác S.ABCD), 'cube' (Hình lập phương ABCD.A'B'C'D'), 'prism_triangle' (Lăng trụ đứng ABC.A'B'C')",
-            "title": "Polyhedron Type"
-          },
-          "quiz_options": {
-            "description": "Danh sách các phương án trắc nghiệm",
-            "items": {
-              "$ref": "#/components/schemas/QuizOptionDetail"
-            },
-            "title": "Quiz Options",
-            "type": "array"
-          },
-          "slide_index": {
-            "description": "STT slide (bắt đầu từ 1)",
-            "title": "Slide Index",
-            "type": "integer"
+            "title": "Polyhedron Type",
+            "description": "Loại khối đa diện 3D chuẩn SGK: 'pyramid_triangle' (Hình chóp tam giác S.ABC), 'pyramid_square' (Hình chóp tứ giác S.ABCD), 'cube' (Hình lập phương ABCD.A'B'C'D'), 'prism_triangle' (Lăng trụ đứng ABC.A'B'C')"
           },
           "snapshot_3d_base64": {
             "anyOf": [
@@ -2724,8 +2762,69 @@
                 "type": "null"
               }
             ],
-            "description": "Task 14.2: Chuỗi Base64 Data URL (data:image/png;base64,...) chụp lại khung hình 3D WebGL hiện tại từ Frontend để xuất vào Slide PPTX",
-            "title": "Snapshot 3D Base64"
+            "title": "Snapshot 3D Base64",
+            "description": "Task 14.2: Chuỗi Base64 Data URL (data:image/png;base64,...) chụp lại khung hình 3D WebGL hiện tại từ Frontend để xuất vào Slide PPTX"
+          },
+          "worked_solution_steps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Worked Solution Steps",
+            "description": "Các bước giải mẫu tự luận chi tiết chuẩn SGK (Đề bài -> Bước 1 -> Bước 2 -> Kết luận) hiển thị ở cột phải của layout TWO_COLUMN"
+          },
+          "quiz_options": {
+            "items": {
+              "$ref": "#/components/schemas/QuizOptionDetail"
+            },
+            "type": "array",
+            "title": "Quiz Options",
+            "description": "Danh sách các phương án trắc nghiệm"
+          },
+          "math_formulas": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Math Formulas",
+            "description": "Danh sách các công thức toán phức tạp (phân số, tích phân). Mỗi công thức là một mã LaTex chuẩn.",
+            "default": []
+          },
+          "class_proficiency": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ClassProficiency"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Trình độ học lực phân hóa của slide (basic, standard, advanced)",
+            "default": "standard"
+          },
+          "target_outcome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Outcome",
+            "description": "Mục tiêu chuẩn đầu ra kiến thức/kỹ năng của học sinh"
+          },
+          "activity_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Activity Type",
+            "description": "Loại hoạt động sư phạm CV 5512: khoi_dong, hinh_thanh_kien_thuc, luyen_tap, van_dung, tong_ket"
           },
           "source_refs": {
             "anyOf": [
@@ -2739,10 +2838,10 @@
                 "type": "null"
               }
             ],
-            "description": "Tham chiếu nguồn gốc từ kho slide KNTT 12 hoặc ngân hàng câu hỏi RAG (VD: slide_id, question_id)",
-            "title": "Source Refs"
+            "title": "Source Refs",
+            "description": "Tham chiếu nguồn gốc từ kho slide KNTT 12 hoặc ngân hàng câu hỏi RAG (VD: slide_id, question_id)"
           },
-          "subtitle": {
+          "pedagogical_mode": {
             "anyOf": [
               {
                 "type": "string"
@@ -2751,61 +2850,20 @@
                 "type": "null"
               }
             ],
-            "description": "Tiêu đề phụ (nếu có)",
-            "title": "Subtitle"
-          },
-          "target_outcome": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Mục tiêu chuẩn đầu ra kiến thức/kỹ năng của học sinh",
-            "title": "Target Outcome"
-          },
-          "teacher_note": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Kịch bản lời thoại và hướng dẫn tổ chức giảng dạy dành riêng cho Giáo viên",
-            "title": "Teacher Note"
-          },
-          "title": {
-            "description": "Tiêu đề chính của slide",
-            "title": "Title",
-            "type": "string"
-          },
-          "type": {
-            "$ref": "#/components/schemas/SlideType",
-            "default": "CONCEPT_SLIDE",
-            "description": "Loại slide: TITLE_SLIDE, WARM_UP_SLIDE, CONCEPT_SLIDE, EXERCISE_SLIDE, SUMMARY_SLIDE"
-          },
-          "worked_solution_steps": {
-            "description": "Các bước giải mẫu tự luận chi tiết chuẩn SGK (Đề bài -> Bước 1 -> Bước 2 -> Kết luận) hiển thị ở cột phải của layout TWO_COLUMN",
-            "items": {
-              "type": "string"
-            },
-            "title": "Worked Solution Steps",
-            "type": "array"
+            "title": "Pedagogical Mode",
+            "description": "Chế độ sư phạm tổ chức hoạt động (Thảo luận cặp đôi, Thảo luận nhóm 4, Cá nhân suy ngẫm...)"
           }
         },
+        "additionalProperties": true,
+        "type": "object",
         "required": [
-          "slide_index",
           "title"
         ],
         "title": "SlideSchema",
-        "type": "object"
+        "description": "Schema định nghĩa cấu trúc dữ liệu cho một trang Slide trình chiếu.\nTích hợp đầy đủ các loại Slide: Title, Khởi động, Khái niệm, Bài tập, Tóm tắt."
       },
       "SlideType": {
-        "description": "Phân loại các trang slide trong bài giảng",
+        "type": "string",
         "enum": [
           "TITLE_SLIDE",
           "WARM_UP_SLIDE",
@@ -2815,28 +2873,25 @@
           "SUMMARY_SLIDE"
         ],
         "title": "SlideType",
-        "type": "string"
+        "description": "Phân loại các trang slide trong bài giảng"
       },
       "SlideWarningItem": {
-        "description": "Cấu trúc một cảnh báo kiểm duyệt sư phạm trên Slide.\nĐảm bảo tương thích chuẩn [{slide_index, message, severity}] trong lộ trình Ngày 10,\nđồng thời bổ sung trường field, category, suggestion phục vụ UI Human-in-the-Loop.",
         "properties": {
-          "category": {
-            "default": "spelling",
-            "description": "Phân loại lỗi: 'spelling' | 'algebra_sympy' | 'textbook_theorem'",
-            "title": "Category",
-            "type": "string"
+          "slide_index": {
+            "type": "integer",
+            "title": "Slide Index",
+            "description": "Số thứ tự trang slide có lỗi (bắt đầu từ 1)"
           },
-          "detected_token": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Cụm từ hoặc biểu thức bị phát hiện lỗi",
-            "title": "Detected Token"
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Nội dung cảnh báo chi tiết bằng Tiếng Việt"
+          },
+          "severity": {
+            "type": "string",
+            "title": "Severity",
+            "description": "Mức độ cảnh báo: 'warning' | 'error' | 'info'",
+            "default": "warning"
           },
           "field": {
             "anyOf": [
@@ -2847,24 +2902,14 @@
                 "type": "null"
               }
             ],
-            "description": "Trường dữ liệu phát hiện lỗi (VD: title, bullet_points[0])",
-            "title": "Field"
+            "title": "Field",
+            "description": "Trường dữ liệu phát hiện lỗi (VD: title, bullet_points[0])"
           },
-          "message": {
-            "description": "Nội dung cảnh báo chi tiết bằng Tiếng Việt",
-            "title": "Message",
-            "type": "string"
-          },
-          "severity": {
-            "default": "warning",
-            "description": "Mức độ cảnh báo: 'warning' | 'error' | 'info'",
-            "title": "Severity",
-            "type": "string"
-          },
-          "slide_index": {
-            "description": "Số thứ tự trang slide có lỗi (bắt đầu từ 1)",
-            "title": "Slide Index",
-            "type": "integer"
+          "category": {
+            "type": "string",
+            "title": "Category",
+            "description": "Phân loại lỗi: 'spelling' | 'algebra_sympy' | 'textbook_theorem'",
+            "default": "spelling"
           },
           "suggestion": {
             "anyOf": [
@@ -2875,20 +2920,33 @@
                 "type": "null"
               }
             ],
-            "description": "Gợi ý cách sửa dành cho Giáo viên (không tự động ghi đè)",
-            "title": "Suggestion"
+            "title": "Suggestion",
+            "description": "Gợi ý cách sửa dành cho Giáo viên (không tự động ghi đè)"
+          },
+          "detected_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detected Token",
+            "description": "Cụm từ hoặc biểu thức bị phát hiện lỗi"
           }
         },
+        "type": "object",
         "required": [
           "slide_index",
           "message"
         ],
         "title": "SlideWarningItem",
-        "type": "object"
+        "description": "Cấu trúc một cảnh báo kiểm duyệt sư phạm trên Slide.\nĐảm bảo tương thích chuẩn [{slide_index, message, severity}] trong lộ trình Ngày 10,\nđồng thời bổ sung trường field, category, suggestion phục vụ UI Human-in-the-Loop."
       },
       "SourceRef": {
         "properties": {
-          "activity_type": {
+          "source_type": {
             "anyOf": [
               {
                 "type": "string"
@@ -2897,20 +2955,8 @@
                 "type": "null"
               }
             ],
-            "description": "Hoạt động sư phạm",
-            "title": "Activity Type"
-          },
-          "difficulty": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Độ khó câu hỏi",
-            "title": "Difficulty"
+            "title": "Source Type",
+            "description": "Nguồn trích xuất: curriculum, slide_kntt12, question_bank_rag"
           },
           "id": {
             "anyOf": [
@@ -2921,32 +2967,8 @@
                 "type": "null"
               }
             ],
-            "description": "Mã định danh của tài liệu tham chiếu",
-            "title": "Id"
-          },
-          "layout_hint": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Gợi ý layout",
-            "title": "Layout Hint"
-          },
-          "source_type": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Nguồn trích xuất: curriculum, slide_kntt12, question_bank_rag",
-            "title": "Source Type"
+            "title": "Id",
+            "description": "Mã định danh của tài liệu tham chiếu"
           },
           "title": {
             "anyOf": [
@@ -2957,8 +2979,8 @@
                 "type": "null"
               }
             ],
-            "description": "Tiêu đề tài liệu",
-            "title": "Title"
+            "title": "Title",
+            "description": "Tiêu đề tài liệu"
           },
           "topic": {
             "anyOf": [
@@ -2969,32 +2991,131 @@
                 "type": "null"
               }
             ],
-            "description": "Chủ đề toán học",
-            "title": "Topic"
+            "title": "Topic",
+            "description": "Chủ đề toán học"
+          },
+          "activity_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Activity Type",
+            "description": "Hoạt động sư phạm"
+          },
+          "layout_hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Layout Hint",
+            "description": "Gợi ý layout"
+          },
+          "difficulty": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Difficulty",
+            "description": "Độ khó câu hỏi"
           }
         },
-        "title": "SourceRef",
-        "type": "object"
+        "additionalProperties": true,
+        "type": "object",
+        "title": "SourceRef"
+      },
+      "TableBlock": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "table",
+            "title": "Type"
+          },
+          "rows": {
+            "anyOf": [
+              {
+                "items": {},
+                "type": "array"
+              },
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rows"
+          },
+          "data": {
+            "anyOf": [
+              {
+                "items": {},
+                "type": "array"
+              },
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "title": "TableBlock"
+      },
+      "TextBlock": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "text",
+            "title": "Type"
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "title": "Text"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "type",
+          "text"
+        ],
+        "title": "TextBlock"
       },
       "ThemeType": {
+        "type": "string",
         "enum": [
           "math_academic",
           "math_infographic",
           "math_escape_room",
           "modern_blue"
         ],
-        "title": "ThemeType",
-        "type": "string"
+        "title": "ThemeType"
       },
       "ValidationError": {
         "properties": {
-          "ctx": {
-            "title": "Context",
-            "type": "object"
-          },
-          "input": {
-            "title": "Input"
-          },
           "loc": {
             "items": {
               "anyOf": [
@@ -3006,52 +3127,32 @@
                 }
               ]
             },
-            "title": "Location",
-            "type": "array"
+            "type": "array",
+            "title": "Location"
           },
           "msg": {
-            "title": "Message",
-            "type": "string"
+            "type": "string",
+            "title": "Message"
           },
           "type": {
-            "title": "Error Type",
-            "type": "string"
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
           }
         },
+        "type": "object",
         "required": [
           "loc",
           "msg",
           "type"
         ],
-        "title": "ValidationError",
-        "type": "object"
-      },
-      "Vertex3D": {
-        "description": "Tọa độ một điểm trong không gian 3 chiều Descartes Oxyz",
-        "properties": {
-          "x": {
-            "description": "Hoành độ x (trục Ox)",
-            "title": "X",
-            "type": "number"
-          },
-          "y": {
-            "description": "Tung độ y (trục Oy)",
-            "title": "Y",
-            "type": "number"
-          },
-          "z": {
-            "description": "Cao độ z (trục Oz)",
-            "title": "Z",
-            "type": "number"
-          }
-        },
-        "required": [
-          "x",
-          "y",
-          "z"
-        ],
-        "title": "Vertex3D",
-        "type": "object"
+        "title": "ValidationError"
       }
     }
   }

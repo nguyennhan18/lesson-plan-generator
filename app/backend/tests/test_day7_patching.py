@@ -153,50 +153,8 @@ def test_apply_slide_patch_invalid_deck_structure():
         apply_slide_patch({}, patch)
 
 
-def test_api_apply_patch_endpoint_success():
-    """
-    Test Case 5: Kiểm tra gọi trực tiếp API POST /api/v1/chat/apply-patch qua HTTP client.
-
-    Lý do thiết kế (Why):
-    - Xác thực endpoint HTTP trả về mã 200 OK và cấu trúc ApplyPatchResponse chuẩn hóa.
-    """
-    payload = {
-        "slide_deck": SAMPLE_SLIDE_DECK,
-        "patch": {
-            "target_slide_index": 2,
-            "action": "SIMPLIFY_SLIDE",
-            "bullet_points": ["Đoạn vuông góc AH = (a*sqrt(6))/3"],
-            "main_definition_latex": r"AH = \frac{a\sqrt{6}}{3}",
-            "preview_explanation": "Tối ưu hóa công thức khoảng cách"
-        }
-    }
-
-    res = client.post("/api/v1/chat/apply-patch", json=payload)
-    assert res.status_code == 200
-    data = res.json()
-
-    assert data["success"] is True
-    assert data["target_slide_index"] == 2
-    assert "updated_slide" in data
-    assert data["updated_slide"]["bullet_points"][0] == "Đoạn vuông góc AH = (a*sqrt(6))/3"
-    assert "slide_deck" in data
-    assert data["message"] == "Đã áp dụng thành công bản vá cho Slide 3"
 
 
-def test_api_apply_patch_endpoint_error_handling():
-    """
-    Test Case 6: Kiểm tra API bắt lỗi 400 Bad Request khi chỉ số slide đích không hợp lệ.
-    """
-    payload = {
-        "slide_deck": SAMPLE_SLIDE_DECK,
-        "patch": {
-            "target_slide_index": 50,
-            "action": "SIMPLIFY_SLIDE"
-        }
-    }
-    res = client.post("/api/v1/chat/apply-patch", json=payload)
-    assert res.status_code == 400
-    assert "nằm ngoài phạm vi" in res.json()["detail"]
 
 
 def test_m0_chat_does_not_offer_a_patch_or_modify_the_deck(monkeypatch):

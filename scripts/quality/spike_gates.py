@@ -289,7 +289,7 @@ def run_spike_g3() -> Dict[str, Any]:
         if omml_node is not None:
             omml_ok += 1
             # Kiểm tra lỗi ngữ nghĩa (x-1)^2 bị gắn mũ chỉ vào dấu đóng ngoặc ')'
-            from lxml import etree
+            from lxml import etree  # type: ignore[attr-defined]  # pyright: ignore[reportAttributeAccessIssue]
             xml_str = etree.tostring(omml_node, encoding="unicode")
             if "<m:sSup><m:e><m:r><m:rPr><m:sty m:val=\"p\"/></m:rPr><m:t>)</m:t></m:r></m:e>" in xml_str:
                 omml_semantic_warnings.append({

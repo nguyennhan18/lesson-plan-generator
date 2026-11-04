@@ -435,8 +435,8 @@ def test_api_classify_grades_unsupported_file_type():
         "/api/v1/ingest/classify-grades",
         files={"file": ("grades.txt", b"plain text content", "text/plain")}
     )
-    assert response.status_code == 400
-    assert "không được hỗ trợ" in response.json()["detail"]
+    assert response.status_code == 415
+    assert "chưa được hỗ trợ" in response.json()["detail"]["message"]
 
 
 def test_api_classify_grades_empty_file():
@@ -448,7 +448,7 @@ def test_api_classify_grades_empty_file():
         files={"file": ("grades.csv", b"", "text/csv")}
     )
     assert response.status_code == 400
-    assert "bị rỗng" in response.json()["detail"]
+    assert "rỗng" in response.json()["detail"]["message"]
 
 
 def test_api_classify_grades_no_score_column():
@@ -460,8 +460,8 @@ def test_api_classify_grades_no_score_column():
         "/api/v1/ingest/classify-grades",
         files={"file": ("invalid_grades.csv", csv_bytes, "text/csv")}
     )
-    assert response.status_code == 400
-    assert "Không tìm thấy cột điểm hợp lệ" in response.json()["detail"]
+    assert response.status_code == 422
+    assert "Không tìm thấy cột điểm hợp lệ" in response.json()["detail"]["message"]
 
 
 if __name__ == "__main__":

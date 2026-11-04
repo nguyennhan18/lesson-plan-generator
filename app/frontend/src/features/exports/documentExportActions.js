@@ -11,7 +11,10 @@ async function readExportResponse(response, expectedType) {
     }
     throw new Error(`HTTP ${response.status}: ${message || 'Máy chủ chưa trả đúng định dạng tệp'}`);
   }
-  return response.blob();
+  const blob = await response.blob();
+  const bytes = new Uint8Array(await blob.slice(0,4).arrayBuffer());
+  if (bytes[0] !== 0x50 || bytes[1] !== 0x4b || bytes[2] !== 3 || bytes[3] !== 4) throw new Error('Tệp trả về không phải gói Office/ZIP hợp lệ');
+  return blob;
 }
 /**
  * Xuất Word, PowerPoint và ZIP từ dữ liệu do App quản lý.
@@ -19,12 +22,14 @@ async function readExportResponse(response, expectedType) {
  */
 export function createDocumentExportActions({
   lessonPlan,
+  hasPendingEdits=false,
   slideDeck,
   currentSlide,
   threeCanvasCaptureRef
 }) {
   // ================= HÀM XUẤT FILE THẬT QUA FASTAPI =================
   const handleExportDocx = async () => {
+    if(hasPendingEdits){alert("Có thay đổi chưa lưu. Hãy lưu slide trước khi xuất bài.");return;}
     if (!lessonPlan) {
       alert("Chưa có dữ liệu Kế hoạch bài dạy để xuất Word. Hãy bấm 'Sinh Giáo Án Bằng AI' trước!");
       return;
@@ -49,49 +54,13 @@ export function createDocumentExportActions({
   };
 
   const handleExportPptx = async () => {
+    if(hasPendingEdits){alert("Có thay đổi chưa lưu. Hãy lưu slide trước khi xuất bài.");return;}
     if (!slideDeck || !slideDeck.slides?.length) {
       alert("Chưa có dữ liệu Slide để xuất PowerPoint!");
       return;
     }
 
-    // Task 14.2 & 18.2: Thu thập ảnh chụp mô hình không gian 3D dạng Base64 Data URL
-    let snapshot3d = null;
-    if (typeof threeCanvasCaptureRef.current === 'function') {
-      try {
-        snapshot3d = threeCanvasCaptureRef.current();
-      } catch (err) {
-        console.warn('[handleExportPptx] Không thể chụp snapshot qua ref:', err);
-      }
-    }
-    if (!snapshot3d && typeof window !== 'undefined' && typeof window.__threeCanvasCaptureSnapshot === 'function') {
-      try {
-        snapshot3d = window.__threeCanvasCaptureSnapshot();
-      } catch (err) {
-        console.warn('[handleExportPptx] Không thể chụp snapshot qua window:', err);
-      }
-    }
-
-    // Đóng gói chuỗi Base64 Data URL vào payload gửi tới backend
-    const payloadDeck = {
-      ...slideDeck,
-      slides: (slideDeck.slides || []).map((s, idx) => {
-        const slideCopy = { ...s };
-        if (snapshot3d) {
-          if (slideCopy.has_3d || slideCopy.polyhedron_type) {
-            if (idx === currentSlide || !slideCopy.snapshot_3d_base64) {
-              slideCopy.snapshot_3d_base64 = snapshot3d;
-            }
-          } else if (idx === currentSlide) {
-            slideCopy.snapshot_3d_base64 = snapshot3d;
-          }
-        }
-        return slideCopy;
-      })
-    };
-
-    if (snapshot3d) {
-      payloadDeck.snapshot_3d_base64 = snapshot3d;
-    }
+    const payloadDeck = structuredClone(slideDeck);
 
     try {
       const res = await postJson('/api/v1/lesson-plan/export-slide', payloadDeck);
@@ -109,47 +78,13 @@ export function createDocumentExportActions({
 
   // Task 19.2: Tải Trọn Bộ Dual-Pack (.zip) đóng gói cả Kế hoạch bài dạy Word & Slide PowerPoint
   const handleExportDualPackage = async () => {
+    if(hasPendingEdits){alert("Có thay đổi chưa lưu. Hãy lưu slide trước khi xuất bài.");return;}
     if (!lessonPlan && (!slideDeck || !slideDeck.slides?.length)) {
       alert("Chưa có dữ liệu Kế hoạch bài dạy hoặc Slide để xuất trọn bộ ZIP. Vui lòng bấm 'Sinh Giáo Án Bằng AI' trước!");
       return;
     }
 
-    // Thu thập ảnh chụp 3D WebGL (nếu có)
-    let snapshot3d = null;
-    if (typeof threeCanvasCaptureRef.current === 'function') {
-      try {
-        snapshot3d = threeCanvasCaptureRef.current();
-      } catch (err) {
-        console.warn('[handleExportDualPackage] Lỗi snapshot ref:', err);
-      }
-    }
-    if (!snapshot3d && typeof window !== 'undefined' && typeof window.__threeCanvasCaptureSnapshot === 'function') {
-      try {
-        snapshot3d = window.__threeCanvasCaptureSnapshot();
-      } catch (err) {
-        console.warn('[handleExportDualPackage] Lỗi snapshot window:', err);
-      }
-    }
-
-    const payloadDeck = slideDeck
-      ? {
-          ...slideDeck,
-          slides: (slideDeck.slides || []).map((s, idx) => {
-            const slideCopy = { ...s };
-            if (snapshot3d) {
-              if (slideCopy.has_3d || slideCopy.polyhedron_type) {
-                if (idx === currentSlide || !slideCopy.snapshot_3d_base64) {
-                  slideCopy.snapshot_3d_base64 = snapshot3d;
-                }
-              } else if (idx === currentSlide) {
-                slideCopy.snapshot_3d_base64 = snapshot3d;
-              }
-            }
-            return slideCopy;
-          }),
-          snapshot_3d_base64: snapshot3d || slideDeck.snapshot_3d_base64
-        }
-      : null;
+    const payloadDeck = slideDeck ? structuredClone(slideDeck) : null;
 
     const dualPayload = {
       plan: lessonPlan,

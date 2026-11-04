@@ -22,6 +22,13 @@ from lessonai.llm.gateway import (
 )
 
 
+@pytest.fixture(autouse=True)
+def offline_model_catalog(monkeypatch):
+    """Routing tests use a fixed catalog and must never contact providers."""
+    monkeypatch.setattr(LLMGateway, "get_available_google_models", lambda self: ["gemini-test-primary", "gemini-test-backup", "gemini-test-third"] if self.gemini_key else [])
+    monkeypatch.setattr(LLMGateway, "get_available_groq_models", lambda self: ["llama-test-primary", "llama-test-backup"] if self.groq_key else [])
+
+
 class DummyOutputSchema(BaseModel):
     title: str = Field(description="Tiêu đề bài học")
     latex_formula: str = Field(description="Công thức toán")
@@ -72,8 +79,7 @@ def test_gateway_route_resolution_with_gemini_only(monkeypatch):
     assert len(routes) >= 3
     # Tất cả các route đều là của Google với các model chính thức
     assert all(r.provider_id == "google" for r in routes)
-    assert any("gemini-2.0-flash" in r.model_name for r in routes)
-    assert any("gemini-1.5-flash" in r.model_name for r in routes)
+    assert [r.model_name for r in routes] == ["gemini-test-primary", "gemini-test-backup", "gemini-test-third"]
 
 
 def test_gateway_route_resolution_with_groq_and_gemini(monkeypatch):
@@ -101,7 +107,7 @@ def test_gateway_no_keys_raises_value_error(monkeypatch):
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
 
     gw = LLMGateway()
-    with pytest.raises(ValueError, match="Không tìm thấy API Key nào khả dụng"):
+    with pytest.raises(ValueError, match="Không tìm thấy tuyến LLM khả dụng"):
         gw.generate_structured(
             prompt="Hello",
             system_prompt="Test",
@@ -131,10 +137,15 @@ def test_auto_fallback_when_primary_fails(monkeypatch):
             def generate_content(*args, **kwargs):
                 raise Exception("429 Resource has been exhausted (e.g. check quota)")
 
+    monkeypatch.setattr("lessonai.llm.gateway.time.sleep", lambda _: None)
     gw.google_client = FailingGoogleClient()  # type: ignore[assignment]
 
     # Giả lập Groq Client trả về kết quả hợp lệ
     class SuccessGroqClient:
+        def with_options(self, **options):
+            assert 0 < options["timeout"] <= 20
+            assert options["max_retries"] == 0
+            return self
         class chat:
             class completions:
                 @staticmethod

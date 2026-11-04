@@ -106,7 +106,7 @@ def test_ingest_api_invalid_extension_and_empty_file():
         "/api/v1/ingest/parse-document",
         files={"file": ("bai_giang.txt", b"Noi dung text", "text/plain")}
     )
-    assert res_invalid.status_code == 400
+    assert res_invalid.status_code == 415
 
     # 2. File đúng đuôi .docx nhưng rỗng (0 bytes)
     res_empty = client.post(
@@ -118,3 +118,19 @@ def test_ingest_api_invalid_extension_and_empty_file():
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "-s"])
+
+@pytest.fixture(autouse=True)
+def generated_office_fixtures(tmp_path,monkeypatch):
+    """Portable real Office files built for tests; no local untracked resources required."""
+    from docx import Document
+    from pptx import Presentation
+    from pptx.util import Inches
+    doc=Document();doc.add_heading('Bài kiểm tra nhập tài liệu',0)
+    doc.add_paragraph('Nội dung được chuẩn bị để kiểm tra bảo toàn đoạn văn và công thức trong tài liệu của giáo viên. Đây là dữ liệu kiểm thử, không được đưa vào sản phẩm.')
+    table=doc.add_table(rows=2,cols=2);table.cell(0,0).text='Điều kiện';table.cell(1,0).text='x > 0'
+    doc_path=tmp_path/'source.docx';doc.save(doc_path)
+    prs=Presentation();page=prs.slides.add_slide(prs.slide_layouts[5]);page.shapes.title.text='Tài liệu kiểm thử'
+    page.shapes.add_textbox(Inches(1),Inches(2),Inches(8),Inches(2)).text='Nội dung dùng kiểm tra bộ nhập slide: giữ đúng thứ tự văn bản được cung cấp.'
+    pptx_path=tmp_path/'source.pptx';prs.save(pptx_path)
+    monkeypatch.setattr(__import__(__name__), 'DOCX_SAMPLE',doc_path)
+    monkeypatch.setattr(__import__(__name__), 'PPTX_SAMPLE',pptx_path)

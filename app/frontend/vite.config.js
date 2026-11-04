@@ -14,6 +14,7 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    emptyOutDir: true
+    emptyOutDir: true,
+    rollupOptions: { output: { manualChunks: { mathlive: ['mathlive'], geometry: ['three'], math: ['katex'] } } }
   }
 });

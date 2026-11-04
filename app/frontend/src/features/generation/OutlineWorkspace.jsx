@@ -120,7 +120,7 @@ export default function OutlineWorkspace({
       ...updated[idx],
       visual_type: newVis,
       has_3d: is3d,
-      polyhedron_type: is3d ? (updated[idx].polyhedron_type || 'pyramid_square') : null
+      polyhedron_type: is3d ? (updated[idx].polyhedron_type || null) : null
     };
     setOutline({ ...outline, outline_slides: updated });
   };
@@ -139,7 +139,7 @@ export default function OutlineWorkspace({
   const handleAddBullet = (slideIdx) => {
     const updated = [...slides];
     const targetSlide = { ...updated[slideIdx] };
-    const bullets = [...(targetSlide.bullet_points || targetSlide.key_points || []), 'Ý kiến trọng tâm mới...'];
+    const bullets = [...(targetSlide.bullet_points || targetSlide.key_points || []), ''];
     targetSlide.bullet_points = bullets;
     targetSlide.key_points = bullets;
     updated[slideIdx] = targetSlide;

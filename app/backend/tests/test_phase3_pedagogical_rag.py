@@ -68,28 +68,22 @@ def test_differentiation_by_proficiency(retriever):
 
 
 def test_pedagogical_context_builder_lesson_plan():
-    """Kiểm tra đóng gói ngữ cảnh cho Giáo án CV 5512"""
-    ctx, refs = PedagogicalContextBuilder.build_lesson_plan_context("M12-C3-B2", proficiency="standard")
-    
-    assert "=== NGỮ CẢNH SƯ PHẠM TOÁN 12" in ctx
-    assert "[I. MỤC TIÊU YÊU CẦU CẦN ĐẠT" in ctx
-    assert "[II. TÌNH HUỐNG KHỞI ĐỘNG THỰC TẾ" in ctx
-    assert "[IV. BÀI TẬP VÀ VÍ DỤ GIẢI MẪU THẬT" in ctx
-    assert len(refs) >= 4, "Danh sách source_refs không đủ đại diện"
-    
-    # Kiểm tra source_refs có chứa curriculum, slide và question
-    source_types = {r.get("source_type") for r in refs}
-    assert "curriculum" in source_types
-    assert "slide_kntt12" in source_types
-    assert "question_bank_rag" in source_types
+    import json
+    from lessonai.rag.context_builder import PedagogicalContextBuilder
+    text,refs=PedagogicalContextBuilder.build_lesson_plan_context('M12-C3-B2')
+    envelope=json.loads(text)
+    assert envelope['curriculum']['lesson_id']=='M12-C3-B2'
+    assert all(unit['sha256'] for unit in envelope['source_units'])
+    assert len(refs)==len(envelope['source_units'])
+    assert 'chưa được duyệt' in envelope['notice']
 
 
 def test_pedagogical_context_builder_slide_deck():
-    """Kiểm tra đóng gói ngữ cảnh cho Bộ Slide bài giảng"""
-    ctx, refs = PedagogicalContextBuilder.build_slide_deck_context("M12-C3-B1", proficiency="standard")
-    
-    assert "=== NGỮ CẢNH SƯ PHẠM TOÁN 12 - THIẾT KẾ SLIDE BÀI GIẢNG ===" in ctx
-    assert "[CẤU TRÚC SLIDE MẪU TỪ KHO KNTT 12 ĐÃ LÀM SẠCH" in ctx
-    assert "[NGÂN HÀNG CÂU HỎI THẬT CÓ LỜI GIẢI 3 BƯỚC & BẪY TRẮC NGHIỆM]" in ctx
-    assert "worked_solution_steps" in ctx or "Bước giải" in ctx
-    assert len(refs) >= 5
+    import json
+    from lessonai.rag.context_builder import PedagogicalContextBuilder
+    text,refs=PedagogicalContextBuilder.build_slide_deck_context('M12-C3-B2')
+    envelope=json.loads(text)
+    assert envelope['curriculum']['lesson_id']=='M12-C3-B2'
+    assert all(unit['sha256'] for unit in envelope['source_units'])
+    assert len(refs)==len(envelope['source_units'])
+    assert 'chưa được duyệt' in envelope['notice']

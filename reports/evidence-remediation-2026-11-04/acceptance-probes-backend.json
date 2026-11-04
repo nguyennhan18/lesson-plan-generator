@@ -1,0 +1,21 @@
+{
+  "stage": "runtime-upgrade",
+  "mode": "acceptance",
+  "checks": {
+    "no_sample_endpoint": true,
+    "unsafe_expression_rejected": true,
+    "confirmed_graph_png": true,
+    "wrong_numeric_solution_failed": true,
+    "domain_change_unverified": true,
+    "geometry_satisfies_input": true,
+    "quality_gate_blocks_wrong_step": true,
+    "approval_cannot_override_error": true,
+    "error_has_request_id": true
+  },
+  "pass": true,
+  "elapsed_seconds": 7.702,
+  "limits": [
+    "Không chứng nhận đúng toán ngoài phạm vi kiểm định",
+    "Chưa thay giáo viên duyệt chuyên môn"
+  ]
+}

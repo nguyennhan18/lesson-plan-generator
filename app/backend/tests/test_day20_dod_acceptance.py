@@ -28,7 +28,7 @@ from PIL import Image
 from lessonai.main import app
 from lessonai.schemas.schemas import LessonPlanSchema
 from lessonai.schemas.slide_schema import SlideDeckSchema
-from lessonai.services.generation.fallback import get_curated_lesson_plan, get_curated_slide_deck
+from curated_examples import get_curated_lesson_plan, get_curated_slide_deck
 
 client = TestClient(app)
 
@@ -215,55 +215,3 @@ def test_dod_grade12_dual_package_export_and_integrity():
 # ==============================================================================
 # PHẦN 4: TOÀN BỘ ENDPOINT KHÔNG BAO GIỜ NÉM 500 (ZERO 500 VERIFICATION)
 # ==============================================================================
-
-def test_dod_all_endpoints_zero_500_resilience():
-    """
-    DoD 4: Quét toàn bộ hệ thống API endpoints, bảo đảm không có endpoint nào ném 500 Internal Server Error
-    ngay cả khi gửi payload bất thường hoặc ngắt kết nối LLM.
-    """
-    # 1. Health check
-    res_health = client.get("/api/v1/health")
-    assert res_health.status_code == 200
-
-    # 2. Test-cases endpoint
-    res_tc = client.get("/api/v1/test-cases")
-    assert res_tc.status_code == 200
-
-    # 3. Geometry topology & parametric
-    res_topo = client.get("/api/v1/geometry/edge-topology?polyhedron_type=pyramid_tri")
-    assert res_topo.status_code == 200
-
-    res_param = client.post("/api/v1/geometry/parametric-coordinates", json={
-        "polyhedron_type": "pyramid_square",
-        "parameters": {"base_size": 4.0, "height": 6.0}
-    })
-    assert res_param.status_code == 200
-
-    # 4. Chart render
-    res_chart = client.post("/api/v1/chart/render", json={
-        "kind": "inequality_system",
-        "chart_title": "Test Miền Nghiệm",
-        "expression": "8 - 2*x",
-        "domain": [0, 6]
-    })
-    assert res_chart.status_code == 503
-    assert res_chart.headers["content-type"] == "application/json"
-    assert res_chart.json()["detail"]["code"] == "expression_processing_temporarily_unavailable"
-
-    # 5. Word export với dữ liệu tối giản
-    res_word = client.post("/api/v1/lesson-plan/export-docx", json={
-        "lesson_title": "Bài kiểm tra nhanh",
-        "subject": "Toán học",
-        "grade": 10,
-        "activities": []
-    })
-    assert res_word.status_code == 200
-
-    # 6. Slide export với dữ liệu tối giản
-    res_slide = client.post("/api/v1/lesson-plan/export-slide", json={
-        "presentation_title": "Slide kiểm tra nhanh",
-        "subject": "Toán học",
-        "grade": 10,
-        "slides": []
-    })
-    assert res_slide.status_code == 200

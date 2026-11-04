@@ -737,14 +737,15 @@ def verify_math_with_sympy_in_slide(slide: Dict[str, Any], slide_index: int) -> 
                         for match in _MATH_SEGMENT_REGEX.finditer(str(val)):
                             candidate_formulas.append((match.group(0), f"quiz_options[{q_idx}].{key}"))
 
-    # M0: do not present a disabled symbolic check as a successful verification.
-    if candidate_formulas or slide.get("worked_solution_steps"):
-        from lessonai.core.feature_availability import EXPRESSION_UNAVAILABLE_MESSAGE
-        warnings.append(SlideWarningItem(
-            slide_index=slide_index, field="math", category="algebra_unverified",
-            severity="warning", message=EXPRESSION_UNAVAILABLE_MESSAGE,
-            suggestion="Giáo viên cần kiểm tra công thức và các bước giải trước khi sử dụng.",
-        ))
+    from lessonai.services.content_quality import math_fields, check_formula
+    for field, formula in math_fields(slide):
+        result = check_formula(formula)
+        if result["status"] != "verified":
+            warnings.append(SlideWarningItem(
+                slide_index=slide_index, field=field,
+                category="algebra_error" if result["status"] == "failed" else "algebra_unverified",
+                severity="error" if result["status"] == "failed" else "warning",
+                message=result["reason"], suggestion="Đối chiếu công thức và điều kiện với đề bài."))
 
     return warnings
 

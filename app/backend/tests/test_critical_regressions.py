@@ -42,6 +42,8 @@ def deck_with_chart(expression=MARKER):
 
 @pytest.fixture(autouse=True)
 def marker_guard():
+    from lessonai.exporters.graph_generator import _cached_render
+    _cached_render.cache_clear()
     assert not hasattr(builtins, "lessonM0Marker")
     yield
     marker_set = hasattr(builtins, "lessonM0Marker")
@@ -54,13 +56,13 @@ def marker_guard():
 def test_m0_rejects_expression_before_all_graph_entry_points(kind):
     spec = {"kind": kind, "expression": MARKER, "boundary_lines": [{"expr": MARKER}]}
     assert is_plottable(spec) is False
-    with pytest.raises(ExpressionProcessingUnavailable):
+    with pytest.raises(ValueError):
         safe_eval_expression(MARKER)
-    with pytest.raises(ExpressionProcessingUnavailable):
+    with pytest.raises(ValueError):
         generate_math_plot(spec)
     response = client.post("/api/v1/chart/render", json=spec)
-    assert response.status_code == 503
-    assert response.json()["detail"]["code"] == "expression_processing_temporarily_unavailable"
+    assert response.status_code in (409, 422)
+    assert response.json()["detail"]["code"] != "expression_processing_temporarily_unavailable"
 
 
 def test_m0_enrich_keeps_draft_and_removes_stale_chart():
@@ -71,7 +73,7 @@ def test_m0_enrich_keeps_draft_and_removes_stale_chart():
     slide = response.json()["slides"][0]
     assert slide["chart_spec"] == deck["slides"][0]["chart_spec"]
     assert slide["bullet_points"] == deck["slides"][0]["bullet_points"]
-    assert slide["chart_render_status"] == "temporarily_unavailable"
+    assert slide["chart_render_status"] == "needs_review"
     assert "chart_image_base64" not in slide
     assert slide["has_chart"] is False
 
@@ -83,7 +85,7 @@ def test_m0_export_keeps_lesson_and_labels_unavailable_chart():
     pptx = Presentation(stream)
     text = " ".join(shape.text for shape in pptx.slides[0].shapes if shape.has_text_frame)
     assert "Họ nguyên hàm" in text
-    assert "BẢN NHÁP" in text and "Đồ thị đang tạm ngắt" in text
+    assert "BẢN NHÁP" in text and "cần kiểm tra" in text
     assert deck == original
 
 
@@ -247,9 +249,9 @@ def test_review_clis_run_acceptance_without_overwriting_history(tmp_path):
         result = subprocess.run(command, cwd=tmp_path, env=env, capture_output=True, text=True, timeout=60)
         assert result.returncode == 0, result.stdout + result.stderr
     evidence = json.loads(frontend_output.read_text())
-    assert all(evidence["m0_checks"].values())
-    assert all(evidence["frontend_m0_checks"].values())
-    assert evidence["editor_add_slide_export"]["status"] == 422  # R05 is still open.
+    assert all(evidence["checks"].values())
+    assert all(evidence["frontend_checks"].values())
+    assert evidence["pass"] is True
     for command, output in ((backend, backend_output), (frontend, frontend_output)):
         previous = output.read_bytes()
         result = subprocess.run(command, cwd=tmp_path, env=env, capture_output=True, text=True, timeout=60)

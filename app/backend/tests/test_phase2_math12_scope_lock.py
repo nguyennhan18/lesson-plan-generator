@@ -30,7 +30,7 @@ def test_auto_infer_lesson_id_across_curriculum():
         ("Tích phân và định lý Newton - Leibniz", "M12-C4-B2"),
         ("Phương trình mặt phẳng trong không gian Oxyz", "M12-C5-B1"),
         ("Công thức xác suất toàn phần và công thức Bayes", "M12-C6-B2"),
-        ("Chủ đề bất kỳ chưa xác định", "M12-C1-B1"),  # Fallback an toàn
+        ("Chủ đề bất kỳ chưa xác định", None),  # Fallback an toàn
     ]
 
     for topic, expected_lid in test_mappings:
@@ -55,16 +55,5 @@ def test_slide_schema_source_refs_and_pedagogical_mode():
     assert slide.pedagogical_mode == "Hoạt động thảo luận cặp đôi (3 phút)"
 
 
-def test_api_test_cases_endpoint_returns_math12():
-    """Kiểm tra API /api/v1/test-cases trả về danh sách 10 bài test chuẩn Toán 12"""
-    resp = client.get("/api/v1/test-cases")
-    assert resp.status_code == 200
-    data = resp.json()
-    assert isinstance(data, list)
-    assert len(data) == 10
-    
-    # 100% test cases phải thuộc Toán 12
-    for tc in data:
-        assert tc["subject"] == "Toán học"
-        assert tc["grade"] == 12
-        assert tc["lesson_id"].startswith("M12-")
+def test_api_test_cases_endpoint_is_not_public():
+    assert client.get("/api/v1/test-cases").status_code == 404

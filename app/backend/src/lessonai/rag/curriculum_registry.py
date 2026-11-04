@@ -85,17 +85,17 @@ class CurriculumRegistry:
         Hỗ trợ:
         - Nhập mã trực tiếp: 'M12-C1-B1' -> 'M12-C1-B1'
         - Nhập tên bài / từ khóa tự do: 'Khảo sát hàm số' -> 'M12-C1-B4'
-        - Fallback an toàn: 'M12-C1-B1'
+        - Không xác định: trả None, không gán bài thay thế
         """
-        if not topic:
-            return "M12-C1-B1"
+        if not topic or not topic.strip():
+            return None
 
         raw = topic.strip()
         
         # 1. Nếu người dùng nhập trực tiếp mã bài học
         norm_code = raw.upper().replace(" ", "").replace("_", "-")
         for lid in self.lessons_by_id.keys():
-            if norm_code == lid or norm_code in lid:
+            if norm_code == lid:
                 return lid
 
         # 2. Chuẩn hóa chuỗi tìm kiếm (chữ thường)
@@ -121,7 +121,7 @@ class CurriculumRegistry:
             # Chương 4
             (["nguyên hàm", "bảng nguyên hàm", "họ nguyên hàm"], "M12-C4-B1"),
             (["tích phân", "newton-leibniz", "cận tích phân"], "M12-C4-B2"),
-            (["diện tích hình phẳng", "thể tích khối tròn xoay", "ứng dụng tích phân", "hình phẳng"], "M12-C4-B3"),
+            (["diện tích hình phẳng", "thể tích khối tròn xoay", "ứng dụng tích phân", "ứng dụng hình học của tích phân", "hình phẳng"], "M12-C4-B3"),
             
             # Chương 5
             (["mặt phẳng", "phương trình mặt phẳng", "vectơ pháp tuyến", "khoảng cách đến mặt phẳng"], "M12-C5-B1"),
@@ -129,22 +129,23 @@ class CurriculumRegistry:
             (["mặt cầu", "phương trình mặt cầu", "bán kính mặt cầu", "tâm mặt cầu", "góc trong không gian"], "M12-C5-B3"),
             
             # Chương 6
-            (["xác suất có điều kiện", "công thức nhân xác suất", "điều kiện"], "M12-C6-B1"),
+            (["xác suất có điều kiện", "công thức nhân xác suất"], "M12-C6-B1"),
             (["xác suất toàn phần", "công thức bayes", "bayes", "toàn phần"], "M12-C6-B2"),
 
             # Chuyên đề THPT & hình học 3D
             (["thể tích khối chóp", "khối lăng trụ", "khối đa diện", "hình lập phương", "hình chóp"], "M12-CD-B1"),
-            (["mặt nón", "mặt trụ", "khối nón", "khối trụ", "mũ", "logarit", "mũ và logarit"], "M12-CD-B2"),
+            (["mặt nón", "mặt trụ", "khối nón", "khối trụ", "hàm số mũ", "logarit", "mũ và logarit"], "M12-CD-B2"),
 
             # Trường hợp bài toán phổ thông khác (VD: Phương trình bậc hai -> M12-C1-B1)
-            (["phương trình bậc hai", "bậc hai", "tam thức"], "M12-C1-B1"),
-            (["cấp số cộng", "cấp số nhân", "dãy số"], "M12-C1-B1")
+
+
         ]
 
-        for keywords, target_lid in SPECIFIC_MAPPINGS:
-            for kw in keywords:
-                if kw in q:
-                    return target_lid
+        matches = [(len(kw), target_lid) for keywords, target_lid in SPECIFIC_MAPPINGS for kw in keywords if kw in q]
+        if matches:
+            matches.sort(reverse=True)
+            if len(matches) == 1 or matches[0][0] > matches[1][0] or matches[0][1] == matches[1][1]:
+                return matches[0][1]
 
         # 3. So khớp từ khóa với metadata trong curriculum registry
         STOP_WORDS = {"bài", "chủ", "đề", "của", "và", "các", "một", "số", "trong", "để", "cho", "với", "là", "tìm", "về", "có", "những"}
@@ -167,8 +168,7 @@ class CurriculumRegistry:
         if best_match and max_score >= 5:
             return best_match
 
-        # 4. Fallback mặc định
-        return "M12-C1-B1"
+        return None
 
 
 def infer_lesson_id(topic: Optional[str]) -> str:

@@ -1,0 +1,90 @@
+GEMINI_API_KEY= GROQ_API_KEY= OPENROUTER_API_KEY= app/backend/venv/bin/python -m pytest -c app/backend/pyproject.toml app/backend/tests
+============================= test session starts ==============================
+platform darwin -- Python 3.13.7, pytest-9.1.1, pluggy-1.6.0
+rootdir: /Users/nguyennhan18/Documents/Lesson-Plan-Generator/app/backend
+configfile: pyproject.toml
+plugins: anyio-4.14.2
+collected 353 items
+
+app/backend/tests/test_critical_regressions.py ......................    [  6%]
+app/backend/tests/test_day10_pedagogical_linter.py ........              [  8%]
+app/backend/tests/test_day11_3d_geometry.py ..                           [  9%]
+app/backend/tests/test_day12_parametric_modeling.py ..                   [  9%]
+app/backend/tests/test_day13_hidden_lines_and_views.py ...               [ 10%]
+app/backend/tests/test_day14_snapshot_to_pptx.py .......                 [ 12%]
+app/backend/tests/test_day15_presentation_mode.py ......                 [ 14%]
+app/backend/tests/test_day16_interactive_quiz.py ..........              [ 16%]
+app/backend/tests/test_day17_annotation_canvas.py ............           [ 20%]
+app/backend/tests/test_day18_slide_exporter.py .......................   [ 26%]
+app/backend/tests/test_day19_dual_mode_export.py ..................      [ 32%]
+app/backend/tests/test_day20_dod_acceptance.py ...                       [ 32%]
+app/backend/tests/test_day20_edge_cases_hardening.py .................   [ 37%]
+app/backend/tests/test_day20_end_to_end_pipeline.py ...............      [ 41%]
+app/backend/tests/test_day2_differentiation.py s                         [ 42%]
+app/backend/tests/test_day3_parsers.py .....                             [ 43%]
+app/backend/tests/test_day4_classifier.py .......................        [ 50%]
+app/backend/tests/test_day6_chat.py ......                               [ 51%]
+app/backend/tests/test_day7_patching.py .....                            [ 53%]
+app/backend/tests/test_day8_mathlive.py ......                           [ 54%]
+app/backend/tests/test_day9_twoway_sync.py ......                        [ 56%]
+app/backend/tests/test_fallback.py .......                               [ 58%]
+app/backend/tests/test_gateway_model_routing.py ..                       [ 59%]
+app/backend/tests/test_m0_baseline_and_lint.py ....                      [ 60%]
+app/backend/tests/test_m1_math_expression.py ........................... [ 67%]
+..................................................                       [ 82%]
+app/backend/tests/test_package_contract.py ...                           [ 83%]
+app/backend/tests/test_phase2_math12_scope_lock.py ....                  [ 84%]
+app/backend/tests/test_phase3_pedagogical_rag.py ......                  [ 85%]
+app/backend/tests/test_phase4_rag_pipeline_and_fallback.py ..            [ 86%]
+app/backend/tests/test_phase5_e2e_rag_system.py ..                       [ 86%]
+app/backend/tests/test_presentation_outline.py ...                       [ 87%]
+app/backend/tests/test_remediation_runtime.py ...................        [ 93%]
+app/backend/tests/test_remediation_workflows.py ....................     [ 98%]
+app/backend/tests/test_schema.py ....                                    [100%]
+
+======================= 352 passed, 1 skipped in 50.30s ========================
+npm --prefix app/frontend test
+
+> quantum-studio-frontend@6.0.0 test
+> node --test tests/*.test.js
+
+✔ plotter keeps untrusted input as text and never evaluates it locally (13.809708ms)
+✔ M1 missing expression never invents a default polynomial or a graph (2.979125ms)
+✔ M0 handleExportDocx reads JSON errors at HTTP 503 and preserves the draft (0.93925ms)
+✔ M0 handleExportDocx reads JSON errors at HTTP 200 and preserves the draft (0.1655ms)
+✔ M0 handleExportPptx reads JSON errors at HTTP 503 and preserves the draft (0.160333ms)
+✔ M0 handleExportPptx reads JSON errors at HTTP 200 and preserves the draft (0.130333ms)
+✔ M0 handleExportDualPackage reads JSON errors at HTTP 503 and preserves the draft (0.168ms)
+✔ M0 handleExportDualPackage reads JSON errors at HTTP 200 and preserves the draft (0.09275ms)
+✔ migration preserves unknown content and metadata and rejects alias conflicts (4.98125ms)
+✔ reorder preserves identity and annotations; edits invalidate only their images and review (0.32475ms)
+✔ new confirmations survive their own save; changing a question resets only its poll (0.147541ms)
+✔ Word sends lesson and slides together, downloads DOCX and releases the URL (3.717125ms)
+✔ Word supports a lesson without slides (0.388625ms)
+✔ PowerPoint sends an immutable deck and never propagates the current view (0.329458ms)
+✔ PowerPoint ignores the deprecated global browser capture (0.243417ms)
+✔ ZIP sends both documents and preserves existing snapshots without a capture (0.398166ms)
+✔ ZIP supports a lesson without slides (0.556583ms)
+✔ handleExportDocx stops when required data is missing (0.59625ms)
+✔ handleExportDocx reports HTTP errors without downloading (0.320666ms)
+✔ handleExportPptx stops when required data is missing (0.108ms)
+✔ handleExportPptx reports HTTP errors without downloading (0.156875ms)
+✔ handleExportDualPackage stops when required data is missing (0.080833ms)
+✔ handleExportDualPackage reports HTTP errors without downloading (0.105875ms)
+✔ presentation navigation stays within slide bounds and ignores editable fields (1.34625ms)
+✔ presentation synchronizes fullscreen state and removes browser listeners (0.749459ms)
+✔ blackout Escape clears blackout before leaving presentation (0.456042ms)
+✔ presentation shortcut toggles blackout and tool docks (1.820166ms)
+✔ generation calls lesson then slides with the returned plan and updates App state (0.651375ms)
+✔ generation restores loading state after lesson HTTP failure (0.386333ms)
+✔ generation restores loading state after slides HTTP failure (0.140583ms)
+✔ outline request preserves configuration and normalizes response fields (4.358917ms)
+✔ outline preserves the draft and clears loading on network failure (0.381416ms)
+ℹ tests 32
+ℹ suites 0
+ℹ pass 32
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 244.047333

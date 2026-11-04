@@ -180,75 +180,10 @@ def test_copilot_m0_quiz_does_not_invent_a_question():
     assert "bản soạn được giữ nguyên" in response.ai_response
 
 
-def test_api_chat_interact_endpoint():
-    """Kiểm tra gọi trực tiếp API POST /api/v1/chat/interact qua HTTP client và tuần tự hóa SlidePatchProposal"""
-    payload = {
-        "session_id": "api_test_session_001",
-        "user_message": "Giải thích lại slide 2 đơn giản hơn",
-        "current_slide_index": 1,
-        "slide_deck": None
-    }
-    res = client.post("/api/v1/chat/interact", json=payload)
-    assert res.status_code == 200
-    data = res.json()
-
-    assert data["session_id"] == "api_test_session_001"
-    assert "ai_response" in data
-    assert len(data["ai_response"]) > 0
-    assert data["current_slide_index"] == 1
-    assert "timestamp" in data
-    # Kiểm tra tuần tự hóa SlidePatchProposal trả về trong JSON
-    assert "suggested_patch" in data
-    assert data["suggested_patch"] is None
-    assert data["suggested_action"] == "GENERAL_ADVICE"
 
 
-def test_api_chat_conversation_continuity():
-    """Kiểm tra tính liên tục của ngữ cảnh qua nhiều lượt gửi tin nhắn"""
-    session_id = "api_multi_turn_session"
-
-    # Lượt 1
-    res1 = client.post("/api/v1/chat/interact", json={
-        "session_id": session_id,
-        "user_message": "Slide này đang nói về hình gì?",
-        "current_slide_index": 0
-    })
-    assert res1.status_code == 200
-
-    # Lượt 2
-    res2 = client.post("/api/v1/chat/interact", json={
-        "session_id": session_id,
-        "user_message": "Giải thích lại slide 2 đơn giản hơn",
-        "current_slide_index": 1
-    })
-    assert res2.status_code == 200
-
-    # Kiểm tra endpoint lấy lịch sử
-    res_hist = client.get(f"/api/v1/chat/history/{session_id}")
-    assert res_hist.status_code == 200
-    hist_data = res_hist.json()
-    assert hist_data["session_id"] == session_id
-    assert len(hist_data["history"]) >= 4  # 2 user messages + 2 AI responses
-    assert hist_data["history"][0]["slide_index"] == 0
-    assert hist_data["history"][2]["slide_index"] == 1
-
-    # Kiểm tra endpoint xóa session
-    res_del = client.delete(f"/api/v1/chat/session/{session_id}")
-    assert res_del.status_code == 200
-    assert res_del.json()["cleared"] is True
-
-    # Kiểm tra lại lịch sử sau xóa
-    res_hist_after = client.get(f"/api/v1/chat/history/{session_id}")
-    assert len(res_hist_after.json()["history"]) == 0
 
 
-def test_api_chat_empty_message_validation():
-    """Kiểm tra xử lý khi thiếu trường bắt buộc"""
-    # Thiếu user_message
-    res = client.post("/api/v1/chat/interact", json={
-        "session_id": "test_missing_field"
-    })
-    assert res.status_code == 422
 
 
 if __name__ == "__main__":

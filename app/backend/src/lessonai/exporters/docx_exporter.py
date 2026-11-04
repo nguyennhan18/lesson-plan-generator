@@ -289,149 +289,19 @@ def synchronize_lesson_and_slide_deck(
     - Cập nhật công thức toán học trọng tâm vào Hoạt động 2
     - Tích hợp toàn bộ câu hỏi trắc nghiệm, bẫy sai lầm và lời giải tự luận vào Hoạt động 3
     """
-    # 1. Trích xuất hoặc khởi tạo plan
-    plan_dict = {}
+    # Preserve the reviewed input; export never invents missing teaching activities.
+    import copy
     if isinstance(plan_input, LessonPlanSchema):
         plan_dict = plan_input.model_dump()
     elif isinstance(plan_input, dict):
-        if "plan" in plan_input and isinstance(plan_input["plan"], (dict, LessonPlanSchema)):
-            sub_plan = plan_input["plan"]
-            plan_dict = sub_plan.model_dump() if isinstance(sub_plan, LessonPlanSchema) else dict(sub_plan)
-            if not slide_deck and "slide_deck" in plan_input:
-                slide_deck = plan_input["slide_deck"]
-        else:
-            plan_dict = dict(plan_input)
+        plan_dict = copy.deepcopy(plan_input.get("plan", plan_input))
+        slide_deck = slide_deck or plan_input.get("slide_deck")
     else:
-        plan_dict = {}
-
-    # Trích xuất slide deck elements
-    if not slide_deck:
-        if "slide_deck" in plan_dict:
-            slide_deck = plan_dict.pop("slide_deck")
-        elif "slides" in plan_dict:
-            slide_deck = {"slides": plan_dict.get("slides")}
-
-    deck_info = _extract_slide_deck_elements(slide_deck)
-
-    # 2. Đồng bộ Tiêu đề, Môn, Lớp
-    if not plan_dict.get("lesson_title") or plan_dict["lesson_title"] == "Kế hoạch bài dạy":
-        plan_dict["lesson_title"] = deck_info["presentation_title"] or "KẾ HOẠCH BÀI DẠY TOÁN HỌC"
-    if not plan_dict.get("subject"):
-        plan_dict["subject"] = deck_info["subject"] or "Toán học"
-    if not plan_dict.get("grade"):
-        plan_dict["grade"] = deck_info["grade"] or 11
-
-    # 3. Đồng bộ Thiết bị dạy học và học liệu (Phần II)
-    equipment = list(plan_dict.get("teaching_equipment") or [])
-    if deck_info["visual_models"]:
-        has_3d_any = any(vm["has_3d"] for vm in deck_info["visual_models"])
-        if has_3d_any:
-            eq_3d_text = "Mô hình Hình học không gian 3D tương tác WebGL (Three.js chuẩn SGK)"
-            if not any(eq_3d_text in e for e in equipment):
-                equipment.append(eq_3d_text)
-        has_chart_any = any(vm["has_chart"] for vm in deck_info["visual_models"])
-        if has_chart_any:
-            eq_chart_text = "Phần mềm đồ họa trực quan hóa đồ thị toán học (Matplotlib Native)"
-            if not any(eq_chart_text in e for e in equipment):
-                equipment.append(eq_chart_text)
-
-    eq_studio_text = "Bài giảng điện tử tương tác chuẩn Web Studio & Slide PowerPoint (LessonAI-5512)"
-    if not any(eq_studio_text in e for e in equipment):
-        equipment.append(eq_studio_text)
-    plan_dict["teaching_equipment"] = equipment
-
-    # 4. Kiểm tra và bổ sung danh sách 4 Hoạt động chuẩn CV 5512 nếu chưa có
-    activities = plan_dict.get("activities") or []
-    if len(activities) < 4:
-        default_acts = [
-            {
-                "activity_number": 1,
-                "time_minutes": 5,
-                "goal": "Tạo hứng thú, kích hoạt kiến thức nền tảng và dẫn dắt học sinh vào bài học mới.",
-                "expected_product": "Câu trả lời của học sinh cho bài toán khởi động và sự sẵn sàng tiếp thu bài học.",
-                "execution": {
-                    "step_1_assign": "GV trình chiếu slide khởi động, giao tình huống thực tế hoặc câu hỏi gợi mở cho HS.",
-                    "step_2_excute": "HS quan sát slide, suy nghĩ độc lập hoặc trao đổi nhanh theo bàn.",
-                    "step_3_report": "Đại diện 1-2 HS phát biểu câu trả lời; các HS khác nhận xét, bổ sung.",
-                    "step_4_conclusion": "GV nhận xét câu trả lời, dẫn dắt và công bố mục tiêu của bài học mới."
-                }
-            },
-            {
-                "activity_number": 2,
-                "time_minutes": 20,
-                "goal": "Hình thành định nghĩa, tính chất, định lý và công thức toán học trọng tâm của bài học.",
-                "expected_product": "Học sinh hiểu và ghi chép đầy đủ định nghĩa, công thức toán học trọng tâm vào vở.",
-                "execution": {
-                    "step_1_assign": "GV trình chiếu slide lý thuyết, hướng dẫn HS quan sát mô hình trực quan và đọc SGK.",
-                    "step_2_excute": "HS thảo luận nhóm, thực hiện các yêu cầu khám phá, rút ra nhận xét toán học.",
-                    "step_3_report": "Đại diện nhóm báo cáo kết quả phát hiện tính chất; các nhóm khác phản biện.",
-                    "step_4_conclusion": "GV chuẩn hóa kiến thức, chốt công thức toán trọng tâm và hướng dẫn ghi nhớ."
-                }
-            },
-            {
-                "activity_number": 3,
-                "time_minutes": 15,
-                "goal": "Vận dụng kiến thức vừa học giải quyết hệ thống câu hỏi trắc nghiệm rèn luyện và ví dụ tự luận chuẩn mực SGK.",
-                "expected_product": "Đáp án các câu hỏi trắc nghiệm rèn luyện và lời giải chi tiết từng bước của bài tập tự luận.",
-                "execution": {
-                    "step_1_assign": "GV trình chiếu các câu hỏi trắc nghiệm và bài tập ví dụ từ Slide Studio, yêu cầu HS làm bài.",
-                    "step_2_excute": "HS làm việc cá nhân, tính toán cẩn thận và ghi các bước giải vào vở bài tập.",
-                    "step_3_report": "HS xung phong trả lời phương án trắc nghiệm hoặc lên bảng trình bày bài giải tự luận.",
-                    "step_4_conclusion": "GV phân tích bẫy sai lầm của các phương án nhiễu, chốt đáp án đúng và các bước giải tự luận chuẩn mực."
-                }
-            },
-            {
-                "activity_number": 4,
-                "time_minutes": 5,
-                "goal": "Vận dụng kiến thức bài học để giải quyết bài toán thực tế liên môn và giao nhiệm vụ tự học.",
-                "expected_product": "Ý tưởng giải quyết bài toán thực tế và kế hoạch tự học, chuẩn bị bài mới ở nhà.",
-                "execution": {
-                    "step_1_assign": "GV giao nhiệm vụ vận dụng thực tế trên slide dặn dò, hướng dẫn cách thực hiện tại nhà.",
-                    "step_2_excute": "HS lắng nghe, ghi chép nhiệm vụ và thắc mắc (nếu có) để GV giải đáp.",
-                    "step_3_report": "Báo cáo sản phẩm vận dụng vào tiết học tiếp theo hoặc nộp qua hệ thống học tập.",
-                    "step_4_conclusion": "GV đánh giá tinh thần học tập trong tiết học, dặn dò ôn tập và kết thúc bài học."
-                }
-            }
-        ]
-        # Bổ sung các hoạt động còn thiếu
-        for i in range(len(activities), 4):
-            activities.append(default_acts[i])
-        plan_dict["activities"] = activities
-
-    # 5. Đồng bộ Hoạt động 2 với Công thức Toán trọng tâm
-    if deck_info["concept_formulas"] and len(plan_dict["activities"]) >= 2:
-        act2 = plan_dict["activities"][1]
-        formula_strs = [cf["formula"] for cf in deck_info["concept_formulas"] if cf.get("formula")]
-        if formula_strs:
-            f_summary = " • Công thức trọng tâm: " + "; ".join(f"${f}$" for f in formula_strs)
-            if f_summary not in str(act2.get("expected_product", "")):
-                act2["expected_product"] = (str(act2.get("expected_product", "")) + "\n" + f_summary).strip()
-
-    # 6. Đồng bộ Hoạt động 3 với Câu hỏi Trắc nghiệm & Lời giải Tự luận
-    if len(plan_dict["activities"]) >= 3:
-        act3 = plan_dict["activities"][2]
-        sync_notes = []
-        if deck_info["quiz_items"]:
-            q_count = len(deck_info["quiz_items"])
-            sync_notes.append(f"- Hệ thống {q_count} câu hỏi trắc nghiệm rèn luyện (A, B, C, D) đồng bộ chuẩn Slide Studio.")
-        if deck_info["worked_examples"]:
-            ex_count = len(deck_info["worked_examples"])
-            sync_notes.append(f"- Hướng dẫn giải chi tiết {ex_count} bài tập tự luận mẫu chuẩn mực SGK.")
-        if sync_notes:
-            act3["goal"] = (str(act3.get("goal", "")) + " (" + "; ".join(sync_notes) + ")").strip()
-
-    # Bổ sung các trường bắt buộc của LessonPlanSchema nếu bị thiếu
-    if "knowledge_goals" not in plan_dict or not plan_dict["knowledge_goals"]:
-        plan_dict["knowledge_goals"] = ["Nắm vững các khái niệm, tính chất và công thức trọng tâm của bài học."]
-    if "competency_goals" not in plan_dict:
-        plan_dict["competency_goals"] = []
-    if "skills_goals" not in plan_dict:
-        plan_dict["skills_goals"] = []
-    if "character_goals" not in plan_dict:
-        plan_dict["character_goals"] = []
-
+        raise ValueError("Thiếu giáo án để xuất Word")
     plan_obj = LessonPlanSchema.model_validate(plan_dict)
-    return plan_obj, deck_info
+    if not plan_obj.lesson_title.strip() or not plan_obj.activities:
+        raise ValueError("Giáo án rỗng; không thể xuất Word")
+    return plan_obj, _extract_slide_deck_elements(slide_deck)
 
 
 def export_lesson_plan_to_docx(
@@ -450,6 +320,20 @@ def export_lesson_plan_to_docx(
     plan_synced, deck_info = synchronize_lesson_and_slide_deck(plan, slide_deck)
 
     doc = Document()
+    from lessonai.services.lesson_quality import check_plan
+    plan_quality = check_plan(plan_synced.model_dump(mode="json"))
+    if plan_quality["status"] == "ready":
+        doc.add_paragraph("GIÁO ÁN ĐÃ ĐƯỢC GIÁO VIÊN XÁC NHẬN — áp dụng cho nội dung phiên bản này.")
+    else:
+        doc.add_paragraph("BẢN NHÁP — Giáo án cần giáo viên đối chiếu nội dung và duyệt trước khi sử dụng.")
+    if deck_info.get("quiz_items") or deck_info.get("worked_examples"):
+        from lessonai.api.routes.quality import check_deck
+        raw_deck = slide_deck or (plan.get("slide_deck") if isinstance(plan, dict) else None)
+        deck_quality = check_deck(SlideDeckSchema.model_validate(raw_deck).model_dump(mode="json")) if isinstance(raw_deck, (dict, SlideDeckSchema)) else {"status": "needs_review"}
+        if deck_quality["status"] != "ready":
+            doc.add_paragraph("BẢN NHÁP — Phần câu hỏi/lời giải bổ sung từ slide chưa được xác nhận; duyệt giáo án không bao gồm phần này.")
+    from lessonai.services.artifact_provenance import attach_docx_provenance, plan_provenance
+    attach_docx_provenance(doc, plan_provenance(plan_synced.model_dump(mode="json")))
 
     # 2. Căn chỉnh lề theo quy chuẩn văn bản hành chính Việt Nam (Nghị định 30/2020/NĐ-CP - Khổ giấy A4 210x297mm)
     for section in doc.sections:

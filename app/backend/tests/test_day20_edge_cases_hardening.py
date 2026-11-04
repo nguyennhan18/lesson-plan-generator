@@ -30,7 +30,7 @@ from lessonai.exporters.slide_exporter import (
     latex_to_unicode_math
 )
 from lessonai.exporters.dual_package_exporter import sanitize_filename, export_dual_package
-from lessonai.services.generation.fallback import get_curated_lesson_plan, get_curated_slide_deck
+from curated_examples import get_curated_lesson_plan, get_curated_slide_deck
 
 client = TestClient(app)
 
@@ -69,14 +69,10 @@ def test_malformed_latex_with_vietnamese_fallback():
     assert png_bytes.startswith(b"\x89PNG\r\n\x1a\n")
 
 
-def test_empty_and_none_latex_safe_fallback():
-    """
-    Ca biên 1.3: Chuỗi LaTeX rỗng, None hoặc kiểu dữ liệu bất thường.
-    Hệ thống phải trả về ảnh 1x1 PNG trong suốt an toàn, không ném exception.
-    """
-    assert render_latex_to_bytes("").startswith(b"\x89PNG")
-    assert render_latex_to_bytes(None).startswith(b"\x89PNG")
-    assert render_latex_to_bytes(12345).startswith(b"\x89PNG")
+@pytest.mark.parametrize("value", ["", None, 12345])
+def test_empty_and_none_latex_is_explicitly_rejected(value):
+    with pytest.raises(ValueError, match="Không có công thức"):
+        render_latex_to_bytes(value)
 
 
 def test_pptx_export_with_ultra_long_formula_and_bullet_points():
@@ -288,47 +284,8 @@ def test_pptx_export_with_corrupted_3d_snapshot_does_not_crash():
 # NHÓM 4: NETWORK FLAKINESS, LLM TIMEOUT/429/503 & FALLBACK RESILIENCE
 # ==============================================================================
 
-def test_lesson_plan_generate_fallback_when_llm_fails():
-    """
-    Ca biên 4.1: Giả lập LLM Gateway sập hoàn toàn (ném Exception mạng/timeout).
-    Endpoint /api/v1/lesson-plan/generate phải trả về 200 OK với Curated Lesson Plan
-    kèm cảnh báo rõ ràng, tuyệt đối không quăng mã lỗi 500.
-    """
-    with patch("lessonai.llm.gateway.llm_gateway.generate_structured", side_effect=TimeoutError("Connection timed out to Groq/Gemini")):
-        req_data = {
-            "topic": "Hệ bất phương trình bậc nhất hai ẩn",
-            "subject": "Toán học",
-            "grade": 10
-        }
-        res = client.post("/api/v1/lesson-plan/generate", json=req_data)
-        assert res.status_code == 200, f"Phải trả về 200 OK qua Fallback, nhận được: {res.status_code}"
-        data = res.json()
-        assert data["is_valid"] is True
-        assert len(data["plan"]["activities"]) == 4
-        # Kiểm tra có cảnh báo fallback
-        assert any("dự phòng" in w.lower() or "chuẩn sgk" in w.lower() or "gián đoạn" in w.lower() for w in data["warnings"])
 
 
-def test_slide_generate_fallback_when_llm_rate_limited():
-    """
-    Ca biên 4.2: Giả lập LLM chạm trần Quota Limit 429 hoặc trả về lỗi.
-    Endpoint /api/v1/slide/generate phải trả về 200 OK với Curated SlideDeck
-    kèm các ảnh render bổ trợ đầy đủ, không gây lỗi 500.
-    """
-    with patch("lessonai.llm.gateway.llm_gateway.generate_structured", side_effect=RuntimeError("Groq 429: Rate limit reached")):
-        req_data = {
-            "topic": "Tính đơn điệu và cực trị hàm số",
-            "subject": "Toán học",
-            "grade": 12
-        }
-        res = client.post("/api/v1/slide/generate", json=req_data)
-        assert res.status_code == 200, f"Phải trả về 200 OK qua Fallback, nhận được: {res.status_code}"
-        data = res.json()
-        assert "slides" in data
-        assert len(data["slides"]) >= 4
-        # Đảm bảo vẫn có render đồ thị hoặc hình học
-        has_renders = any(s.get("chart_image_base64") or s.get("formula_image_base64") for s in data["slides"])
-        assert has_renders is True
 
 
 def test_dual_package_export_when_slide_is_fallback():
@@ -360,23 +317,3 @@ def test_curated_fallback_with_none_topic_and_invalid_grade():
     deck_out_of_bounds = get_curated_slide_deck(topic=None, grade=-1)
     assert isinstance(deck_out_of_bounds, SlideDeckSchema)
     assert len(deck_out_of_bounds.slides) >= 4
-
-
-def test_generate_endpoints_with_whitespace_topic():
-    """
-    Ca biên 5.2: Gửi bài dạy chỉ gồm khoảng trắng "   ".
-    Hệ thống phải xử lý nhẹ nhàng, không gây Exception 500.
-    """
-    with patch("lessonai.llm.gateway.llm_gateway.generate_structured", side_effect=ValueError("Invalid prompt")):
-        req_data = {
-            "topic": "   ",
-            "subject": "Toán học",
-            "grade": 10
-        }
-        res_plan = client.post("/api/v1/lesson-plan/generate", json=req_data)
-        assert res_plan.status_code == 200
-        assert res_plan.json()["is_valid"] is True
-
-        res_slide = client.post("/api/v1/slide/generate", json=req_data)
-        assert res_slide.status_code == 200
-        assert len(res_slide.json()["slides"]) >= 4

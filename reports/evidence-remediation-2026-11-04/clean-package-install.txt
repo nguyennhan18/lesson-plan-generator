@@ -1,0 +1,20 @@
+Obtaining file:///tmp/lessonai-clean-20261104/app/backend
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Checking if build backend supports build_editable: started
+  Checking if build backend supports build_editable: finished with status 'done'
+  Getting requirements to build editable: started
+  Getting requirements to build editable: finished with status 'done'
+  Preparing editable metadata (pyproject.toml): started
+  Preparing editable metadata (pyproject.toml): finished with status 'done'
+Building wheels for collected packages: lessonai-backend
+  Building editable for lessonai-backend (pyproject.toml): started
+  Building editable for lessonai-backend (pyproject.toml): finished with status 'done'
+  Created wheel for lessonai-backend: filename=lessonai_backend-0.2.0-0.editable-py3-none-any.whl size=1576 sha256=ecd397cc7f78a937eacf1e4652504cac09b5ef0bfdc9e580ec0f40ac0a466e16
+  Stored in directory: /private/var/folders/qj/15mbw3ns35g4ktxy00945s440000gn/T/pip-ephem-wheel-cache-sd7j1qdt/wheels/2f/c1/53/f205257fc72b2e2d78d446bd1305f67e60284537a7cd96807b
+Successfully built lessonai-backend
+Installing collected packages: lessonai-backend
+Successfully installed lessonai-backend-0.2.0
+
+[notice] A new release of pip is available: 25.2 -> 26.3
+[notice] To update, run: /private/tmp/lessonai-clean-20261104/venv/bin/python -m pip install --upgrade pip

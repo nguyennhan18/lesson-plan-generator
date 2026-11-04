@@ -7,16 +7,16 @@ export const SLIDE_DECK_STORAGE_KEY = 'lessonai_slide_deck_json_v1';
 
 /**
  * Đọc cấu trúc Slide JSON từ bộ nhớ trình duyệt (sessionStorage) khi khởi tạo.
- * Nếu chưa có hoặc dữ liệu không hợp lệ, trả về bộ Slide mẫu mặc định (fallbackDeck).
+ * Nếu chưa có hoặc dữ liệu không hợp lệ, trả về null và giữ nguyên dữ liệu cũ để phục hồi.
  */
-export function loadSlideDeckFromBrowserMemory(fallbackDeck) {
+export function loadSlideDeckFromBrowserMemory() {
   if (typeof window === 'undefined') {
-    return fallbackDeck;
+    return null;
   }
   try {
     const raw = window.sessionStorage.getItem(SLIDE_DECK_STORAGE_KEY);
     if (!raw) {
-      return fallbackDeck;
+      return null;
     }
     const parsed = JSON.parse(raw);
     if (parsed && Array.isArray(parsed.slides) && parsed.slides.length > 0) {
@@ -26,7 +26,7 @@ export function loadSlideDeckFromBrowserMemory(fallbackDeck) {
   } catch {
     // Fallback an toàn nếu sessionStorage bị chặn hoặc JSON lỗi
   }
-  return fallbackDeck;
+  return null;
 }
 
 /**

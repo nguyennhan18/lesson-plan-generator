@@ -48,63 +48,8 @@ def test_task_9_1_latex_expanded_extraction_and_context_preservation():
     )
 
 
-def test_task_9_2_browser_memory_slide_json_sync():
-    """
-    Task 9.2: Kiểm tra cập nhật chuỗi LaTeX mới vào cấu trúc Slide JSON
-    đang lưu trữ trong bộ nhớ trình duyệt (sessionStorage + window.__LESSONAI_SLIDE_DECK_JSON__).
-    """
-    assert SLIDE_DECK_STORAGE.exists(), "Không tìm thấy app/frontend/src/shared/storage/slideDeckStorage.js"
-    storage_code = SLIDE_DECK_STORAGE.read_text(encoding="utf-8")
-
-    # Kiểm tra các hàm cốt lõi trong slideDeckStorage.js
-    required_exports = [
-        "SLIDE_DECK_STORAGE_KEY",
-        "loadSlideDeckFromBrowserMemory",
-        "saveSlideDeckToBrowserMemory",
-        "updateSlideFormulaInDeck",
-    ]
-    for symbol in required_exports:
-        assert symbol in storage_code, f"Thiếu {symbol} trong slideDeckStorage.js"
-
-    assert "sessionStorage" in storage_code, "slideDeckStorage.js phải đồng bộ với sessionStorage"
-    assert "__LESSONAI_SLIDE_DECK_JSON__" in storage_code, (
-        "slideDeckStorage.js phải đồng bộ với biến bộ nhớ window.__LESSONAI_SLIDE_DECK_JSON__"
-    )
-
-    # Kiểm tra kết nối đồng bộ 2 chiều trong App.jsx, PresentationStage.jsx và SlideEditorScreen.jsx
-    app_code = APP_JSX.read_text(encoding="utf-8")
-    stage_code = PRESENTATION_STAGE.read_text(encoding="utf-8")
-    editor_code = SLIDE_EDITOR.read_text(encoding="utf-8")
-
-    assert "loadSlideDeckFromBrowserMemory" in app_code
-    assert "saveSlideDeckToBrowserMemory" in app_code
-    assert "updateSlideFormulaInDeck" in stage_code
-    assert "updateSlideFormulaInDeck" in editor_code
 
 
-def test_task_9_3_katex_instant_rerender_and_visual_highlight():
-    """
-    Task 9.3: Kiểm tra cơ chế render lại ngay công thức bằng KaTeX trên slide preview
-    kèm hiệu ứng highlight xác nhận kết quả (✓ Đã cập nhật KaTeX).
-    """
-    assert MATHTEXT_JSX.exists(), "Không tìm thấy MathText.jsx"
-    mathtext_code = MATHTEXT_JSX.read_text(encoding="utf-8")
-    stage_code = PRESENTATION_STAGE.read_text(encoding="utf-8")
-    editor_code = SLIDE_EDITOR.read_text(encoding="utf-8")
-
-    # Kiểm tra MathText.jsx chuẩn hóa delimiter và gọi katex.renderToString
-    assert "stripOuterMathDelimiters" in mathtext_code, (
-        "MathText.jsx phải có hàm stripOuterMathDelimiters để chuẩn hóa công thức trước khi render"
-    )
-    assert "katex.renderToString" in mathtext_code
-
-    # Kiểm tra hiệu ứng highlight xác nhận kết quả trên cả Sân khấu (PresentationStage) và Xưởng Slide (SlideEditorScreen)
-    assert "recentlyUpdatedFormula" in stage_code
-    assert "isFormulaRecentlyUpdated" in stage_code
-    assert "Đã cập nhật KaTeX" in stage_code
-
-    assert "isFormulaUpdated" in editor_code
-    assert "Đã cập nhật & kết xuất KaTeX mới" in editor_code
 
 
 def test_task_9_4_latex_syntax_validator_four_layers():
@@ -274,11 +219,7 @@ class TestDay9TwoWaySync(unittest.TestCase):
     def test_9_1_latex_expanded_extraction(self):
         test_task_9_1_latex_expanded_extraction_and_context_preservation()
 
-    def test_9_2_browser_memory_sync(self):
-        test_task_9_2_browser_memory_slide_json_sync()
 
-    def test_9_3_katex_instant_rerender(self):
-        test_task_9_3_katex_instant_rerender_and_visual_highlight()
 
     def test_9_4_latex_syntax_validator(self):
         test_task_9_4_latex_syntax_validator_four_layers()

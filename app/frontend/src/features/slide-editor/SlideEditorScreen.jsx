@@ -12,7 +12,8 @@ export default function SlideEditorScreen({
   setSlideDeck,
   onExportPptx,
   onExportDocx,
-  onExportDualPackage
+  onExportDualPackage,
+  onDirtyChange
 }) {
   const slides = slideDeck?.slides || [];
   const [selectedSlide, setSelectedSlide] = useState(0);
@@ -22,6 +23,12 @@ export default function SlideEditorScreen({
   const [bulletsText, setBulletsText] = useState('');
   const [latex, setLatex] = useState('');
   const [teacherNote, setTeacherNote] = useState('');
+
+  const current=slides[selectedSlide];
+  const dirty=!!current && (title!==(current.title||'') || bulletsText!==(current.bullet_points||[]).join('\n') || latex!==(current.main_definition_latex||'') || teacherNote!==(current.teacher_note||''));
+  useEffect(()=>{onDirtyChange?.(dirty);},[dirty,onDirtyChange]);
+  const requireSaved=()=>{if(!dirty)return true;setEditorLatexError('Hãy lưu slide đang sửa trước khi đổi trang, thêm/xóa hoặc sắp xếp.');return false;};
+  const selectSlide=index=>{if(requireSaved())setSelectedSlide(index);};
 
   // Task 8.2: Trạng thái mở Modal MathLive trong Xưởng Biên Tập Slide
   const [isMathModalOpen, setIsMathModalOpen] = useState(false);
@@ -133,33 +140,37 @@ export default function SlideEditorScreen({
       teacher_note: teacherNote
     };
     if (setSlideDeck) {
-      setSlideDeck({ ...slideDeck, slides: updated });
+      setSlideDeck({ presentation_title: '', subject: 'Toán học', grade: 12, ...slideDeck, slides: updated });
       setIsFormulaUpdated(true);
       alert(`Đã lưu thay đổi vào Slide ${selectedSlide + 1}!`);
     }
   };
 
   const handleAddNewSlide = () => {
+    if(!requireSaved())return;
     const newSlideNum = slides.length + 1;
     const newSlide = {
-      slide_number: newSlideNum,
-      title: `${newSlideNum}. Nội dung bổ sung mới`,
-      activity_type: "LUYỆN TẬP & CỦNG CỐ",
-      layout: "IMAGE_TEXT",
-      bullet_points: ["Nhập các ý chính trọng tâm tại đây."],
+      slide_id: crypto.randomUUID(),
+      slide_index: newSlideNum,
+      type: "CONCEPT_SLIDE",
+      title: "",
+      activity_type: "",
+      layout: "SINGLE_COLUMN",
+      bullet_points: [],
       main_definition_latex: "",
-      teacher_note: "Ghi chú dành riêng cho giáo viên.",
+      teacher_note: "",
       has_3d: false
     };
     if (setSlideDeck) {
       const updated = [...slides, newSlide];
-      setSlideDeck({ ...slideDeck, slides: updated });
+      setSlideDeck({ presentation_title: '', subject: 'Toán học', grade: 12, ...slideDeck, slides: updated });
       setSelectedSlide(updated.length - 1);
     }
   };
 
   const handleDeleteSlide = (idx, e) => {
     e.stopPropagation();
+    if(!requireSaved())return;
     if (slides.length <= 1) {
       alert("Không thể xóa slide duy nhất còn lại!");
       return;
@@ -167,16 +178,20 @@ export default function SlideEditorScreen({
     if (window.confirm(`Thầy/Cô có chắc chắn muốn xóa Slide ${idx + 1}?`)) {
       const updated = slides.filter((_, i) => i !== idx);
       if (setSlideDeck) {
-        setSlideDeck({ ...slideDeck, slides: updated });
+        setSlideDeck({ presentation_title: '', subject: 'Toán học', grade: 12, ...slideDeck, slides: updated });
         setSelectedSlide(Math.max(0, idx - 1));
       }
     }
   };
 
+  const moveSlide=(index,delta)=>{if(!requireSaved())return;const updated=[...slides];[updated[index],updated[index+delta]]=[updated[index+delta],updated[index]];setSlideDeck({...slideDeck,slides:updated});setSelectedSlide(index+delta);};
   const curSlide = slides[selectedSlide] || {};
 
   return (
     <div className="flex-1 p-5 overflow-y-auto max-w-7xl mx-auto space-y-4 bg-[#ffffff] text-[#141414]">
+      <label className="block">Tên bài giảng <input disabled={dirty} aria-label="Tên bài giảng" className="border rounded p-2 ml-2" value={slideDeck?.presentation_title||''} onChange={e=>setSlideDeck({slides:[],subject:'Toán học',grade:12,...slideDeck,presentation_title:e.target.value})}/></label>
+      <label>Khối lớp <select disabled={dirty} aria-label="Khối lớp bài giảng" value={slideDeck?.grade||12} onChange={e=>setSlideDeck({presentation_title:'',slides:[],subject:'Toán học',...slideDeck,grade:Number(e.target.value)})}>{[10,11,12].map(g=><option key={g} value={g}>{g}</option>)}</select></label>
+      {dirty&&<p role="status" className="text-amber-800">Có thay đổi chưa lưu. Hãy bấm Lưu thay đổi Slide trước khi chuyển màn hình hoặc xuất bài.</p>}
       {/* Tiêu đề màn hình */}
       <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[#e0e0e0]">
         <div>
@@ -255,7 +270,7 @@ export default function SlideEditorScreen({
               return (
                 <div
                   key={idx}
-                  onClick={() => setSelectedSlide(idx)}
+                  onClick={() => selectSlide(idx)}
                   className={`p-3 rounded-2xl border cursor-pointer transition text-xs flex items-start justify-between gap-2 ${
                     selectedSlide === idx
                       ? 'border-[#141414] bg-[#f3f3f3] font-semibold text-[#141414]'
@@ -279,7 +294,8 @@ export default function SlideEditorScreen({
                         <span
                           onClick={(e) => {
                             e.stopPropagation();
-                            setSelectedSlide(idx);
+    if(!requireSaved())return;
+                            selectSlide(idx);
                             setIsWarningModalOpen(true);
                           }}
                           className="px-2 py-0.2 rounded-full bg-[#f3f3f3] border border-[#f59e0b] text-[#f59e0b] text-[10px] font-bold"
@@ -290,6 +306,7 @@ export default function SlideEditorScreen({
                       )}
                     </div>
                   </div>
+                  <button title="Chuyển slide lên" disabled={idx===0} onClick={e=>{e.stopPropagation();moveSlide(idx,-1);}}>↑</button><button title="Chuyển slide xuống" disabled={idx===slides.length-1} onClick={e=>{e.stopPropagation();moveSlide(idx,1);}}>↓</button>
                   <button
                     onClick={(e) => handleDeleteSlide(idx, e)}
                     className="text-[#adadad] hover:text-[#ef4444] p-1 rounded-full transition cursor-pointer"
@@ -336,6 +353,7 @@ export default function SlideEditorScreen({
             <label className="text-[#707070] block mb-1 font-semibold">Tiêu đề slide:</label>
             <input
               type="text"
+              aria-label="Tiêu đề slide"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full bg-[#f0f0f0] border-none rounded-2xl px-3.5 py-2.5 text-[#141414] focus:ring-2 focus:ring-[#141414] outline-none font-medium"
@@ -371,7 +389,7 @@ export default function SlideEditorScreen({
                 setEditorLatexError(null);
               }}
               onDoubleClick={() => setIsMathModalOpen(true)}
-              placeholder="VD: \Delta = b^2 - 4ac hoặc x = \frac{-b \pm \sqrt{\Delta}}{2a}"
+              placeholder="Nhập công thức LaTeX từ nội dung bài dạy"
               className="w-full bg-[#f0f0f0] border-none rounded-2xl px-3.5 py-2.5 text-[#141414] font-mono focus:ring-2 focus:ring-[#141414] outline-none"
             />
             {editorLatexError && (
@@ -493,9 +511,10 @@ export default function SlideEditorScreen({
         onClose={() => setIsWarningModalOpen(false)}
         warnings={activeWarnings}
         currentSlideIndex={selectedSlide}
-        onJumpToSlide={(idx) => setSelectedSlide(idx)}
+        onJumpToSlide={(idx) => selectSlide(idx)}
         onOpenManualEdit={(item) => {
           const targetIdx = Math.max(0, Number(item.slide_index || 1) - 1);
+          if(!requireSaved())return;
           setSelectedSlide(targetIdx);
           setIsWarningModalOpen(false);
           if (item.field === 'main_definition_latex') {

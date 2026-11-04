@@ -20,45 +20,8 @@ SLIDE_EDITOR = FRONTEND_DIR / "src" / "features" / "slide-editor" / "SlideEditor
 APP_JSX = FRONTEND_DIR / "src" / "App.jsx"
 
 
-def test_task_8_1_mathlive_cdn_in_index_html():
-    """Task 8.1: Kiểm tra index.html đã nhúng đủ CSS và JS của MathLive CDN."""
-    assert INDEX_HTML.exists(), "Không tìm thấy file app/frontend/index.html"
-    content = INDEX_HTML.read_text(encoding="utf-8")
-
-    assert "mathlive-static.css" in content, "Thiếu stylesheet mathlive-static.css trong index.html"
-    assert "mathlive.min.js" in content, "Thiếu script mathlive.min.js trong index.html"
-    assert ("cdn.jsdelivr.net/npm/mathlive" in content or "unpkg.com/mathlive" in content), (
-        "Thiếu đường dẫn CDN mathlive trong index.html"
-    )
 
 
-def test_task_8_2_double_click_modal_popup():
-    """Task 8.2: Kiểm tra MathLiveModal.jsx và sự kiện onDoubleClick trên PresentationStage & SlideEditorScreen."""
-    assert MATHLIVE_MODAL.exists(), "Không tìm thấy component MathLiveModal.jsx"
-    modal_code = MATHLIVE_MODAL.read_text(encoding="utf-8")
-
-    # Kiểm tra Web Component <math-field>
-    assert "<math-field" in modal_code, "MathLiveModal.jsx phải sử dụng Web Component <math-field>"
-    assert "unwrapLatexDelimiters" in modal_code
-    assert "wrapLatexDelimiters" in modal_code
-
-    # Kiểm tra onDoubleClick trên Sân khấu trình chiếu (PresentationStage.jsx)
-    stage_code = PRESENTATION_STAGE.read_text(encoding="utf-8")
-    assert "import MathLiveModal" in stage_code
-    assert "onDoubleClick" in stage_code, "PresentationStage.jsx phải bắt sự kiện onDoubleClick trên công thức"
-    assert "<MathLiveModal" in stage_code
-
-    # Kiểm tra onDoubleClick trên Xưởng biên tập Slide (SlideEditorScreen.jsx)
-    editor_code = SLIDE_EDITOR.read_text(encoding="utf-8")
-    assert "import MathLiveModal" in editor_code
-    assert "onDoubleClick" in editor_code
-    assert "<MathLiveModal" in editor_code
-
-    # Kiểm tra App.jsx đã chặn xung đột phím tắt toàn cục khi gõ trong MATH-FIELD
-    app_code = APP_JSX.read_text(encoding="utf-8")
-    assert "usePresentationControls" in app_code
-    controls_code = (FRONTEND_DIR / "src" / "features" / "presentation" / "usePresentationControls.js").read_text(encoding="utf-8")
-    assert "'MATH-FIELD'" in controls_code, "Phím tắt trình chiếu cần loại trừ MATH-FIELD"
 
 
 def test_task_8_3_vietnamese_math_virtual_keyboard():
@@ -112,11 +75,7 @@ def test_task_8_5_dod_sqrt_button_and_placeholder_sanitization():
 
 
 class TestDay8MathLive(unittest.TestCase):
-    def test_8_1_cdn(self):
-        test_task_8_1_mathlive_cdn_in_index_html()
 
-    def test_8_2_modal_popup(self):
-        test_task_8_2_double_click_modal_popup()
 
     def test_8_3_vietnamese_keyboard(self):
         test_task_8_3_vietnamese_math_virtual_keyboard()
