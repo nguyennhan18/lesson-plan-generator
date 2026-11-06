@@ -37,12 +37,10 @@ project/
 *.code-workspace
 ~$*
 
-# Binary documents & presentation archives (except test fixtures)
+# Binary documents & presentation archives
 *.docx
 *.pptx
 *.pdf
-!app/backend/tests/fixtures/*.docx
-!app/backend/tests/fixtures/*.pptx
 
 # Data directories (Root and Backend runtime corpus)
 data/
@@ -55,12 +53,22 @@ app/backend/output/
 # Python packaging and build metadata
 app/backend/dist/
 
-# Browser evidence is generated locally/CI, never shipped with the application.
+# Browser evidence & test artifacts
 app/frontend/test-results/
 app/frontend/playwright-report/
 
-# Reports: local empirical evidence is append-only; tracked remediation reports are whitelisted
+# Documents, Reports & Planning files (local-only, not pushed to Git)
+docs/
 reports/
-!reports/remediation-implementation-2026-11-03.md
-!reports/remediation-changed-files-2026-11-03.md
-!reports/evidence-remediation-2026-11-04/
+project-management/
+quality/
+PROGRESS.md
+DECISIONS.md
+SKILL.md
+.claude/
+
+# Test suites & verification scripts (local-only, not pushed to Git)
+app/backend/tests/
+app/frontend/tests/
+app/frontend/e2e/
+scripts/
