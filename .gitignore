@@ -65,7 +65,11 @@ quality/
 PROGRESS.md
 DECISIONS.md
 SKILL.md
+AGENTS.md
+CONTRIBUTING.md
+Makefile
 .claude/
+.github/
 
 # Test suites & verification scripts (local-only, not pushed to Git)
 app/backend/tests/
