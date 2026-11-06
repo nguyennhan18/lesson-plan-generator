@@ -65,10 +65,14 @@ def generate_lesson_plan(
             plan.approved_outline = copy.deepcopy(approved_outline)
             plan.review_token = None
             plan.quality_report = None
+            outline_warnings = []
             if approved_outline:
                 from lessonai.services.generation.outline_contract import validate_plan_outline
-                validate_plan_outline(plan, approved_outline)
+                outline_warnings = validate_plan_outline(plan, approved_outline) or []
             val_result = validate_5512_lesson_plan(plan)
+            for w in outline_warnings:
+                if w not in val_result.warnings:
+                    val_result.warnings.append(w)
 
             # Lưu lại bản kế hoạch thành công gần nhất vào bộ đệm
             last_successful_plan = plan

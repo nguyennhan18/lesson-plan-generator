@@ -137,6 +137,8 @@ class SlideSchema(BaseModel):
                 if "slide_index" in value and value["slide_index"] != value["slide_number"]:
                     raise ValueError("slide_number và slide_index không khớp")
                 value["slide_index"] = value.pop("slide_number")
+            if isinstance(value.get("polyhedron_type"), str):
+                value["polyhedron_type"] = value["polyhedron_type"].strip().lower() or None
         return value
 
     type: SlideType = Field(default=SlideType.CONCEPT_SLIDE, description="Loại slide: TITLE_SLIDE, WARM_UP_SLIDE, CONCEPT_SLIDE, EXERCISE_SLIDE, SUMMARY_SLIDE")
@@ -154,7 +156,7 @@ class SlideSchema(BaseModel):
     )
     polyhedron_type: Optional[str] = Field(
         default=None,
-        description="Loại khối đa diện 3D chuẩn SGK: 'pyramid_triangle' (Hình chóp tam giác S.ABC), 'pyramid_square' (Hình chóp tứ giác S.ABCD), 'cube' (Hình lập phương ABCD.A'B'C'D'), 'prism_triangle' (Lăng trụ đứng ABC.A'B'C')"
+        description="Loại khối đa diện 3D chuẩn SGK (chỉ chọn khi khớp rõ giả thiết, ngược lại để null): 'cube' (Hình lập phương ABCD.A'B'C'D'), 'square_pyramid_regular' (Hình chóp tứ giác đều S.ABCD), 'square_pyramid_at_a' (Hình chóp tứ giác S.ABCD đáy hình vuông có SA vuông góc với đáy)"
     )
     snapshot_3d_base64: Optional[str] = Field(
         default=None,

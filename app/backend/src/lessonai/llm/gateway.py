@@ -70,6 +70,125 @@ def strip_markdown_json_fence(text: str) -> str:
     return text.strip()
 
 
+def _clean_gemini_schema_node(node: Any) -> Any:
+    if isinstance(node, list):
+        return [_clean_gemini_schema_node(item) for item in node]
+    if not isinstance(node, dict):
+        return node
+    cleaned: Dict[str, Any] = {}
+    for key, value in node.items():
+        if key in ("additionalProperties", "additional_properties", "discriminator"):
+            continue
+        if key == "oneOf":
+            cleaned_one_of = _clean_gemini_schema_node(value)
+            if "anyOf" in cleaned and isinstance(cleaned["anyOf"], list) and isinstance(cleaned_one_of, list):
+                cleaned["anyOf"] = cleaned["anyOf"] + cleaned_one_of
+            else:
+                cleaned["anyOf"] = cleaned_one_of
+        elif key == "anyOf":
+            cleaned_any_of = _clean_gemini_schema_node(value)
+            if "anyOf" in cleaned and isinstance(cleaned["anyOf"], list) and isinstance(cleaned_any_of, list):
+                cleaned["anyOf"] = cleaned_any_of + cleaned["anyOf"]
+            else:
+                cleaned["anyOf"] = cleaned_any_of
+        else:
+            cleaned[key] = _clean_gemini_schema_node(value)
+    return cleaned
+
+
+def to_gemini_response_schema(schema_or_model: Any) -> Any:
+    """
+    Chuyển đổi JSON Schema sang định dạng tương thích với Gemini Developer API (mldev):
+    - Loại bỏ đệ quy `additionalProperties` / `additional_properties` và `discriminator`.
+    - Chuyển đổi đệ quy `oneOf` sang `anyOf`.
+    - Không làm thay đổi lớp Pydantic gốc dùng để hậu kiểm dữ liệu nội bộ.
+    """
+    if isinstance(schema_or_model, type) and issubclass(schema_or_model, BaseModel):
+        raw_schema = schema_or_model.model_json_schema()
+        return _clean_gemini_schema_node(raw_schema)
+    if isinstance(schema_or_model, dict):
+        return _clean_gemini_schema_node(schema_or_model)
+    return schema_or_model
+
+
+def _collect_exception_chain(error: BaseException) -> List[BaseException]:
+    chain: List[BaseException] = []
+    seen: set[int] = set()
+    queue: List[Optional[BaseException]] = [error]
+    while queue:
+        current = queue.pop(0)
+        if current is None or id(current) in seen:
+            continue
+        seen.add(id(current))
+        chain.append(current)
+        if current.__cause__ is not None:
+            queue.append(current.__cause__)
+        if current.__context__ is not None:
+            queue.append(current.__context__)
+    return chain
+
+
+def classify_generation_error(error: BaseException, target: str) -> Dict[str, str]:
+    """
+    Phân loại lỗi sinh nội dung theo thứ tự ưu tiên nghiêm ngặt trên toàn chuỗi nhân quả:
+    1. Kiểm tra `isinstance(exc, (ValidationError, json.JSONDecodeError))` trên toàn chuỗi trước tiên -> `invalid_ai_output`.
+    2. Kiểm tra các điều kiện của `llm_configuration_error` (không có tuyến khả dụng, 401/403/API key, lỗi SDK từ chối schema).
+    3. Kiểm tra `ValueError` do lệch hợp đồng dàn ý/slide/block/RAG -> `invalid_ai_output`.
+    4. Fallback mặc định về `generation_unavailable`.
+    """
+    from pydantic import ValidationError
+
+    chain = _collect_exception_chain(error)
+
+    # Bước 1: Kiểm tra ValidationError hoặc JSONDecodeError trên toàn chuỗi trước tiên
+    for exc in chain:
+        if isinstance(exc, json.JSONDecodeError):
+            return {
+                "code": "invalid_ai_output",
+                "message": f"Đầu ra AI không đúng định dạng JSON khi tạo {target}. Bản soạn được giữ nguyên; cần thử lại hoặc điều chỉnh dàn ý.",
+            }
+        if isinstance(exc, ValidationError):
+            return {
+                "code": "invalid_ai_output",
+                "message": f"Đầu ra AI không khớp cấu trúc dữ liệu khi tạo {target}. Bản soạn được giữ nguyên; cần thử lại hoặc điều chỉnh dàn ý.",
+            }
+
+    # Bước 2: Kiểm tra các dấu hiệu lỗi cấu hình / khóa API / không có tuyến LLM / lỗi SDK từ chối schema
+    config_markers = (
+        "không tìm thấy tuyến llm khả dụng",
+        "additionalproperties is only supported",
+        "unsupported schema",
+        "api_key_invalid",
+        "invalid api key",
+        "permission_denied",
+        "401",
+        "403",
+        "unauthorized",
+    )
+    for exc in chain:
+        msg_lower = str(exc).lower()
+        if any(marker in msg_lower for marker in config_markers):
+            return {
+                "code": "llm_configuration_error",
+                "message": f"Lỗi cấu hình hoặc schema kết nối AI khi tạo {target}. Bản soạn được giữ nguyên; hãy kiểm tra khóa API và cấu hình model.",
+            }
+
+    # Bước 3: Kiểm tra ValueError sinh ra từ các hàm hậu kiểm hợp đồng dàn ý / slide / block / nguồn RAG
+    for exc in chain:
+        if isinstance(exc, ValueError):
+            return {
+                "code": "invalid_ai_output",
+                "message": f"Đầu ra AI không đúng định dạng hoặc lệch dàn ý khi tạo {target}. Bản soạn được giữ nguyên; cần thử lại hoặc điều chỉnh dàn ý.",
+            }
+
+    # Bước 4: Các lỗi mạng, timeout, 429, 5xx và lỗi runtime còn lại
+    return {
+        "code": "generation_unavailable",
+        "message": f"Không tạo được {target} do dịch vụ AI tạm thời gián đoạn. Bản soạn được giữ nguyên; hãy kiểm tra nhà cung cấp và thử lại.",
+    }
+
+
+
 class ProviderRoute:
     """
     Đại diện cho một tuyến gọi LLM cụ thể (Provider + Model + Endpoint).
@@ -383,7 +502,7 @@ class LLMGateway:
                             system_instruction=system_prompt,
                             response_mime_type="application/json",
                             http_options={"timeout":int(min(20,remaining)*1000)},
-                            response_schema=response_schema,
+                            response_schema=to_gemini_response_schema(response_schema),
                             temperature=temperature,
                             automatic_function_calling=genai_types.AutomaticFunctionCallingConfig.model_validate({"disable": True})
                         )
@@ -578,7 +697,7 @@ class LLMGateway:
         total_elapsed = round(time.time() - start_time, 2)
         raise RuntimeError(
             f"Toàn bộ {len(routes)} tuyến LLM đều không phản hồi sau {total_elapsed}s. Lỗi cuối cùng: {last_error}"
-        )
+        ) from last_error
 
     def generate_text(
         self,

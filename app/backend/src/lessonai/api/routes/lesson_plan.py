@@ -1,5 +1,6 @@
 from lessonai.schemas.schemas import LessonRequest, LessonGenerationResponse
 from lessonai.services.generation import generate_lesson_plan
+from lessonai.llm.gateway import classify_generation_error
 from fastapi import APIRouter, HTTPException
 
 router = APIRouter()
@@ -26,4 +27,4 @@ def generate_lesson_plan_endpoint(req: LessonRequest):
             "plan": plan.model_dump()
         }
     except Exception as error:
-        raise HTTPException(503, detail={"code": "generation_unavailable", "message": "Không tạo được giáo án. Bản soạn được giữ nguyên; hãy kiểm tra nhà cung cấp và thử lại."}) from error
+        raise HTTPException(503, detail=classify_generation_error(error, "giáo án")) from error

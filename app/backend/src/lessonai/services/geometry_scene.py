@@ -6,7 +6,8 @@ KINDS = {"cube", "square_pyramid_regular", "square_pyramid_at_a"}
 
 
 def normalize_spec(data):
-    kind = data.get("polyhedron_type")
+    raw_kind = data.get("polyhedron_type")
+    kind = raw_kind.strip().lower() if isinstance(raw_kind, str) else raw_kind
     if kind not in KINDS:
         raise VisualError("Cần chọn rõ lập phương, chóp đều đáy vuông hoặc chóp có SA vuông góc đáy")
     try:

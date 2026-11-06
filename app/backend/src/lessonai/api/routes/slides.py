@@ -3,6 +3,7 @@ from fastapi.responses import Response
 from lessonai.schemas.schemas import LessonRequest
 from lessonai.schemas.slide_schema import SlideDeckSchema
 from lessonai.services.generation import generate_slide_deck
+from lessonai.llm.gateway import classify_generation_error
 from lessonai.exporters.graph_generator import generate_math_plot, is_plottable
 from lessonai.core.feature_availability import ExpressionProcessingUnavailable
 from fastapi import APIRouter
@@ -34,7 +35,7 @@ def generate_slide_endpoint(req: LessonRequest):
         deck_dict["quality_report"] = evaluate_deck(deck_dict)
         return enrich_slide_deck_with_renders(deck_dict)
     except Exception as error:
-        raise HTTPException(503, detail={"code": "generation_unavailable", "message": "Không tạo được slide đúng yêu cầu. Bản soạn được giữ nguyên; cần thử lại hoặc sửa dàn ý."}) from error
+        raise HTTPException(503, detail=classify_generation_error(error, "slide")) from error
 
 
 @router.post("/api/v1/slide/enrich")

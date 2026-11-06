@@ -24,10 +24,11 @@ venv/
 env/
 project/
 
-# Secrets
+# Secrets & Environment
 .env
 *.env
 !.env.example
+!infra/env.example
 
 # Editor / IDE
 *.swp
@@ -36,19 +37,18 @@ project/
 *.code-workspace
 ~$*
 
-# Documents, Reports & Planning files
-docs/
-reports/
-plan_*.md
+# Binary documents & presentation archives (except test fixtures)
 *.docx
 *.pptx
 *.pdf
+!app/backend/tests/fixtures/*.docx
+!app/backend/tests/fixtures/*.pptx
 
-# Data directories (Root and Backend)
+# Data directories (Root and Backend runtime corpus)
 data/
 app/backend/data/
 
-# Generated output files
+# Generated runtime output files
 app/backend/output/
 *.log
 
@@ -58,18 +58,9 @@ app/backend/dist/
 # Browser evidence is generated locally/CI, never shipped with the application.
 app/frontend/test-results/
 app/frontend/playwright-report/
-# Remediation documentation must accompany the implementation.
-!docs/
-docs/*
-!docs/plans/
-docs/plans/*
-!docs/plans/project-remediation-post-refactor.md
-!docs/plans/remediation-m1-math-rendering.md
-!docs/plans/remediation-m2-contracts-workflows.md
-!docs/plans/remediation-framework-2026-11-03.md
-!docs/plans/remediation-acceptance-2026-11-03.md
-!reports/
-reports/*
+
+# Reports: local empirical evidence is append-only; tracked remediation reports are whitelisted
+reports/
 !reports/remediation-implementation-2026-11-03.md
 !reports/remediation-changed-files-2026-11-03.md
 !reports/evidence-remediation-2026-11-04/

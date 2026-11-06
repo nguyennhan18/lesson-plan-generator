@@ -76,29 +76,64 @@ class Math12HybridRetriever:
     def __init__(self):
         self.base_dir = self._find_data_dir()
         self.registry = CurriculumRegistry.get_instance()
-        
-        # 1. Kho Slide 1.847 slides
-        self.slides: List[Dict[str, Any]] = []
-        self.slides_by_lesson: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+
+        # Keep raw corpus private; public access is filtered through approved-only accessors.
+        self._slides: List[Dict[str, Any]] = []
+        self._slides_by_lesson: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
         self.slide_tokens: List[List[str]] = []
-        
-        # 2. Kho Câu hỏi 894 câu
-        self.questions: List[Dict[str, Any]] = []
-        self.questions_by_lesson: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+
+        self._questions: List[Dict[str, Any]] = []
+        self._questions_by_lesson: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
         self.question_tokens: List[List[str]] = []
-        
-        # 3. Chỉ mục BM25
+
         self.slide_bm25: Optional[SimpleBM25] = None
         self.question_bm25: Optional[SimpleBM25] = None
-        
-        # Nạp dữ liệu vào bộ nhớ
+
         self._load_corpus()
+
+    @property
+    def slides(self) -> List[Dict[str, Any]]:
+        from lessonai.rag.content_units import approved_units
+        return approved_units(self._slides)
+
+    @property
+    def slides_by_lesson(self) -> Dict[str, List[Dict[str, Any]]]:
+        from lessonai.rag.content_units import approved_units
+        approved = {}
+        for lesson_id, items in self._slides_by_lesson.items():
+            approved[lesson_id] = approved_units(items)
+        return approved
+
+    @property
+    def questions(self) -> List[Dict[str, Any]]:
+        from lessonai.rag.content_units import approved_units
+        return approved_units(self._questions)
+
+    @property
+    def questions_by_lesson(self) -> Dict[str, List[Dict[str, Any]]]:
+        from lessonai.rag.content_units import approved_units
+        approved = {}
+        for lesson_id, items in self._questions_by_lesson.items():
+            approved[lesson_id] = approved_units(items)
+        return approved
 
     @classmethod
     def get_instance(cls) -> "Math12HybridRetriever":
         if cls._instance is None:
             cls._instance = Math12HybridRetriever()
         return cls._instance
+
+    def get_approved_slides(self, lesson_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        from lessonai.rag.content_units import approved_units
+        if lesson_id is None:
+            return approved_units(self._slides)
+        return approved_units(self._slides_by_lesson.get(lesson_id, []))
+
+    def get_approved_questions(self, lesson_id: Optional[str] = None, proficiency: str = "standard") -> List[Dict[str, Any]]:
+        from lessonai.rag.content_units import approved_units
+        if lesson_id is None:
+            return approved_units(self._questions)
+        return approved_units(self._questions_by_lesson.get(lesson_id, []))
 
     def _find_data_dir(self) -> Path:
         return DATA_DIR
@@ -129,10 +164,10 @@ class Math12HybridRetriever:
                         tokens = tokenize(text_to_idx)
                         slide["tokens"] = tokens
 
-                        self.slides.append(slide)
+                        self._slides.append(slide)
                         lid = slide.get("lesson_id")
                         if lid:
-                            self.slides_by_lesson[lid].append(slide)
+                            self._slides_by_lesson[lid].append(slide)
                         self.slide_tokens.append(tokens)
                     except Exception:
                         continue
@@ -154,10 +189,10 @@ class Math12HybridRetriever:
                         tokens = tokenize(text_to_idx)
                         q["tokens"] = tokens
 
-                        self.questions.append(q)
+                        self._questions.append(q)
                         lid = q.get("lesson_id")
                         if lid:
-                            self.questions_by_lesson[lid].append(q)
+                            self._questions_by_lesson[lid].append(q)
                         self.question_tokens.append(tokens)
                     except Exception:
                         continue
@@ -165,7 +200,7 @@ class Math12HybridRetriever:
             if self.question_tokens:
                 self.question_bm25 = SimpleBM25(self.question_tokens)
 
-        print(f"[Math12HybridRetriever] Sẵn sàng: {len(self.slides)} slides, {len(self.questions)} câu hỏi Toán 12.")
+        print(f"[Math12HybridRetriever] Sẵn sàng: {len(self._slides)} slides, {len(self._questions)} câu hỏi Toán 12.")
 
     def _compute_slide_quality(self, slide: Dict[str, Any]) -> float:
         """Đánh giá điểm chất lượng sư phạm của slide (0.0 -> 1.0)."""
@@ -225,7 +260,8 @@ class Math12HybridRetriever:
         Truy xuất k slide mẫu đẹp nhất của bài học.
         Có thể lọc theo activity_type (khoi_dong, hinh_thanh_kien_thuc, luyen_tap, van_dung).
         """
-        candidates = self.slides_by_lesson.get(lesson_id, [])
+        from lessonai.rag.content_units import approved_units
+        candidates = approved_units(self._slides_by_lesson.get(lesson_id, []))
         if not candidates:
             return []
 
@@ -265,7 +301,8 @@ class Math12HybridRetriever:
         Truy xuất k câu hỏi thật phân hóa theo học lực lớp (basic, standard, advanced).
         Đầy đủ worked_solution_steps và quiz_options.
         """
-        candidates = self.questions_by_lesson.get(lesson_id, [])
+        from lessonai.rag.content_units import approved_units
+        candidates = approved_units(self._questions_by_lesson.get(lesson_id, []))
         if not candidates:
             return []
 

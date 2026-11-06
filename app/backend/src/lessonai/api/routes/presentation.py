@@ -1,6 +1,7 @@
 from fastapi import HTTPException
 from lessonai.schemas.schemas import OutlineRequest, OutlineResponse
 from lessonai.services.generation import generate_presentation_outline
+from lessonai.llm.gateway import classify_generation_error
 from fastapi import APIRouter
 
 router = APIRouter()
@@ -28,4 +29,4 @@ def generate_outline_endpoint(req: OutlineRequest):
             language=req.language
         )
     except Exception as e:
-        raise HTTPException(status_code=503, detail={"code": "generation_unavailable", "message": "Không tạo được dàn ý. Bản soạn được giữ nguyên; hãy kiểm tra nhà cung cấp."}) from e
+        raise HTTPException(status_code=503, detail=classify_generation_error(e, "dàn ý")) from e

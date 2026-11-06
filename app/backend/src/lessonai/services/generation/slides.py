@@ -73,18 +73,23 @@ def generate_slide_deck(
     for field in ("review_token", "quality_report"):
         if slide_deck.model_extra:
             slide_deck.model_extra.pop(field, None)
+    from lessonai.services.generation.outline_contract import normalize_polyhedron_type, validate_slide_outline_item
+    from lessonai.services.geometry_scene import KINDS
+    for slide in slide_deck.slides:
+        slide.polyhedron_type = normalize_polyhedron_type(slide.polyhedron_type)
+        if not slide.has_3d:
+            slide.polyhedron_type = None
+        elif slide.polyhedron_type is not None and slide.polyhedron_type not in KINDS:
+            raise ValueError("Loại khối 3D không thuộc tập chuẩn được hỗ trợ")
+    outline_warnings = []
     if approved_outline:
         items = approved_outline["outline_slides"]
         if len(slide_deck.slides) != len(items):
             raise ValueError("Số slide không khớp dàn ý đã duyệt; cần sinh lại")
         for slide, item in zip(slide_deck.slides, items):
-            if slide.source_outline_id != item["id"] or slide.title != item["title"]:
-                raise ValueError("Slide không giữ định danh/thứ tự/tiêu đề dàn ý đã duyệt")
-            required = item.get("bullet_points") or item.get("key_points") or []
-            if any(point not in slide.bullet_points for point in required):
-                raise ValueError("Slide bỏ nội dung đã duyệt trong dàn ý")
-            from lessonai.services.generation.outline_contract import validate_slide_role
-            validate_slide_role(slide.model_dump(mode="json"), item)
+            outline_warnings.extend(validate_slide_outline_item(slide, item))
+    if outline_warnings:
+        slide_deck.outline_warnings = outline_warnings
     from lessonai.services.content_blocks import block_errors
     for slide in slide_deck.slides:
         errors = list(block_errors(slide.model_dump(mode="json")))
