@@ -58,7 +58,8 @@ app/frontend/test-results/
 app/frontend/playwright-report/
 
 # Documents, Reports & Planning files (local-only, not pushed to Git)
-docs/
+docs/*
+!docs/retrieval-fixture-validator.md
 reports/
 project-management/
 quality/
@@ -72,7 +73,8 @@ Makefile
 .github/
 
 # Test suites & verification scripts (local-only, not pushed to Git)
-app/backend/tests/
+app/backend/tests/*
+!app/backend/tests/test_retrieval_fixture.py
 app/frontend/tests/
 app/frontend/e2e/
 scripts/
