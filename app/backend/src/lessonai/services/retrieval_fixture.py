@@ -40,12 +40,13 @@ class RetrievalConfig(StrictModel):
     embedding_version: Text
     index_data_sha256: Hash
     top_k: Annotated[int, Field(gt=0)]
-    score_threshold: Annotated[float, Field(allow_inf_nan=False)]
+    min_bm25: Annotated[float, Field(ge=0, allow_inf_nan=False)] | None
     tie_break: Literal["unit_id_ascending"]
 
 
 class Case(StrictModel):
     case_id: Text
+    lesson_id: Text
     query: Text
     required_ids: list[Reference]
     optional_relevant_ids: list[Reference] = Field(default_factory=list)

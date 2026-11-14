@@ -18,7 +18,17 @@ Schema thực thi: `Fixture` và `Manifest` trong `lessonai.services.retrieval_f
 
 Manifest gồm `units`, mỗi mục có `unit_id`, `content_hash`. Fixture có `schema_version: "1"`, `config`, và `cases` không rỗng. Mỗi case có `case_id`, `query`, `required_ids`; `optional_relevant_ids` và `forbidden_ids` mặc định rỗng. Các danh sách chứa object với `unit_id`, `content_hash`, `rationale`. Nguồn cấm có thêm `reason` trong `not_approved`, `revoked`, `hash_changed`, `irrelevant_distractor`, cùng `approval_hash` nếu cần. `hash_changed` bắt buộc approval_hash khác content_hash hiện tại.
 
-Config bắt buộc khai báo algorithm, algorithm_version, embedding, embedding_version, index_data_sha256, top_k dương, score_threshold hữu hạn, tie_break = unit_id_ascending. Các trường phiên bản là khai báo; lát cắt này chưa thực thi hoặc kiểm tra phiên bản thuật toán truy hồi.
+Config bắt buộc khai báo algorithm, algorithm_version, embedding, embedding_version, index_data_sha256, top_k dương, min_bm25 hữu hạn không âm hoặc null, tie_break = unit_id_ascending. score_threshold cũ bị từ chối vì không phải tham số runtime.
+
+## Runner đã nối cấu hình
+
+`python -m lessonai.services.retrieval_fixture_runner FIXTURE MANIFEST --test-root TEMP_PARENT --mutate` chạy với LESSONAI_DATA_DIR được đặt trước import và phải nằm dưới TEMP_PARENT, khác kho mặc định. CLI trả JSON trên stdout, log loader trên stderr.
+
+Algorithm bắt buộc lessonai-question-bm25-quality, version lấy từ QUESTION_RETRIEVAL_VERSION hiện là 2; embedding và embedding_version đều none. Index hash là SHA-256 của JSON compact chứa danh sách source_hash của câu hỏi theo thứ tự nạp. Runner kiểm tra hash này trước truy hồi; top_k/min_bm25 truyền trực tiếp vào retrieve_questions. Các khóa lạ hoặc thuật toán không hỗ trợ trả exit 2. Manifest vẫn cần bước đối chiếu riêng từng đơn vị corpus trước khi đưa giáo viên.
+
+Đột biến báo detected_correctly/detected_wrong_code/survived; invalid_baseline trả exit 1 và thống kê riêng. Mỗi loại có tập mã lỗi kỳ vọng chính xác (ca rỗng có thể đồng thời EXPECTED_EMPTY và FORBIDDEN_PRESENT/UNEXPECTED_ID), tỷ lệ phát hiện đúng theo loại. Những test này kiểm tra assertion trên output đột biến, không phải chứng minh retriever chống mọi đột biến nội bộ.
+
+CI tại 7129f621ffb0c9f6fc77b399a8aa66f92963b8d6 đã success: https://github.com/nguyennhan18/lesson-plan-generator/actions/runs/43560804185 . Bằng chứng này chưa bao gồm runner mới.
 
 Mã lỗi tĩnh: FIXTURE_SCHEMA, FIXTURE_JSON, FIXTURE_DUPLICATE_ID, FIXTURE_OVERLAP, FIXTURE_UNKNOWN_ID, FIXTURE_HASH_MISMATCH, FIXTURE_APPROVAL_HASH, FIXTURE_CAPACITY. Không đọc được tệp: ENVIRONMENT_IO.
 

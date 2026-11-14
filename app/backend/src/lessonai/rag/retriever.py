@@ -22,6 +22,8 @@ STOP_WORDS = {
     "thì", "sẽ", "ở", "được", "bài", "chủ", "đề", "sau", "đây", "hãy", "khi", "những"
 }
 
+QUESTION_RETRIEVAL_VERSION = "2"
+
 
 def tokenize(text: Optional[str]) -> List[str]:
     """Tách từ tiếng Việt kết hợp bảo toàn ký hiệu toán học LaTeX."""

@@ -18,8 +18,8 @@ def sample():
         "config": {"algorithm": "lexical", "algorithm_version": "test-1",
                    "embedding": "none", "embedding_version": "none",
                    "index_data_sha256": "b" * 64, "top_k": 1,
-                   "score_threshold": 0.0, "tie_break": "unit_id_ascending"},
-        "cases": [{"case_id": "positive", "query": "domain", "required_ids": [ref]}],
+                   "min_bm25": 0.0, "tie_break": "unit_id_ascending"},
+        "cases": [{"case_id": "positive", "lesson_id": "test-domain", "query": "domain", "required_ids": [ref]}],
     }
     return fixture, {"hash_version": 2, "units": [{"unit_id": "test-u1", "content_hash": "a" * 64}]}
 
@@ -69,6 +69,16 @@ def test_stale_approval_is_valid_and_inputs_unchanged():
     before = copy.deepcopy((fixture, manifest))
     assert validate_fixture(fixture, manifest) == []
     assert (fixture, manifest) == before
+
+
+@pytest.mark.parametrize("version", [None, 1, "2"])
+def test_manifest_requires_current_hash_version(version):
+    fixture, manifest = sample()
+    if version is None:
+        manifest.pop("hash_version")
+    else:
+        manifest["hash_version"] = version
+    assert validate_fixture(fixture, manifest)[0]["code"] == "FIXTURE_SCHEMA"
 
 
 def test_cli_good_bad_and_environment(tmp_path):
@@ -162,6 +172,41 @@ for order in [[target, distractor], [distractor, target]]:
     assert [q["id"] for q in tied] == ["a-distractor", "z-target"]
 
 from lessonai.rag.content_units import load_approval_registry, save_approval_registry, approved_units
+from lessonai.rag.content_units import source_hash
+from lessonai.services.retrieval_fixture_runner import execute, index_hash, mutations, ALGORITHM, VERSION
+from lessonai.services.retrieval_fixture import Case
+ref = lambda row: {"unit_id": row["id"], "content_hash": source_hash(row), "rationale": "same function domain"}
+fixture = {"schema_version": "1", "config": {"algorithm": ALGORITHM, "algorithm_version": VERSION, "embedding": "none", "embedding_version": "none", "index_data_sha256": index_hash(r._questions), "top_k": 1, "min_bm25": 0.0, "tie_break": "unit_id_ascending"}, "cases": [{"case_id": "ranking", "lesson_id": "test-domain", "query": "miền xác định phân thức mẫu x trừ ba", "required_ids": [ref(target)], "forbidden_ids": [{**ref(distractor), "reason": "irrelevant_distractor"}]}]}
+manifest = {"hash_version": 2, "units": [{"unit_id": row["id"], "content_hash": source_hash(row)} for row in [target, distractor]]}
+exit_code, report = execute(fixture, manifest, r, mutate=True)
+assert exit_code == 0, report
+assert all(m["status"] == "detected_correctly" for m in report["results"][0]["mutations"])
+import subprocess
+fixture_path, manifest_path = root / "fixture.json", root / "manifest.json"
+fixture_path.write_text(json.dumps(fixture))
+manifest_path.write_text(json.dumps(manifest))
+cli = subprocess.run([sys.executable, "-m", "lessonai.services.retrieval_fixture_runner", str(fixture_path), str(manifest_path), "--test-root", str(root), "--mutate"], capture_output=True, text=True, timeout=15)
+assert cli.returncode == 0, cli.stdout + cli.stderr
+assert json.loads(cli.stdout)["exit_code"] == 0
+bad_root = subprocess.run([sys.executable, "-m", "lessonai.services.retrieval_fixture_runner", str(fixture_path), str(manifest_path), "--test-root", str(root / "elsewhere")], capture_output=True, text=True, timeout=15)
+assert bad_root.returncode == 3
+fixture["config"]["top_k"] = 2
+assert execute(fixture, manifest, r)[0] == 1  # actual runtime top_k admits distractor
+fixture["config"]["top_k"] = 1
+fixture["config"]["min_bm25"] = 1e9
+assert execute(fixture, manifest, r)[0] == 1  # actual runtime threshold removes required
+fixture["config"]["min_bm25"] = 0.0
+for key, value in [("algorithm", "unsupported"), ("algorithm_version", "old"), ("embedding", "external"), ("embedding_version", "old"), ("index_data_sha256", "0"*64), ("tie_break", "corpus_order"), ("score_threshold", 0.0)]:
+    changed = json.loads(json.dumps(fixture))
+    changed["config"][key] = value
+    assert execute(changed, manifest, r)[0] == 2, key
+case = Case.model_validate(fixture["cases"][0])
+assert mutations(case, [])[0]["status"] == "invalid_baseline"
+for reason in ["not_approved", "revoked", "hash_changed", "irrelevant_distractor"]:
+    case.forbidden_ids[0].reason = reason
+    assert all(m["status"] == "detected_correctly" for m in mutations(case, [target]))
+case.required_ids = []
+assert all(m["status"] == "detected_correctly" for m in mutations(case, []))
 registry = load_approval_registry()
 for version in [None, 1, "2"]:
     for record in registry["sources"]:
