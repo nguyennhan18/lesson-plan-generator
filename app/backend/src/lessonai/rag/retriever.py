@@ -295,13 +295,16 @@ class Math12HybridRetriever:
         lesson_id: str,
         proficiency: str = "standard",
         query: Optional[str] = None,
-        k: int = 4
+        k: int = 4,
+        min_bm25: Optional[float] = None,
     ) -> List[Dict[str, Any]]:
         """
         Truy xuất k câu hỏi thật phân hóa theo học lực lớp (basic, standard, advanced).
         Đầy đủ worked_solution_steps và quiz_options.
         """
         from lessonai.rag.content_units import approved_units
+        if min_bm25 is not None and (not math.isfinite(min_bm25) or min_bm25 < 0):
+            raise ValueError("min_bm25 must be finite and nonnegative")
         candidates = approved_units(self._questions_by_lesson.get(lesson_id, []))
         if not candidates:
             return []
@@ -323,6 +326,8 @@ class Math12HybridRetriever:
                 bm25_score = self.question_bm25.score(query_toks, q.get("tokens", []), doc_len)
 
             diff = q.get("difficulty", "medium")
+            if query_toks and min_bm25 is not None and bm25_score <= min_bm25:
+                continue
             diff_weight = diff_weights.get(diff, 0.7)
 
             # Ưu tiên câu hỏi có đầy đủ 3 bước giải và bẫy trắc nghiệm
@@ -332,5 +337,9 @@ class Math12HybridRetriever:
             final_score = (0.4 * min(bm25_score, 10.0) / 10.0) + (0.3 * diff_weight) + has_steps + has_rationales
             scored_questions.append((final_score, q))
 
-        scored_questions.sort(key=lambda x: x[0], reverse=True)
+        # Intentional tie behavior: canonical unit identity, not corpus order.
+        scored_questions.sort(key=lambda x: (
+            -round(x[0], 9),
+            str(x[1].get("unit_id") or x[1].get("id") or x[1].get("question_id") or ""),
+        ))
         return [item[1] for item in scored_questions[:k]]
