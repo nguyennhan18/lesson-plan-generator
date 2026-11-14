@@ -3,6 +3,7 @@ import hashlib
 import json
 import subprocess
 import sys
+import os
 from pathlib import Path
 
 import pytest
@@ -20,7 +21,18 @@ def sample():
                    "score_threshold": 0.0, "tie_break": "unit_id_ascending"},
         "cases": [{"case_id": "positive", "query": "domain", "required_ids": [ref]}],
     }
-    return fixture, {"units": [{"unit_id": "test-u1", "content_hash": "a" * 64}]}
+    return fixture, {"hash_version": 2, "units": [{"unit_id": "test-u1", "content_hash": "a" * 64}]}
+
+
+def test_content_hash_v2_normalizes_text_without_changing_source():
+    from lessonai.rag.content_units import source_hash, HASH_VERSION
+    left = {"question": "Toán\r\n12\rA", "nested": [{"text": "e\u0301"}]}
+    right = {"nested": [{"text": "é"}], "question": "Toán\n12\nA"}
+    original = copy.deepcopy(left)
+    assert HASH_VERSION == 2
+    assert source_hash(left) == source_hash(right)
+    assert left == original
+    assert source_hash(right) != source_hash({**right, "question": "Toán\n11\nA"})
 
 
 @pytest.mark.parametrize("code", ["FIXTURE_SCHEMA", "FIXTURE_DUPLICATE_ID", "FIXTURE_OVERLAP",
@@ -83,6 +95,84 @@ def test_cli_good_bad_and_environment(tmp_path):
 def real_approvals_unchanged():
     approval = Path(__file__).resolve().parents[1] / "data/reviewed_sources.json"
     before = hashlib.sha256(approval.read_bytes()).hexdigest() if approval.exists() else None
+    artifacts = {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in approval.parent.glob("reviewed_sources.json*") if p.is_file()}
     yield
     after = hashlib.sha256(approval.read_bytes()).hexdigest() if approval.exists() else None
     assert after == before, "Real approval store changed during fixture validation tests"
+    assert artifacts == {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in approval.parent.glob("reviewed_sources.json*") if p.is_file()}
+
+
+def test_real_retrieval_in_isolated_subprocess(tmp_path):
+    root = tmp_path / "corpus"
+    root.mkdir()
+    env = {**os.environ, "LESSONAI_DATA_DIR": str(root)}
+    code = r'''
+import json, sys
+from pathlib import Path
+from lessonai.core.config import DATA_DIR, BACKEND_DIR
+root = Path(sys.argv[1]).resolve()
+if DATA_DIR != root / "corpus" or not DATA_DIR.is_relative_to(root) or DATA_DIR == (BACKEND_DIR / "data").resolve():
+    sys.exit(3)
+from lessonai.rag.content_units import register_source_approval, revoke_source_approval
+rows = [{"id": f"isolation-test-{i:02}", "lesson_id": "test-domain", "question": "miền xác định hàm phân thức", "solution": "loại nghiệm mẫu số", "difficulty": "medium"} for i in range(24)]
+register_source_approval(rows[0], "TEST ONLY")
+register_source_approval(rows[1], "TEST ONLY")
+revoke_source_approval(rows[1], reason="test", reviewer="TEST ONLY")
+register_source_approval(rows[2], "TEST ONLY")
+rows[2]["solution"] = "changed after approval"
+(DATA_DIR / "questions").mkdir()
+(DATA_DIR / "questions/questions_math12_rag.jsonl").write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rows), encoding="utf-8")
+from lessonai.rag.retriever import Math12HybridRetriever
+r = Math12HybridRetriever()
+assert [q["id"] for q in r.retrieve_questions("test-domain", query="miền xác định", k=4)] == [rows[0]["id"]]
+assert r.retrieve_questions("absent", query="miền xác định", k=4) == []
+assert r.retrieve_questions("test-domain", query="zzznomatch", min_bm25=0.0) == []
+assert r.retrieve_questions("test-domain", query=None, min_bm25=0.0)
+assert r.retrieve_questions("test-domain", query="zzznomatch")  # None preserves legacy filtering
+try:
+    r.retrieve_questions("test-domain", score_threshold=0.1)
+except TypeError:
+    pass
+else:
+    raise AssertionError("Unknown runtime configuration was silently ignored")
+for invalid in [float("nan"), float("inf"), -1]:
+    try:
+        r.retrieve_questions("test-domain", min_bm25=invalid)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("Invalid BM25 threshold accepted")
+
+# Same quality, same lesson, overlapping keywords, different mathematical condition.
+target = {"id": "z-target", "lesson_id": "test-domain", "question": "miền xác định hàm phân thức mẫu x trừ ba", "difficulty": "medium"}
+distractor = {"id": "a-distractor", "lesson_id": "test-domain", "question": "miền xác định hàm phân thức mẫu x cộng năm", "difficulty": "medium"}
+for row in [target, distractor]:
+    register_source_approval(row, "TEST ONLY")
+corpus_path = DATA_DIR / "questions/questions_math12_rag.jsonl"
+corpus_path.write_text("\n".join(json.dumps(row) for row in [distractor, target]))
+r = Math12HybridRetriever()
+config = {"k": 1, "min_bm25": 0.0}
+found = r.retrieve_questions("test-domain", query="miền xác định phân thức mẫu x trừ ba", **config)
+assert [q["id"] for q in found] == [target["id"]]
+assert distractor["id"] not in [q["id"] for q in found]
+assert r.retrieve_questions("test-domain", query="trừ ba", min_bm25=1e9) == []
+for order in [[target, distractor], [distractor, target]]:
+    corpus_path.write_text("\n".join(json.dumps(row) for row in order))
+    tied = Math12HybridRetriever().retrieve_questions("test-domain", query=None, k=2)
+    assert [q["id"] for q in tied] == ["a-distractor", "z-target"]
+
+from lessonai.rag.content_units import load_approval_registry, save_approval_registry, approved_units
+registry = load_approval_registry()
+for version in [None, 1, "2"]:
+    for record in registry["sources"]:
+        if version is None:
+            record.pop("hash_version", None)
+        else:
+            record["hash_version"] = version
+    save_approval_registry(registry)
+    reasons = []
+    assert approved_units([target, distractor], rejection_reasons=reasons) == []
+    assert reasons and all(item["reason"] == "hash_version_mismatch" for item in reasons)
+'''
+    proc = subprocess.run([sys.executable, "-c", code, str(tmp_path)], env=env, capture_output=True, text=True, timeout=30)
+    assert proc.returncode == 0, proc.stdout + proc.stderr

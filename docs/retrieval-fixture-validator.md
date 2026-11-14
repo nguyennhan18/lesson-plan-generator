@@ -1,5 +1,13 @@
 # Validator fixture truy hồi — lát cắt đầu
 
+## Bằng chứng Linux CI
+
+Đã kiểm tra trên GitHub Actions ngày 2026-11-14: workflow RAG fixture tests thành công tại commit `63c8086c12af60ba2393d31452d4a315f574e0bc`.
+URL: https://github.com/nguyennhan18/lesson-plan-generator/actions/runs/43332629796
+Đây là bằng chứng cho hai suite triage/validator ở commit đó, không phải toàn bộ release gate hay thay đổi hash v2 sau này.
+
+Manifest hiện bắt buộc `hash_version: 2`. Source hash v2 chuẩn hóa CRLF/CR thành LF và Unicode NFC đệ quy trong giá trị chuỗi; giữ nguyên khóa object, thứ tự list và nội dung ngoài các phép chuẩn hóa đó. JSON được sắp xếp khóa, UTF-8, không khoảng trắng. Hash byte của asset và kiểm tra approval trước/sau không thay đổi. Approval cũ có nội dung thay đổi hash sẽ bị loại và cần duyệt lại.
+
 Chạy bằng Python đã cài package backend:
 
 ```sh
@@ -21,6 +29,10 @@ Hash được so với manifest được cung cấp, chưa tái băm corpus ho�
 Đã kiểm chứng CLI subprocess với fixture đúng (0), fixture có ID không tồn tại (2). Bộ test gồm 9 ca, phủ từng mã FIXTURE_* và ưu tiên lỗi môi trường.
 
 ## Công việc tiếp theo
+
+Cập nhật truy hồi 2026-11-14: retrieve_questions nhận min_bm25=None (mặc định giữ lọc cũ); khi truyền số hữu hạn không âm, chỉ query có token mới áp dụng cổng BM25 > min_bm25. Không đổi trọng số. Sắp xếp theo -round(score, 9), rồi unit_id/id/question_id tăng dần; hòa điểm có thể đổi top-k so với thứ tự corpus trước đây. Approval thiếu/sai hash_version bị loại, có thể lấy lý do hash_version_mismatch qua approved_units(..., rejection_reasons=list). Test subprocess kiểm tra tham số runtime trực tiếp, từ chối khóa lạ, nguồn nhiễu cùng chất lượng, đảo thứ tự corpus và approval phiên bản cũ. Schema cấu hình fixture tổng quát chưa nối vào runner truy hồi; score_threshold của schema chưa phải alias của min_bm25.
+
+Cập nhật 2026-11-14: local đạt 15 tests trên hai suite. Corpus tổng hợp 24 câu được dựng trong subprocess với DATA_DIR dưới tmp_path; sai đường dẫn dừng exit 3. Test gọi retriever thật và kiểm tra nguồn chưa duyệt/thu hồi/đổi hash không xuất hiện, nguồn hợp lệ xuất hiện, lesson không tồn tại trả []. Guard so nội dung và danh sách tệp reviewed_sources.json* trước/sau. Đây chưa phải bộ kiểm thử phù hợp với nguồn nhiễu đã duyệt. Runtime hiện dùng BM25 thuần Python, chưa có ngưỡng và phá hòa theo unit_id; không tuyên bố đã hoàn thành cấu hình tất định theo hợp đồng mới.
 
 1. Thêm lệnh hoặc cờ đối chiếu corpus riêng: tính lại hash từng đơn vị theo cùng quy tắc định danh/hash của runtime, so với manifest. Sai lệch phải báo `FIXTURE_MANIFEST_STALE` (exit 2); không đọc được corpus báo lỗi môi trường (exit 3). Cần test corpus thay đổi trong khi fixture và manifest cũ vẫn khớp nhau. Mã này mới được dành trước, chưa được triển khai.
 2. Cố định cấu hình truy hồi thực tế và truyền đường dẫn approval test tường minh; kiểm tra runtime không nhìn thấy approval test.
