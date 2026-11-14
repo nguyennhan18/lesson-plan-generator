@@ -59,6 +59,7 @@ class Fixture(StrictModel):
 
 
 class Manifest(StrictModel):
+    hash_version: Literal[2]
     units: list[Unit]
 
 
