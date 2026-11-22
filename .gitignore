@@ -75,6 +75,13 @@ Makefile
 # Test suites & verification scripts (local-only, not pushed to Git)
 app/backend/tests/*
 !app/backend/tests/test_retrieval_fixture.py
+!/app/backend/tests/test_office_math.py
+!/app/backend/tests/test_day3_parsers.py
 app/frontend/tests/
 app/frontend/e2e/
 scripts/
+!/scripts/
+/scripts/*
+!/scripts/quality/
+/scripts/quality/*
+!/scripts/quality/prepare-source-review.py
