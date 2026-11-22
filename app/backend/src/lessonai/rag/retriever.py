@@ -7,6 +7,7 @@ Tầng Pedagogical RAG - Bộ truy xuất lai (Hybrid Retriever) cho Toán 12 CT
 - Kết hợp Lọc cứng Metadata (lesson_id, activity_type, difficulty) + Okapi BM25 tiếng Việt + Chấm điểm chất lượng sư phạm.
 """
 
+import copy
 import json
 import math
 import re
@@ -136,6 +137,16 @@ class Math12HybridRetriever:
         if lesson_id is None:
             return approved_units(self._questions)
         return approved_units(self._questions_by_lesson.get(lesson_id, []))
+
+    def get_corpus_candidates_for_review(self) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        Trả về bản sao sâu của kho dữ liệu thô chỉ dành cho công cụ kiểm kê và chuẩn bị
+        danh sách chờ giáo viên duyệt (`prepare-source-review.py`). Không dùng cho runtime RAG.
+        """
+        return {
+            "slide_kntt12": copy.deepcopy(self._slides),
+            "question_bank_rag": copy.deepcopy(self._questions),
+        }
 
     def _find_data_dir(self) -> Path:
         return DATA_DIR
