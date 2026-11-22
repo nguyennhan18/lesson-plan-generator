@@ -163,11 +163,11 @@ flowchart TD
     LLMOut --> TeacherReview{"Giáo viên rà soát & duyệt dàn ý"}
     TeacherReview -- "Chỉnh sửa" --> EditOutline["Sửa tiêu đề, thêm/xóa/sắp xếp slide"] --> TeacherReview
     TeacherReview -- "Xác nhận duyệt" --> LockContract["Khóa Approved Outline Contract (ID, tiêu đề, số trang)"]
-    
+
     LockContract --> GenAll["Yêu cầu sinh nội dung chi tiết"]
     GenAll --> GenPlan["Sinh Giáo án 5512 (/api/v1/lesson-plan/generate)"]
     GenAll --> GenSlide["Sinh Bộ Slide (/api/v1/slide/generate)"]
-    
+
     GenSlide --> ContractCheck{"Backend đối chiếu Outline Contract"}
     ContractCheck -- "Lệch ID / tiêu đề / thứ tự" --> Reject["Báo lỗi invalid_ai_output (Bảo toàn bài soạn)"]
     ContractCheck -- "Khớp hoàn toàn hợp đồng" --> DraftDeck["Trả về SlideDeckSchema & LessonPlanSchema (BẢN NHÁP)"]
@@ -183,22 +183,22 @@ flowchart LR
     Draft["Bản nháp trong Studio"] --> VisualParam["Giáo viên nhập tham số đồ thị / hình 3D"]
     VisualParam --> ServerVisual["Xác nhận dữ kiện (/api/v1/visuals/confirm)"]
     ServerVisual --> VisualToken["Cấp HMAC Visual Token (24h)"]
-    
+
     VisualToken --> QualityAudit["Chạy kiểm tra bài (/api/v1/quality/check)"]
     QualityAudit --> ASTWorker["Worker: AST Parse + SymPy Equality Check"]
     ASTWorker --> Report{"Báo cáo chất lượng"}
-    
+
     Report -- "Có lỗi số học / sai lệch" --> BlockReview["Chặn duyệt (Yêu cầu sửa lỗi)"]
     Report -- "Không có lỗi chặn" --> TeacherSignOff{"Giáo viên xác nhận chuyên môn"}
-    
+
     TeacherSignOff --> ApproveRoute["Gửi duyệt (/api/v1/quality/approve)"]
     ApproveRoute --> ReviewToken["Cấp HMAC Review Token (Status: ready)"]
-    
+
     ReviewToken --> Exporters["Yêu cầu xuất tệp"]
     Exporters --> CheckStatus{"Kiểm tra Review Token"}
     CheckStatus -- "Token hợp lệ (ready)" --> CleanExport["Bản xuất chuẩn không nhãn nháp"]
     CheckStatus -- "Chưa duyệt / Hết hạn" --> DraftWatermark["Bản xuất gắn nhãn BẢN NHÁP"]
-    
+
     CleanExport --> DualZip["Dual-Package Exporter (.zip + .docx + .pptx + SHA-256 Manifest)"]
     DraftWatermark --> DualZip
 ```
