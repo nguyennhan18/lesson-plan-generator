@@ -35,6 +35,30 @@ def test_content_hash_v2_normalizes_text_without_changing_source():
     assert source_hash(right) != source_hash({**right, "question": "Toán\n11\nA"})
 
 
+def test_stale_manifest_even_when_fixture_still_matches(tmp_path):
+    from lessonai.rag.content_units import source_hash
+    from lessonai.services.manifest_corpus_check import verify, check_files
+    fixture, manifest = sample()
+    original = {"id": "test-u1", "question": "x khác 3"}
+    digest = source_hash(original)
+    manifest["units"][0]["content_hash"] = digest
+    fixture["cases"][0]["required_ids"][0]["content_hash"] = digest
+    assert validate_fixture(fixture, manifest) == []
+    assert verify(manifest, [original]) == []
+    changed = {**original, "question": "x khác -3"}
+    assert validate_fixture(fixture, manifest) == []
+    assert verify(manifest, [changed])[0]["code"] == "FIXTURE_MANIFEST_STALE"
+    assert verify(manifest, [])[0]["reason"] == "missing_unit"
+    mp, cp = tmp_path / "manifest.json", tmp_path / "corpus.jsonl"
+    mp.write_text(json.dumps(manifest))
+    cp.write_text(json.dumps(changed))
+    code, report = check_files(mp, [cp])
+    assert code == 2 and report["corpus_units"] == 1
+    assert report["code_sha256"] and len(report["files"]) == 2
+    cp.unlink()
+    assert check_files(mp, [cp])[0] == 3
+
+
 @pytest.mark.parametrize("code", ["FIXTURE_SCHEMA", "FIXTURE_DUPLICATE_ID", "FIXTURE_OVERLAP",
                                   "FIXTURE_UNKNOWN_ID", "FIXTURE_HASH_MISMATCH",
                                   "FIXTURE_APPROVAL_HASH", "FIXTURE_CAPACITY"])

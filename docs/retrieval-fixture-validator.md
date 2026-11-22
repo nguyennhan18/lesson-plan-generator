@@ -1,6 +1,20 @@
 # Validator fixture truy hồi — lát cắt đầu
 
+## Phạm vi bằng chứng
+
+CI ở 9980026 bao phủ 18 tests portable trên corpus tổng hợp. Sáu test bổ sung trong test_phase3_pedagogical_rag.py dùng corpus thật và chỉ có bằng chứng local, không được tính vào CI xanh. Đột biến có tổng hợp mutations_by_kind (ba số đếm và correct_detection_rate) cùng invalid_baseline trong JSON runner; phải lưu JSON của lần nghiệm thu, không chỉ viện dẫn pytest xanh.
+
+Đối chiếu manifest với nguồn thật dùng lệnh riêng:
+
+```sh
+app/backend/venv/bin/python -m lessonai.services.manifest_corpus_check MANIFEST.json --corpus CORPUS.jsonl --output NEW_REPORT.json
+```
+
+Có thể lặp --corpus cho nhiều JSONL. Lệnh chỉ đọc nguồn, xuất file bằng chế độ exclusive, không ghi approval. Báo cáo có commit và hash mã đang thực thi (vì working tree có thể khác commit), hash byte manifest/corpus, số lượng và lỗi. Nội dung mỗi đơn vị được băm bằng source_hash v2. Nguồn thay đổi hoặc biến mất trả FIXTURE_MANIFEST_STALE / exit 2; ID corpus trùng/thiếu bị từ chối; lỗi I/O exit 3. Phạm vi hiện tại là nội dung JSONL, chưa chứng thực asset hoặc lựa chọn nguồn chuyên môn. Logic stale có test synthetic portable; báo cáo kiểm tra corpus thật chỉ xuất khi manifest lô được lập, không coi snapshot tự tạo rồi kiểm ngay là bằng chứng nguồn đã duyệt.
+
 ## Bằng chứng Linux CI
+
+Runner mới đã được xác minh success tại commit `99800263b52fb50dbf070c2054111dbac58a792b`: https://github.com/nguyennhan18/lesson-plan-generator/actions/runs/43561006902 . Hai suite portable có 18 test; cũng chạy đạt từ git archive của commit, không dựa vào corpus local. Suite hiệu năng corpus thật chỉ là bằng chứng local (không thuộc workflow này).
 
 Đã kiểm tra trên GitHub Actions ngày 2026-11-14: workflow RAG fixture tests thành công tại commit `63c8086c12af60ba2393d31452d4a315f574e0bc`.
 URL: https://github.com/nguyennhan18/lesson-plan-generator/actions/runs/43332629796
