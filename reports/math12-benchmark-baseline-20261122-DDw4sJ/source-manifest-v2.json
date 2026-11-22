@@ -1,0 +1,361 @@
+{
+  "captured_at_utc": "2026-11-22T04:40:29.434830+00:00",
+  "git_head": "ac9efecbdbd110e7e733320368daa813cac4c67d",
+  "branch": "feat/multi-role-orchestrator",
+  "git_status_short": " M README.md\n M app/backend/src/lessonai/api/routes/system.py\n M app/backend/src/lessonai/exporters/slide_exporter.py\n M app/backend/src/lessonai/parsers/docx_parser.py\n M app/backend/src/lessonai/parsers/pptx_parser.py\n M app/backend/src/lessonai/rag/retriever.py\n M app/backend/src/lessonai/services/office_math.py\n M app/backend/tests/test_retrieval_fixture.py\n M docs/retrieval-fixture-validator.md\n M scripts/quality/run_benchmark_suite.py\n?? app/backend/src/lessonai/services/manifest_corpus_check.py\n?? app/backend/src/lessonai/services/slide_remediation.py\n?? app/backend/tests/test_day3_parsers.py\n?? app/backend/tests/test_office_math.py\n?? infra/\n?? scripts/quality/prepare-source-review.py\n",
+  "python_version": "3.15.2",
+  "files": [
+    {
+      "path": "app/backend/src/lessonai/__init__.py",
+      "sha256": "532755148602a44d777beb5f7e294b6029b172ff54ed7efa86012f443cbbbba0"
+    },
+    {
+      "path": "app/backend/src/lessonai/api/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "app/backend/src/lessonai/api/routes/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "app/backend/src/lessonai/api/routes/chat.py",
+      "sha256": "f7d9a708398ea70476a3ff475d2eea6dacc2090fe1ec4365a39a0a40c6219798"
+    },
+    {
+      "path": "app/backend/src/lessonai/api/routes/curriculum.py",
+      "sha256": "c6fb4dfd3fa4a43d528af77b3ecaf714f309f48ca8a109fa93e2d1c94d1b00fd"
+    },
+    {
+      "path": "app/backend/src/lessonai/api/routes/exports.py",
+      "sha256": "6fab0045ec12a1853990ed86d45cbea960786d8523092737cd1f37b7596e59e4"
+    },
+    {
+      "path": "app/backend/src/lessonai/api/routes/geometry.py",
+      "sha256": "252c6f5b0168fdb0a03ced449c3e9f299d07be60b41901145f532d5611736d10"
+    },
+    {
+      "path": "app/backend/src/lessonai/api/routes/ingest.py",
+      "sha256": "b1d2b9fe3ae15749021372120633ea22aa12bba5fb2b0317c75e46a1544033fa"
+    },
+    {
+      "path": "app/backend/src/lessonai/api/routes/lesson_plan.py",
+      "sha256": "842f5d3b3f46afcb241fcbb177cf1e289c3848a8fb5060677feae5fe318d962d"
+    },
+    {
+      "path": "app/backend/src/lessonai/api/routes/presentation.py",
+      "sha256": "50860b3cbf0822fa9667c777f8022a93bdd7c2e4886a3dbb284bd270f3f4c49a"
+    },
+    {
+      "path": "app/backend/src/lessonai/api/routes/quality.py",
+      "sha256": "06d0bef8b5fe027911c67a4478d08d33fa1d5950a4708d685776e4c1dfa641f0"
+    },
+    {
+      "path": "app/backend/src/lessonai/api/routes/slides.py",
+      "sha256": "21ddc1db2a0c42387affbf29062bda6cc467e3a103f19bc099d8c5fce7c80a3e"
+    },
+    {
+      "path": "app/backend/src/lessonai/api/routes/system.py",
+      "sha256": "941102f58af91094a40170002e6d84ac8b8a631655ca06a4e79969e141f24de1"
+    },
+    {
+      "path": "app/backend/src/lessonai/api/routes/validation.py",
+      "sha256": "00c314064140c49c46339a07719e9848b6806c556708d4303b013c70cdb02152"
+    },
+    {
+      "path": "app/backend/src/lessonai/api/routes/visuals.py",
+      "sha256": "4052f88b72e795cac03910540a5d64dd2b8ca62ac9baad6563683cf9f271308c"
+    },
+    {
+      "path": "app/backend/src/lessonai/api/routes/web.py",
+      "sha256": "f86f1ba99cf2d2e33483b16e9610caca113710df31a8e8b5819dced00ea30e82"
+    },
+    {
+      "path": "app/backend/src/lessonai/core/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "app/backend/src/lessonai/core/config.py",
+      "sha256": "e443e0b8cabd79ef749e6b541d4614aac43c25adc03179309288014c38f07c6f"
+    },
+    {
+      "path": "app/backend/src/lessonai/core/feature_availability.py",
+      "sha256": "5b1b2e30562347938d12dd445c9fb0d9b7ef693276bf0424d6d3f2edd81487b7"
+    },
+    {
+      "path": "app/backend/src/lessonai/core/ingress.py",
+      "sha256": "d62b8f833c0fbf0a4d3ff4253dca2852baaba3adb98b46c4952118b2629b887f"
+    },
+    {
+      "path": "app/backend/src/lessonai/core/jobs.py",
+      "sha256": "6d4a2be9d0e25960577ceae87ff19a0603d3394680da46417d87674cdfea4e36"
+    },
+    {
+      "path": "app/backend/src/lessonai/core/ownership.py",
+      "sha256": "4e44e22221d190eb2e018fa13621e945202cc686f06fd173fba0597f483123e0"
+    },
+    {
+      "path": "app/backend/src/lessonai/core/render_runtime.py",
+      "sha256": "c809e253472cd48dc7daac794367b787164fb2980497e04f8a6f984a574ed882"
+    },
+    {
+      "path": "app/backend/src/lessonai/exporters/__init__.py",
+      "sha256": "5fa474d8bae3af505690fc260f7ab0ad8884de44badce45f35eca65d2a92508c"
+    },
+    {
+      "path": "app/backend/src/lessonai/exporters/docx_exporter.py",
+      "sha256": "e6389afb8acc972f18a62a932f2edcf7bb9bd730ce243c906ccdf8a3bed48abe"
+    },
+    {
+      "path": "app/backend/src/lessonai/exporters/dual_package_exporter.py",
+      "sha256": "1a0875688dcfb0a5276ed3cb421de7d7c41797af4c59780018c93331265b3cfd"
+    },
+    {
+      "path": "app/backend/src/lessonai/exporters/graph_generator.py",
+      "sha256": "8ff07cd1e882fdfdf2dd50017f3fa34d5041be02419fdaebd12dbf4f66b102f4"
+    },
+    {
+      "path": "app/backend/src/lessonai/exporters/slide_exporter.py",
+      "sha256": "170107d64c726220b06f100550c13766dda82688c89b0e1c26acd769c01dfb3d"
+    },
+    {
+      "path": "app/backend/src/lessonai/llm/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "app/backend/src/lessonai/llm/gateway.py",
+      "sha256": "edd0b7250b01c032c7e5cf91d2f7080a5c742868bc4ee4cb6d56a45b30ee339b"
+    },
+    {
+      "path": "app/backend/src/lessonai/main.py",
+      "sha256": "dc6a852e1fd3ed91722bac4198f5f2bff101ab066872131483a5af1fc4ec6679"
+    },
+    {
+      "path": "app/backend/src/lessonai/parsers/__init__.py",
+      "sha256": "2672f45fa083c3104f00998b10b718dab4bc623e29f2eaad03df62398e937370"
+    },
+    {
+      "path": "app/backend/src/lessonai/parsers/common.py",
+      "sha256": "90c35c845abce23f429d9b80203efb8abbafd034e2ae193934ef44978ca47600"
+    },
+    {
+      "path": "app/backend/src/lessonai/parsers/docx_parser.py",
+      "sha256": "236a1be17039b6260efe26e51ba7e6eb270419e837c2742344e482b694604c4c"
+    },
+    {
+      "path": "app/backend/src/lessonai/parsers/pptx_parser.py",
+      "sha256": "6b96565ad82df0b7ccafcfa63eff778ed30969f104319944dd4b9144f1f6964c"
+    },
+    {
+      "path": "app/backend/src/lessonai/prompts/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "app/backend/src/lessonai/prompts/chat.py",
+      "sha256": "fe886534d3a1c7cb7672078dfbd8bc2037605b4b2a41b3e2aba82abfa594c586"
+    },
+    {
+      "path": "app/backend/src/lessonai/prompts/lesson_plan.py",
+      "sha256": "25a99e69a78d0755ce5aad570ad567c0e497a64ccedb9086afeac314544c20a5"
+    },
+    {
+      "path": "app/backend/src/lessonai/prompts/slides.py",
+      "sha256": "5d524c14e6b067fa768cdc118e98b97fb9af038be4d1e3c22badcb30dae379d0"
+    },
+    {
+      "path": "app/backend/src/lessonai/prompts/validation.py",
+      "sha256": "32a3edf377085f871ed0e9dfc9e94fc835287d42c4f5fe64ccefbeeaec8ee8ee"
+    },
+    {
+      "path": "app/backend/src/lessonai/rag/__init__.py",
+      "sha256": "340ac4122083c46084177a0edae1196ca35e0d7ba3a001a014d2ea7659f12fde"
+    },
+    {
+      "path": "app/backend/src/lessonai/rag/content_units.py",
+      "sha256": "db13f609a8a2eb6674a7e5b8da35826327d278f611440bf2c3be0ebed51bf577"
+    },
+    {
+      "path": "app/backend/src/lessonai/rag/context_builder.py",
+      "sha256": "0466e465a05188f79555c05a41bb847e647de6fe1e26d73315b269ea218cd9dd"
+    },
+    {
+      "path": "app/backend/src/lessonai/rag/curriculum_registry.py",
+      "sha256": "240571bbbd2c4ebdd3193b035f4493dae077c06196a85e05d66ee39eef34b844"
+    },
+    {
+      "path": "app/backend/src/lessonai/rag/provenance.py",
+      "sha256": "2df8cbb234c0b24ae39aaa0cdd626abf11f6bd95bf2674b61398c25b033e9df1"
+    },
+    {
+      "path": "app/backend/src/lessonai/rag/retriever.py",
+      "sha256": "c839c573603265c7c369838619be3bd4e8ffc768f77844bd1a30fc55f8ed035b"
+    },
+    {
+      "path": "app/backend/src/lessonai/schemas/__init__.py",
+      "sha256": "1453b97147d333c8f9c6390d6ffa901067b52087b76f8bbcd5f597971a990cfc"
+    },
+    {
+      "path": "app/backend/src/lessonai/schemas/chat_schema.py",
+      "sha256": "0d03fde24fa9261f47375d43f5851f7a6bbdcaf8755f36d09621a7aaf3a7ded6"
+    },
+    {
+      "path": "app/backend/src/lessonai/schemas/content_blocks.py",
+      "sha256": "e2531a50f9161583fe68193adac9a16ada7fa2a0cab7905c7ab7671b49957a6e"
+    },
+    {
+      "path": "app/backend/src/lessonai/schemas/lesson_review.py",
+      "sha256": "98da0ce1acea27f16cda4ea34f4a33ceb21edbf5a64ad2e2611bba1643935316"
+    },
+    {
+      "path": "app/backend/src/lessonai/schemas/provenance.py",
+      "sha256": "935a5316782f0dda472915f9550236591a8fa55c071b111ccd9441d3f36e5d46"
+    },
+    {
+      "path": "app/backend/src/lessonai/schemas/schemas.py",
+      "sha256": "115ccde9cc982e30063be8a5576af54c52db80e1706a3663d5b3e93d8ecaf761"
+    },
+    {
+      "path": "app/backend/src/lessonai/schemas/slide_schema.py",
+      "sha256": "06e2664a889b63661c2b1b5ef2b3d4b1ac563fdad34372202fcfdca4cdc7690e"
+    },
+    {
+      "path": "app/backend/src/lessonai/services/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "app/backend/src/lessonai/services/analytics.py",
+      "sha256": "a448a69c3e97370b445271e59819415e1bd8505345eac4f0d35f5eae20c11d52"
+    },
+    {
+      "path": "app/backend/src/lessonai/services/artifact_provenance.py",
+      "sha256": "233d8955763ee84c1106762821715134f1bf3090a4c1609518849626416517c8"
+    },
+    {
+      "path": "app/backend/src/lessonai/services/chat.py",
+      "sha256": "4641855f132359d50b1b51f4be29f8ec805fc0d176cb79f29cbd0db73c452733"
+    },
+    {
+      "path": "app/backend/src/lessonai/services/content_blocks.py",
+      "sha256": "8a4f8af7d1bbccbdfa2b7402685dca70f2f7d3010b61dc6a267efa1f01b09df8"
+    },
+    {
+      "path": "app/backend/src/lessonai/services/content_quality.py",
+      "sha256": "d871777eb6844c33f7b103e48fd6dff2527a8bfbe3676556a08265e4e9e9d1c8"
+    },
+    {
+      "path": "app/backend/src/lessonai/services/copilot.py",
+      "sha256": "cd690fb12f642c50df4727b02e6ebff4c5615f86ba8d115ae0347d81102f02a9"
+    },
+    {
+      "path": "app/backend/src/lessonai/services/deck_lint.py",
+      "sha256": "0239385f322b295d0a74a9bd34497f5cd80db347e5de3b5995b55f395f830b00"
+    },
+    {
+      "path": "app/backend/src/lessonai/services/discrete_visuals.py",
+      "sha256": "f788800d3ce53cefaf62f201f3a127057d919a164df12692d4c158a3bfb7f8ff"
+    },
+    {
+      "path": "app/backend/src/lessonai/services/generation/__init__.py",
+      "sha256": "b1a97bf5634142f67b8ef2b9e258ee75c5d7d983c8d709d990301e188498fa7b"
+    },
+    {
+      "path": "app/backend/src/lessonai/services/generation/lesson_plan.py",
+      "sha256": "0f1a12ab53811f5262bf296758b1ec41802997a7dda836a1869c94ca940a5c4f"
+    },
+    {
+      "path": "app/backend/src/lessonai/services/generation/outline.py",
+      "sha256": "8b02ee74c3fb12caf02a49c25a3e298873e642ab7eea460ad91a0a443c6b15ab"
+    },
+    {
+      "path": "app/backend/src/lessonai/services/generation/outline_contract.py",
+      "sha256": "09b67eb3e54137f8fa0636dc1cae2354eb39b2f63bab2c5f2700a7e36fbbcdb2"
+    },
+    {
+      "path": "app/backend/src/lessonai/services/generation/slides.py",
+      "sha256": "195a508009b90ad6bd90d12fcc5a97c678c629afa882bdc4855cc6c116f8a58a"
+    },
+    {
+      "path": "app/backend/src/lessonai/services/geometry.py",
+      "sha256": "f1eeb9acb6858c12feb3e8d02730be9654723f26908060037a66cdd88e4d9b8d"
+    },
+    {
+      "path": "app/backend/src/lessonai/services/geometry_scene.py",
+      "sha256": "d122782ae4f328fcb9d3fc3688933ec04b440e255b474b5154e1afd258f9668b"
+    },
+    {
+      "path": "app/backend/src/lessonai/services/lesson_quality.py",
+      "sha256": "b2b4d274aa9fe6323d85baf461f047350dca1b5758140ea857742e6dec9c42fd"
+    },
+    {
+      "path": "app/backend/src/lessonai/services/manifest_corpus_check.py",
+      "sha256": "b95eb7da28f88b25db9844dfdcb30d644ce958f1fa0bb0634bc449514109f248"
+    },
+    {
+      "path": "app/backend/src/lessonai/services/math_expression.py",
+      "sha256": "c40460771dbe08f049a710b21d043281a45087a04696c9bf26ab2eba8a7e6afb"
+    },
+    {
+      "path": "app/backend/src/lessonai/services/math_worker.py",
+      "sha256": "99332f1c93bea94581b8abb46f8b81e29419b35db7bf217d879a6468566f5515"
+    },
+    {
+      "path": "app/backend/src/lessonai/services/office_math.py",
+      "sha256": "57aba39a213509a22747fbee51a6652a42ae68b040d67b5e80925ae66447129a"
+    },
+    {
+      "path": "app/backend/src/lessonai/services/rag_question_triage.py",
+      "sha256": "8da3384563c3c413562fd98a49a4864289b6f454d39b32bc6bd9680fa38283fa"
+    },
+    {
+      "path": "app/backend/src/lessonai/services/rendering.py",
+      "sha256": "23a3a8c4b0d03c058244fdc08b32ab6e7a289b2fff0e33f688bc54df16d47753"
+    },
+    {
+      "path": "app/backend/src/lessonai/services/retrieval_fixture.py",
+      "sha256": "4e37665a1170d74708832663ab862e3eb080e70b6a7c986f376c44508ed85c91"
+    },
+    {
+      "path": "app/backend/src/lessonai/services/retrieval_fixture_runner.py",
+      "sha256": "ccd0fae2e4aa8a377b64a395fde2798b091344828ae72edfb739c30f47070092"
+    },
+    {
+      "path": "app/backend/src/lessonai/services/slide_remediation.py",
+      "sha256": "ab6612597190bd6422dea4c397cb3834971da4e2ab01a745dc237b6be7386851"
+    },
+    {
+      "path": "app/backend/src/lessonai/services/uploads.py",
+      "sha256": "1a18612b1338fea350b605dfff494fa0001c8419dd197fd1a44f518ff09d6e4f"
+    },
+    {
+      "path": "app/backend/src/lessonai/services/validation.py",
+      "sha256": "d2fe46b05b637bfbf4a1bd9a9a646bce202f108c2bf8cb75d1874d88f7b91f6c"
+    },
+    {
+      "path": "app/backend/src/lessonai/services/visual_requirements.py",
+      "sha256": "304796974ad8cbb16d7b347fa7ef158d037aff60506ee9bd3712aa4ce0776d90"
+    },
+    {
+      "path": "app/backend/src/lessonai/utils/__init__.py",
+      "sha256": "2d684fb4938addf73181900807ca02e81d48b89221da269df344f94047f8276f"
+    },
+    {
+      "path": "app/backend/src/lessonai/utils/temp_file_cleaner.py",
+      "sha256": "334674192bbfb520e48735d24c31f37268dfccffd6129720d2bef938b0c5e50f"
+    },
+    {
+      "path": "app/backend/pyproject.toml",
+      "sha256": "37f2735da5ba08956780a9e1ad40b14b515efe7fd295a1e942f2ad1a015b99ef"
+    },
+    {
+      "path": "app/backend/requirements-lock.txt",
+      "sha256": "ccc459dac2b7120e97d02c5e8366193b8faeba626f40fa93e47c9a617616a161"
+    },
+    {
+      "path": "scripts/quality/run_benchmark_suite.py",
+      "sha256": "1955801949d5de089a4c8a86b0c3bcf688bb4a3736c489fc07bd2143018e5bae"
+    },
+    {
+      "path": "data/fixtures/math12_benchmark_suite.json",
+      "sha256": "2b43b722742a3c3e033cfc4e99fe2a0a3e483ed979099614a5fc7ca29d6d40e5"
+    }
+  ]
+}

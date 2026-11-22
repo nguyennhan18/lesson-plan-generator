@@ -1,0 +1,572 @@
+{
+  "suite_id": "math12-gdpt2018-canonical-benchmark-v1",
+  "total_cases": 15,
+  "passed_cases": 15,
+  "technical_pass": true,
+  "categories": {
+    "valid": 5,
+    "faulty": 3,
+    "under_specified": 3,
+    "contradictory": 2,
+    "out_of_scope": 2
+  },
+  "teacher_signoff": {
+    "status": "pending_teacher_signoff",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": "Khung bộ đề chuẩn và kỳ vọng kỹ thuật đã được thiết lập đầy đủ cho 5 nhóm (valid, faulty, under_specified, contradictory, out_of_scope). Bắt buộc phải có chữ ký nghiệm thu của giáo viên chuyên môn Toán 12 trước khi đóng cổng bàn giao."
+  },
+  "teacher_signoff_complete": false,
+  "handover_eligible": false,
+  "results": [
+    {
+      "case_id": "BM-VALID-01",
+      "category": "valid",
+      "lesson_id": "M12-C1-B1",
+      "passed": true,
+      "details": {
+        "plot_status": "computed",
+        "plot_segments_count": 1,
+        "quality_status": "needs_review",
+        "blocking_error_count": 0,
+        "quality_issues": [
+          {
+            "slide_id": "bm-valid-01-s1",
+            "slide_index": 1,
+            "field": "bullet_points[0]",
+            "severity": "warning",
+            "message": "Tên chưa được khai báo: y",
+            "issue_id": "1ad49ac0ebdd117bd34d0f92b83c14eca236728e94c5d775a650497dab1f35a4"
+          },
+          {
+            "slide_id": "bm-valid-01-s1",
+            "slide_index": 1,
+            "field": "bullet_points[0]",
+            "severity": "warning",
+            "message": "Chưa xác minh mệnh đề/biểu thức này",
+            "issue_id": "b07043fa28897601aa59c64a668231644b836870a99f3274ef3c7e189fcb1b75"
+          },
+          {
+            "slide_id": "bm-valid-01-s1",
+            "slide_index": 1,
+            "field": "worked_solution_steps[0]",
+            "severity": "warning",
+            "message": "Cần xác định vai trò và điều kiện của đẳng thức có biến",
+            "issue_id": "8fa1293f3d16ad93ba509ede8b9d109b7a6601f4cb1caca50463f1a6ae23fb54"
+          },
+          {
+            "slide_id": "bm-valid-01-s1",
+            "slide_index": 1,
+            "field": "worked_solution_steps[1]",
+            "severity": "warning",
+            "message": "Cần xác định vai trò và điều kiện của đẳng thức có biến",
+            "issue_id": "ddd6da63ddf879550c70216d1da9a49475bb4586910d59ca6d8f87cb28850cef"
+          },
+          {
+            "slide_id": "bm-valid-01-s1",
+            "slide_index": 1,
+            "field": "content",
+            "severity": "warning",
+            "message": "Cần giáo viên duyệt đề, giả thiết, nguồn và tiến trình bài dạy",
+            "issue_id": "d306d812920c905fa52e79b56cdc968a97358d2a9a4ff5618ecb86e6a0311fdc"
+          }
+        ],
+        "approve_http_status": 200
+      }
+    },
+    {
+      "case_id": "BM-VALID-02",
+      "category": "valid",
+      "lesson_id": "M12-C1-B3",
+      "passed": true,
+      "details": {
+        "plot_status": "computed",
+        "plot_segments_count": 2,
+        "crosses_discontinuity": false,
+        "quality_status": "needs_review",
+        "blocking_error_count": 0,
+        "quality_issues": [
+          {
+            "slide_id": "bm-valid-02-s1",
+            "slide_index": 1,
+            "field": "bullet_points[0]",
+            "severity": "warning",
+            "message": "Tên chưa được khai báo: y",
+            "issue_id": "a1c59eb4dbc77deb2f7c6ab53715bd5d6c28da4eb1626211dbcac05a7ae3975f"
+          },
+          {
+            "slide_id": "bm-valid-02-s1",
+            "slide_index": 1,
+            "field": "bullet_points[0]",
+            "severity": "warning",
+            "message": "Chưa xác minh mệnh đề/biểu thức này",
+            "issue_id": "a3a0d5c971425f8dd3db174281d6bda18e36a6e1854c11869901691b1cde0415"
+          },
+          {
+            "slide_id": "bm-valid-02-s1",
+            "slide_index": 1,
+            "field": "worked_solution_steps[0]",
+            "severity": "warning",
+            "message": "Tên chưa được khai báo: D",
+            "issue_id": "721ced92d77d27422b864e50474f7d73906aeb127f580649248339ade81c31aa"
+          },
+          {
+            "slide_id": "bm-valid-02-s1",
+            "slide_index": 1,
+            "field": "worked_solution_steps[1]",
+            "severity": "warning",
+            "message": "Cần xác định vai trò và điều kiện của đẳng thức có biến",
+            "issue_id": "06db6664a2451789560922d1507552f54119cef2710cd4f6e16c8375da38ed8e"
+          },
+          {
+            "slide_id": "bm-valid-02-s1",
+            "slide_index": 1,
+            "field": "content",
+            "severity": "warning",
+            "message": "Cần giáo viên duyệt đề, giả thiết, nguồn và tiến trình bài dạy",
+            "issue_id": "a223d6634e3f036fdbaedfc34efeb5af907c1b650cf1c51cddb8583fa26ee96e"
+          }
+        ],
+        "approve_http_status": 200
+      }
+    },
+    {
+      "case_id": "BM-VALID-03",
+      "category": "valid",
+      "lesson_id": "M12-C2-B1",
+      "passed": true,
+      "details": {
+        "scene_status": "constraints_checked",
+        "volume": 64.0,
+        "altitude_foot": [
+          0,
+          0,
+          0
+        ],
+        "quality_status": "needs_review",
+        "blocking_error_count": 0,
+        "quality_issues": [
+          {
+            "slide_id": "bm-valid-03-s1",
+            "slide_index": 1,
+            "field": "bullet_points[0]",
+            "severity": "warning",
+            "message": "Chưa xác minh mệnh đề/biểu thức này",
+            "issue_id": "fa9c6c5af7684ab2f443856c04ba913bcac3ab9fda7011d5a1051f27b75de4eb"
+          },
+          {
+            "slide_id": "bm-valid-03-s1",
+            "slide_index": 1,
+            "field": "bullet_points[0]",
+            "severity": "warning",
+            "message": "Cần xác định vai trò và điều kiện của đẳng thức có biến",
+            "issue_id": "3c9cda480ac24f1f31a39c2ec048bec1e3abae86216653c1bbf70181e1e1677e"
+          },
+          {
+            "slide_id": "bm-valid-03-s1",
+            "slide_index": 1,
+            "field": "content",
+            "severity": "warning",
+            "message": "Cần giáo viên duyệt đề, giả thiết, nguồn và tiến trình bài dạy",
+            "issue_id": "02962c9ce1aa0251a981560b676325b38044103f249069b1dcec574633a16c59"
+          }
+        ],
+        "approve_http_status": 200
+      }
+    },
+    {
+      "case_id": "BM-VALID-04",
+      "category": "valid",
+      "lesson_id": "M12-CD-B1",
+      "passed": true,
+      "details": {
+        "scene_status": "constraints_checked",
+        "volume": 16.0,
+        "altitude_foot": [
+          2.0,
+          2.0,
+          0
+        ],
+        "equal_lateral_edges": true,
+        "quality_status": "needs_review",
+        "blocking_error_count": 0,
+        "quality_issues": [
+          {
+            "slide_id": "bm-valid-04-s1",
+            "slide_index": 1,
+            "field": "bullet_points[0]",
+            "severity": "warning",
+            "message": "Chưa xác minh mệnh đề/biểu thức này",
+            "issue_id": "7d2d131f985b9307b222b59338ea115202a85728dfacb5a302af9f3b567e8002"
+          },
+          {
+            "slide_id": "bm-valid-04-s1",
+            "slide_index": 1,
+            "field": "bullet_points[0]",
+            "severity": "warning",
+            "message": "Cần xác định vai trò và điều kiện của đẳng thức có biến",
+            "issue_id": "6f00ac5f72ca1cb1913ceeabcd87ccafa6a306e9c5a68da68afd9d8df9c00da0"
+          },
+          {
+            "slide_id": "bm-valid-04-s1",
+            "slide_index": 1,
+            "field": "bullet_points[0]",
+            "severity": "warning",
+            "message": "Tên chưa được khai báo: SO",
+            "issue_id": "1b4d83631e5950edc49f3a0e068136c749084e3a8384becc33b00951970a75ea"
+          },
+          {
+            "slide_id": "bm-valid-04-s1",
+            "slide_index": 1,
+            "field": "worked_solution_steps[0]",
+            "severity": "warning",
+            "message": "Chưa xác minh mệnh đề/biểu thức này",
+            "issue_id": "ddc4f56be5717ab44dea2d3004d86b05c58b227e7be12ec564b0aad624b0c1ce"
+          },
+          {
+            "slide_id": "bm-valid-04-s1",
+            "slide_index": 1,
+            "field": "worked_solution_steps[1]",
+            "severity": "warning",
+            "message": "Chưa xác minh mệnh đề/biểu thức này",
+            "issue_id": "a60c1a5536b9cec0e94b42f346ef6870747814290363d0f1af1585c59d150abe"
+          },
+          {
+            "slide_id": "bm-valid-04-s1",
+            "slide_index": 1,
+            "field": "content",
+            "severity": "warning",
+            "message": "Cần giáo viên duyệt đề, giả thiết, nguồn và tiến trình bài dạy",
+            "issue_id": "300c4a62217bab201478644990e53e02b84c701265f25d1c7ed351ad487e5734"
+          }
+        ],
+        "approve_http_status": 200
+      }
+    },
+    {
+      "case_id": "BM-VALID-05",
+      "category": "valid",
+      "lesson_id": "M12-CD-B1",
+      "passed": true,
+      "details": {
+        "scene_status": "constraints_checked",
+        "volume": 16.0,
+        "altitude_foot": [
+          0,
+          0,
+          0
+        ],
+        "equal_lateral_edges": false,
+        "quality_status": "needs_review",
+        "blocking_error_count": 0,
+        "quality_issues": [
+          {
+            "slide_id": "bm-valid-05-s1",
+            "slide_index": 1,
+            "field": "bullet_points[0]",
+            "severity": "warning",
+            "message": "Chưa xác minh mệnh đề/biểu thức này",
+            "issue_id": "333c3e3811c5e4829c0e19b475f84988ed5bc828fa12d0913d1c87d1003556f4"
+          },
+          {
+            "slide_id": "bm-valid-05-s1",
+            "slide_index": 1,
+            "field": "bullet_points[0]",
+            "severity": "warning",
+            "message": "Chưa xác minh mệnh đề/biểu thức này",
+            "issue_id": "9e9fd1b3007fd3932dabd18b53062a9335bb0f50629ded44903e9caf5f6bd836"
+          },
+          {
+            "slide_id": "bm-valid-05-s1",
+            "slide_index": 1,
+            "field": "bullet_points[0]",
+            "severity": "warning",
+            "message": "Cần xác định vai trò và điều kiện của đẳng thức có biến",
+            "issue_id": "e70544bcd60f093491eceb9621a131dc4733b50c9aff933f26161a22d26ae7be"
+          },
+          {
+            "slide_id": "bm-valid-05-s1",
+            "slide_index": 1,
+            "field": "bullet_points[0]",
+            "severity": "warning",
+            "message": "Chưa xác minh mệnh đề/biểu thức này",
+            "issue_id": "73399dab2a9ba9e81e348c124579ad648f87b1847b593c5638a743afd796aa40"
+          },
+          {
+            "slide_id": "bm-valid-05-s1",
+            "slide_index": 1,
+            "field": "bullet_points[0]",
+            "severity": "warning",
+            "message": "Tên chưa được khai báo: SA",
+            "issue_id": "12e2e776d97d854eadfb122e23c12ce2dd96418dd8081042f3dd866d1e96977a"
+          },
+          {
+            "slide_id": "bm-valid-05-s1",
+            "slide_index": 1,
+            "field": "worked_solution_steps[0]",
+            "severity": "warning",
+            "message": "Tên chưa được khai báo: SA",
+            "issue_id": "d94c92233e809554bae4d36333bf302b6992c3441dad54d3ad1958da9023a91c"
+          },
+          {
+            "slide_id": "bm-valid-05-s1",
+            "slide_index": 1,
+            "field": "worked_solution_steps[0]",
+            "severity": "warning",
+            "message": "Chưa xác minh mệnh đề/biểu thức này",
+            "issue_id": "730f3a9e3b8226a0a9bf4d654bb48d5bdc326ee6e1abfc199631f607a8bcc2a6"
+          },
+          {
+            "slide_id": "bm-valid-05-s1",
+            "slide_index": 1,
+            "field": "content",
+            "severity": "warning",
+            "message": "Cần giáo viên duyệt đề, giả thiết, nguồn và tiến trình bài dạy",
+            "issue_id": "4e17c0858ecb3cc63c7f3f23116b65d1ff905b8fc1cb7d5e0d7366bf4cd9b8eb"
+          }
+        ],
+        "approve_http_status": 200
+      }
+    },
+    {
+      "case_id": "BM-FAULTY-01",
+      "category": "faulty",
+      "lesson_id": "M12-C1-B1",
+      "passed": true,
+      "details": {
+        "quality_status": "blocked",
+        "blocking_error_count": 1,
+        "quality_issues": [
+          {
+            "slide_id": "bm-faulty-01-s1",
+            "slide_index": 1,
+            "field": "bullet_points[0]",
+            "severity": "warning",
+            "message": "Tên chưa được khai báo: y",
+            "issue_id": "e4c50086a569de6a6a64e0147f0aa7ec6567ccb6e7f6f0e9f7435aaf30b854c9"
+          },
+          {
+            "slide_id": "bm-faulty-01-s1",
+            "slide_index": 1,
+            "field": "bullet_points[0]",
+            "severity": "warning",
+            "message": "Cần xác định vai trò và điều kiện của đẳng thức có biến",
+            "issue_id": "427ed95ee5ea71aaf3292f604ab39c5966a7954563d7fba73f0fe29c9a8b4e6f"
+          },
+          {
+            "slide_id": "bm-faulty-01-s1",
+            "slide_index": 1,
+            "field": "worked_solution_steps[0]",
+            "severity": "warning",
+            "message": "Cần xác định vai trò và điều kiện của đẳng thức có biến",
+            "issue_id": "7168623e70681ae0732d96e39a214ea91a6babc8d8fcbbe2b00c0cb71608a715"
+          },
+          {
+            "slide_id": "bm-faulty-01-s1",
+            "slide_index": 1,
+            "field": "worked_solution_steps[0]",
+            "severity": "error",
+            "message": "Đẳng thức số học",
+            "issue_id": "f757ec3b5a279709af7c794c2202c71f7759df37065d2cc9589200b52b218585"
+          },
+          {
+            "slide_id": "bm-faulty-01-s1",
+            "slide_index": 1,
+            "field": "content",
+            "severity": "warning",
+            "message": "Cần giáo viên duyệt đề, giả thiết, nguồn và tiến trình bài dạy",
+            "issue_id": "68a12bd0c32f74005ca9637906a5f940c922901e5b70b38efb3b80b87070eff1"
+          }
+        ],
+        "approve_http_status": 409
+      }
+    },
+    {
+      "case_id": "BM-FAULTY-02",
+      "category": "faulty",
+      "lesson_id": "M12-C4-B1",
+      "passed": true,
+      "details": {
+        "quality_status": "blocked",
+        "blocking_error_count": 1,
+        "quality_issues": [
+          {
+            "slide_id": "bm-faulty-02-s1",
+            "slide_index": 1,
+            "field": "math_assertions",
+            "severity": "error",
+            "message": "Đồng nhất thức đa thức trên các biến thực",
+            "issue_id": "3bdfc32b91f6e792570bdcbfc0b80102898e752f38fae3fcef14b1d7f6b09819"
+          },
+          {
+            "slide_id": "bm-faulty-02-s1",
+            "slide_index": 1,
+            "field": "content",
+            "severity": "warning",
+            "message": "Cần giáo viên duyệt đề, giả thiết, nguồn và tiến trình bài dạy",
+            "issue_id": "32530b08512b4b1f821fbcf7de96b073cb1447d71635da71c55a3187643bc85e"
+          }
+        ],
+        "approve_http_status": 409
+      }
+    },
+    {
+      "case_id": "BM-FAULTY-03",
+      "category": "faulty",
+      "lesson_id": "M12-C3-B1",
+      "passed": true,
+      "details": {
+        "quality_status": "blocked",
+        "blocking_error_count": 2,
+        "quality_issues": [
+          {
+            "slide_id": "bm-faulty-03-s1",
+            "slide_index": 1,
+            "field": "quiz_options",
+            "severity": "error",
+            "message": "Câu hỏi một đáp án cần 4 lựa chọn riêng biệt và đúng 1 đáp án",
+            "issue_id": "f8a08b9cee84bfa1fc7bc6426fb77de9d7e5baef9aac03bada3419a69ce296c4"
+          },
+          {
+            "slide_id": "bm-faulty-03-s1",
+            "slide_index": 1,
+            "field": "quiz_options",
+            "severity": "error",
+            "message": "Thiếu nội dung lựa chọn hoặc giải thích phương án sai",
+            "issue_id": "93364defea247bf78c3c1cd7e2a674584f1326f5a266bbc806fe096a6160264b"
+          },
+          {
+            "slide_id": "bm-faulty-03-s1",
+            "slide_index": 1,
+            "field": "question",
+            "severity": "warning",
+            "message": "Chưa xác minh mệnh đề/biểu thức này",
+            "issue_id": "3d3d1640a339028ef902f7fb14cc530f3286017e6b89535b1237c5f459f4af83"
+          },
+          {
+            "slide_id": "bm-faulty-03-s1",
+            "slide_index": 1,
+            "field": "quiz_options[0].text",
+            "severity": "warning",
+            "message": "Chưa xác minh mệnh đề/biểu thức này",
+            "issue_id": "82b61d4727237232614db4038ebb8dacfb2466347e0896498c81e75d1eba9eb8"
+          },
+          {
+            "slide_id": "bm-faulty-03-s1",
+            "slide_index": 1,
+            "field": "content",
+            "severity": "warning",
+            "message": "Cần giáo viên duyệt đề, giả thiết, nguồn và tiến trình bài dạy",
+            "issue_id": "8a5c9ec351b72e47bf4b537bc62fa5157e2cd23ea47f7ee1ddbf7f1f4769d787"
+          }
+        ],
+        "approve_http_status": 409
+      }
+    },
+    {
+      "case_id": "BM-UNDER-01",
+      "category": "under_specified",
+      "lesson_id": "M12-C1-B3",
+      "passed": true,
+      "details": {
+        "equality_result": {
+          "status": "unverified",
+          "reason": "Hai biểu thức khác miền xác định"
+        }
+      }
+    },
+    {
+      "case_id": "BM-UNDER-02",
+      "category": "under_specified",
+      "lesson_id": "M12-C1-B2",
+      "passed": true,
+      "details": {
+        "equality_result": {
+          "status": "unverified",
+          "reason": "Ngoài phạm vi kiểm chứng hiện tại"
+        }
+      }
+    },
+    {
+      "case_id": "BM-UNDER-03",
+      "category": "under_specified",
+      "lesson_id": "M12-CD-B1",
+      "passed": true,
+      "details": {
+        "visual_confirm_http_status": 422,
+        "error_message": "Cần chọn rõ lập phương, chóp đều đáy vuông hoặc chóp có SA vuông góc đáy"
+      }
+    },
+    {
+      "case_id": "BM-CONTRA-01",
+      "category": "contradictory",
+      "lesson_id": "M12-C2-B1",
+      "passed": true,
+      "details": {
+        "visual_confirm_http_status": 422,
+        "error_message": "Chiều cao hình lập phương phải bằng cạnh"
+      }
+    },
+    {
+      "case_id": "BM-CONTRA-02",
+      "category": "contradictory",
+      "lesson_id": "M12-C1-B1",
+      "passed": true,
+      "details": {
+        "quality_status": "blocked",
+        "blocking_error_count": 1,
+        "quality_issues": [
+          {
+            "slide_id": "bm-contra-02-s1",
+            "slide_index": 1,
+            "field": "bullet_points[0]",
+            "severity": "warning",
+            "message": "Tên chưa được khai báo: y",
+            "issue_id": "342b69b5ca8a5f5955764013ebb5709f017e335923a8e06d0300f3d8423fd390"
+          },
+          {
+            "slide_id": "bm-contra-02-s1",
+            "slide_index": 1,
+            "field": "chart_spec",
+            "severity": "error",
+            "message": "Nội dung đề/giả thiết đã đổi sau lần xác nhận hình",
+            "issue_id": "e209c4036da53f1f3c4e0253bf4319ec089d1d36dba522997e22ac25d294f3a4"
+          },
+          {
+            "slide_id": "bm-contra-02-s1",
+            "slide_index": 1,
+            "field": "content",
+            "severity": "warning",
+            "message": "Cần giáo viên duyệt đề, giả thiết, nguồn và tiến trình bài dạy",
+            "issue_id": "d83e385586cafe43b3b302a165d9efae8235a2a11386935f7df6ba0eb24203b9"
+          }
+        ],
+        "approve_http_status": 409
+      }
+    },
+    {
+      "case_id": "BM-OOS-01",
+      "category": "out_of_scope",
+      "lesson_id": "M12-CD-B2",
+      "passed": true,
+      "details": {
+        "visual_confirm_http_status": 422,
+        "error_message": "Cần chọn rõ lập phương, chóp đều đáy vuông hoặc chóp có SA vuông góc đáy"
+      }
+    },
+    {
+      "case_id": "BM-OOS-02",
+      "category": "out_of_scope",
+      "lesson_id": "M12-C4-B2",
+      "passed": true,
+      "details": {
+        "equality_result": {
+          "status": "unverified",
+          "reason": "Bậc đa thức ngoài phạm vi"
+        },
+        "unsafe_plot_http_status": 422,
+        "unsafe_plot_error_message": "Ký tự không được phép trong biểu thức"
+      }
+    }
+  ]
+}
