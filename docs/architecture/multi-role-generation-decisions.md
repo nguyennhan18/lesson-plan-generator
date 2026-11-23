@@ -211,6 +211,20 @@
 - Phạm vi cập nhật `api_contract.json` chỉ gồm các mục trên; ngoài đó cần duyệt lại.
 - Rủi ro chưa quyết định: `evaluate` chạy trong tiến trình con `spawn` nên có độ trễ khởi động mỗi lần gọi; phải đo ở ticket #34 trước khi kết luận cách cập nhật khi kéo thanh trượt. Spec #18 (Further Notes) liệt kê điều kiện duyệt hẹp hơn thực tế; ticket #19 là bản đầy đủ.
 
+### Bảng mục bắt buộc → phép kiểm → phạm vi công bố (theo D2)
+
+Cập nhật mỗi khi một phép kiểm được thêm. Ô chưa có phép kiểm: mệnh đề là `unverified` và chuyển giáo viên duyệt (O2.7), kèm ticket mở rộng.
+
+| Mục bắt buộc | Phép kiểm (tên, phiên bản) | Phạm vi công bố | Trạng thái |
+|---|---|---|---|
+| Nhãn đạo hàm theo biến | `derivative_polynomial_identity` v1, ký hiệu | Đa thức theo biến và tối đa hai tham số thực, tổng bậc tối đa 8 (tính cả tham số); đúng với mọi giá trị thực; biểu thức không xác định (ví dụ chia cho 0) là `unverified` | Đã triển khai (#20) |
+| Nghiệm thực và tính đầy đủ | Chưa có | — | `unverified`; ticket #21 |
+| Điểm dừng, dấu đạo hàm, cực trị | Chưa có | — | `unverified`; ticket #22 |
+| An toàn của khoảng tham số | Chưa có | — | `unverified`; ticket #23 |
+| Điều kiện loại trừ (kể cả rỗng) | Chưa có | — | `unverified`; ticket #23 |
+| Từng bước giải | Chưa có | — | `unverified`; ticket #24 |
+| Công thức hàm và họ hàm phù hợp ý đồ | Không phải phép kiểm máy | — | Giáo viên duyệt ý đồ ở dàn ý (D4); ticket #27 |
+
 ### O4.1 — Chuyển provider khi lỗi giữa chuỗi vai trò (đã chốt hướng, chưa triển khai)
 
 - Demo đầu giữ nguyên cơ chế chuyển provider hiện có của LLM Gateway. Không thêm quy tắc chặn chuyển provider giữa chuỗi vai trò.

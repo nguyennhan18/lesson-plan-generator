@@ -5,6 +5,7 @@ import hmac
 import json
 import secrets
 import time
+from lessonai.core.hashing import canonical, fingerprint  # re-exported for existing callers
 from lessonai.services.math_expression import parse_expression
 
 _KEY = secrets.token_bytes(32)
@@ -12,14 +13,6 @@ _KEY = secrets.token_bytes(32)
 
 class VisualError(ValueError):
     code = "visual_needs_review"
-
-
-def canonical(value):
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False)
-
-
-def fingerprint(value):
-    return hashlib.sha256(canonical(value).encode()).hexdigest()
 
 
 SOURCE_FIELDS = ("title", "subtitle", "bullet_points", "question", "main_definition_latex", "math_formulas", "worked_solution_steps", "blocks", "table_data", "source_refs")

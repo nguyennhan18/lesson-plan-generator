@@ -130,11 +130,35 @@ def _verify(payload):
     return {"status": "unverified", "reason": "Ngoài phạm vi kiểm chứng hiện tại"}
 
 
+def _derivative(payload):
+    """Prove a derivative label by exact polynomial identity; sampling is never proof."""
+    import sympy as s
+    variable = payload["variable"]
+    symbols = tuple([variable, *payload.get("parameters", [])])
+    if len(symbols) > 3:
+        return {"status": "unverified", "reason": "Tối đa ba ký hiệu"}
+    function, label = (_symbolic(_tree(payload[key], symbols)) for key in ("function", "label"))
+    if any(expr.doit().has(s.zoo, s.nan, s.oo, -s.oo) for expr in (function, label)):
+        return {"status": "unverified", "reason": "Biểu thức không xác định trên số thực"}
+    variables = sorted(function.free_symbols | label.free_symbols, key=str)
+    if not all(expr.is_polynomial(*variables) for expr in (function, label)):
+        return {"status": "unverified", "reason": "Ngoài phạm vi: chỉ kiểm đạo hàm của đa thức"}
+    if any(variables and s.Poly(s.expand(expr.doit()), *variables).total_degree() > 8
+           for expr in (function, label)):
+        return {"status": "unverified", "reason": "Tổng bậc đa thức ngoài phạm vi (tối đa 8, tính cả tham số)"}
+    derivative = s.diff(function.doit(), s.Symbol(variable, real=True))
+    if s.expand(derivative - label.doit()) == 0:
+        return {"status": "verified", "reason": "Đạo hàm ký hiệu trùng nhãn trên mọi giá trị thực"}
+    return {"status": "failed", "reason": f"Đạo hàm đúng là {s.expand(derivative)}"}
+
+
 def execute(operation, payload):
     if operation == "math.plot":
         return _plot(payload)
     if operation == "math.verify":
         return _verify(payload)
+    if operation == "math.derivative":
+        return _derivative(payload)
     raise ExpressionError("expression_unsupported", "Tác vụ toán chưa hỗ trợ")
 
 

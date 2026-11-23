@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from lessonai.api.routes import (
     web, system, curriculum, presentation, lesson_plan, exports,
-    slides, chat, ingest, validation, geometry, visuals, quality,
+    slides, chat, ingest, validation, geometry, visuals, quality, math_spec,
 )
 
 
@@ -75,7 +75,7 @@ def create_app() -> FastAPI:
     if assets.exists():
         app.mount("/assets", StaticFiles(directory=str(assets)), name="assets")
     for routes in (web, system, curriculum, presentation, lesson_plan, exports,
-                   slides, chat, ingest, validation, geometry, visuals, quality):
+                   slides, chat, ingest, validation, geometry, visuals, quality, math_spec):
         app.include_router(routes.router)
     return app
 
