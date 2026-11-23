@@ -225,9 +225,8 @@
 
 ## Lưu giữ tài liệu
 
-- Đã ghi nhận 2026-11-22: nhánh hiện tại `feat/multi-role-orchestrator`, HEAD `e531b53`, working tree sạch; `7868f16` là tổ tiên của HEAD. Ghi chú dưới đây xác minh tại HEAD `7868f16` và được kiểm lại tại HEAD `e531b53`: file quyết định vẫn bị bỏ qua và chưa được theo dõi.
-- Tại HEAD `7868f16`, `git check-ignore -v` xác nhận `docs/architecture/multi-role-generation-decisions.md` bị quy tắc `.gitignore:61` (`docs/*`) bỏ qua và `git ls-files --error-unmatch` xác nhận file này chưa được theo dõi. Quy tắc `.gitignore:64` (`project-management/`) cũng khớp `PROGRESS.md` khi dùng `--no-index`, nhưng `git ls-files` xác nhận `PROGRESS.md` **đã được theo dõi**; thay đổi của file đó vẫn hiện trong Git nếu có.
-- Đề xuất trước khi bàn giao đặc tả: sau khi rà soát, đưa đích danh file quyết định vào Git bằng `git add -f -- docs/architecture/multi-role-generation-decisions.md`, rồi commit tài liệu theo chủ đề. Không cần force-add `PROGRESS.md` đang được theo dõi. Cách này không sửa quy tắc `.gitignore`; nếu muốn sửa quy tắc để theo dõi cả thư mục về lâu dài, cần chốt phạm vi thay đổi trước. Chưa chạy lệnh add/commit trong phiên này.
+- Quy tắc `.gitignore:61` (`docs/*`) bỏ qua file này, `GLOSSARY.md` không bị ignore. Ngày 2026-11-23, file quyết định và `docs/adr/0001-verified-chi-do-may-chung-minh.md` được đưa vào Git bằng `git add -f` theo tên tệp, trên nhánh `feat/multi-role-orchestrator`. `.gitignore` không bị sửa.
+- Mọi tệp mới dưới `docs/` tiếp tục bị ignore: khi thêm ADR hoặc tài liệu mới phải `git add -f` theo tên tệp. `PROGRESS.md` đã được theo dõi nên không cần force-add. Nếu muốn theo dõi cả thư mục `docs/` về lâu dài, cần chốt phạm vi sửa `.gitignore` trước (mục "hỏi trước" của `AGENTS.md`).
 
 ## Tham chiếu mã nguồn
 
