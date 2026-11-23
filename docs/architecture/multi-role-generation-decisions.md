@@ -201,6 +201,16 @@
 - Thêm đối tượng có cấu trúc gồm họ hàm, tham số (tên, vai trò, khoảng tương tác) và hiện tượng cần quan sát. Giữ `math_focus` làm chuỗi mô tả để tương thích. Khoảng tương tác của tham số do giáo viên duyệt ở D4 và là đầu vào của O2.4.
 - Thay đổi này chạm schema và `app/backend/tests/fixtures/api_contract.json`, thuộc mục **hỏi trước** của `AGENTS.md`. Đây mới là quyết định thiết kế; chủ dự án phải duyệt riêng trước khi sửa mã.
 
+### O3.10 — Hợp đồng API đã được chủ dự án duyệt (2026-11-23, ticket #19)
+
+- Bốn endpoint mới, không giữ trạng thái, dùng request model Pydantic: `POST /api/v1/math-spec/verify`, `POST /api/v1/math-spec/evaluate`, `POST /api/v1/math-spec/approve`, `POST /api/v1/orchestrator/run`. Không có endpoint riêng cho tạo lại phần phụ thuộc hay xác nhận "Chiếu".
+- `run` chạy một giai đoạn mỗi request (toán, trực quan, giáo án, slide, phản biện), mang theo kết quả vai trò trước đó; server tự kiểm điều kiện tiên quyết, hash đầu vào, giới hạn hai vòng và cổng toán.
+- Bản ghi lưu ở trình duyệt không ký HMAC, chỉ gắn hash; `verified` được server kiểm lại khi cần dùng. Lưu khóa bền để ký là quyết định riêng, chưa làm.
+- Cổng toán dừng trả HTTP 200 kèm trạng thái dừng có cấu trúc. Không thêm trường vào phần chi tiết lỗi.
+- Thêm `math_intent` tùy chọn vào mục dàn ý, giữ `math_focus`; `role_runs` không tăng `schema_version`.
+- Phạm vi cập nhật `api_contract.json` chỉ gồm các mục trên; ngoài đó cần duyệt lại.
+- Rủi ro chưa quyết định: `evaluate` chạy trong tiến trình con `spawn` nên có độ trễ khởi động mỗi lần gọi; phải đo ở ticket #34 trước khi kết luận cách cập nhật khi kéo thanh trượt. Spec #18 (Further Notes) liệt kê điều kiện duyệt hẹp hơn thực tế; ticket #19 là bản đầy đủ.
+
 ### O4.1 — Chuyển provider khi lỗi giữa chuỗi vai trò (đã chốt hướng, chưa triển khai)
 
 - Demo đầu giữ nguyên cơ chế chuyển provider hiện có của LLM Gateway. Không thêm quy tắc chặn chuyển provider giữa chuỗi vai trò.
