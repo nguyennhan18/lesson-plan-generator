@@ -1,3 +1,5 @@
+> **Đã bị thay (2026-11-24):** spec #36 (thiết kế lại giao diện thành Bàn làm việc) thay spec #18 và chuỗi nhiều vai trò mô tả trong tài liệu này. Chỉ phần Cổng toán (#20–#24) còn được giữ, xem ADR 0008. Quyết định hiện hành nằm ở `docs/adr/0001`–`0009` và `GLOSSARY.md`.
+
 # Quyết định thiết kế: tạo bài giảng nhiều vai trò
 
 **Trạng thái:** D1–D13 đã được chủ dự án xác nhận là phạm vi demo đầu ngày 2026-11-22; đây là quyết định thiết kế, chưa phải tính năng đã triển khai. Các điểm còn mở bên dưới chưa được chốt.  
