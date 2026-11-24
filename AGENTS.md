@@ -65,9 +65,9 @@ Single-context layout with root `GLOSSARY.md` and `docs/adr/`. Before exploring 
 │   │   ├── output/                 # Runtime export workspace
 │   │   ├── src/lessonai/
 │   │   │   ├── main.py             # App factory, CORS, local origin & error middlewares
-│   │   │   ├── core/               # config, ingress (16 MiB limit), jobs (spawn workers), ownership, render_runtime
+│   │   │   ├── core/               # config, ingress (16 MiB limit), jobs (spawn workers), ownership, render_runtime, signing (confirmation key)
 │   │   │   ├── api/routes/         # chat, curriculum, exports, geometry, ingest, lesson_plan, math_spec, presentation, quality, slides, system, validation, visuals, web
-│   │   │   ├── services/           # business logic, generation/, math_expression, math_worker, geometry_scene, visual_requirements, content_quality, copilot, deck_lint
+│   │   │   ├── services/           # business logic, generation/, math_expression, math_worker, geometry_scene, visual_requirements, content_quality, expert_confirmation, copilot, deck_lint
 │   │   │   ├── llm/gateway.py      # Multi-provider LLM router (Gemini, Groq, OpenRouter) with fallback
 │   │   │   ├── rag/                # CurriculumRegistry, Math12HybridRetriever, content_units, context_builder
 │   │   │   ├── parsers/ exporters/ # DOCX/PPTX ingestion; DOCX/PPTX/Dual-ZIP export
@@ -92,7 +92,7 @@ Single-context layout with root `GLOSSARY.md` and `docs/adr/`. Before exploring 
 - On `feat/multi-role-orchestrator`, see `docs/architecture/multi-role-generation-decisions.md` and `docs/adr/0001-verified-chi-do-may-chung-minh.md` before changing the multi-role contracts. Issue #19 records the approved API scope. At the baseline, issue #20 implements only `POST /api/v1/math-spec/verify` in `api/routes/math_spec.py`, backed by `services/math_spec.py`. The evaluate, approve, and orchestrator endpoints remain planned.
 
 ## 6. Common Commands
-Run from the repository root. For PowerShell, use `app/backend/venv/Scripts/python.exe` and set the three API key variables to empty before running tests.
+Run from the repository root. For PowerShell, use `app/backend/venv/Scripts/python.exe`, set the three API key variables to empty and point `LESSONAI_CONFIG_DIR` at a new temp dir before running tests.
 
 - **Install**
   ```bash
@@ -108,13 +108,13 @@ Run from the repository root. For PowerShell, use `app/backend/venv/Scripts/pyth
   ```
 - **Backend with the portable marker filter** and **frontend build**.
   ```bash
-  GEMINI_API_KEY= GROQ_API_KEY= OPENROUTER_API_KEY= PYTHONPATH=app/backend/src app/backend/venv/bin/python -m pytest -c app/backend/pyproject.toml app/backend/tests -m 'not corpus_integration'
+  GEMINI_API_KEY= GROQ_API_KEY= OPENROUTER_API_KEY= LESSONAI_CONFIG_DIR="$(mktemp -d)" PYTHONPATH=app/backend/src app/backend/venv/bin/python -m pytest -c app/backend/pyproject.toml app/backend/tests -m 'not corpus_integration'
   npm --prefix app/frontend run build
   ```
-- Four unmarked tests in `test_phase3_pedagogical_rag.py` still require the local corpus even with the portable marker filter. Set `LESSONAI_DATA_DIR` to a test copy of that corpus when running those cases. The **full local backend** suite uses the same pytest command without `-m 'not corpus_integration'` and requires local tests and corpus. For **critical backend** use `-m critical_regressions`. Frontend commands are `npm --prefix app/frontend test`, `npm --prefix app/frontend run test:critical`, and `npm --prefix app/frontend run test:e2e`. Frontend tests and Playwright configuration require the corresponding local files. For a busy E2E port, prefix the E2E command with `LESSONAI_TEST_PORT=18080`.
+- Four unmarked tests in `test_phase3_pedagogical_rag.py` still require the local corpus even with the portable marker filter. Set `LESSONAI_DATA_DIR` to a test copy of that corpus when running those cases. The **full local backend** suite uses the same pytest command without `-m 'not corpus_integration'` and requires local tests and corpus. For **critical backend** use `-m critical_regressions`. Frontend commands are `npm --prefix app/frontend test`, `npm --prefix app/frontend run test:critical`, and `npm --prefix app/frontend run test:e2e`. Frontend tests and Playwright configuration require the corresponding local files. Prefix the E2E command with `LESSONAI_CONFIG_DIR="$(mktemp -d)"` so its backend signs with a throwaway key, and with `LESSONAI_TEST_PORT=18080` when the port is busy.
 - **Math 12 benchmark (15 cases)**. Use a fresh output path for each run.
   ```bash
-  GEMINI_API_KEY= GROQ_API_KEY= OPENROUTER_API_KEY= PYTHONPATH=app/backend/src app/backend/venv/bin/python scripts/quality/run_benchmark_suite.py --output /tmp/lessonai-math12-UNIQUE.json
+  GEMINI_API_KEY= GROQ_API_KEY= OPENROUTER_API_KEY= LESSONAI_CONFIG_DIR="$(mktemp -d)" PYTHONPATH=app/backend/src app/backend/venv/bin/python scripts/quality/run_benchmark_suite.py --output /tmp/lessonai-math12-UNIQUE.json
   ```
   Replace `UNIQUE` with a run identifier before using the command.
 - **Local Makefile** is ignored on this branch. Inspect the file in the active workspace before using targets. The copy inspected for this baseline defines `backend`, `frontend`, `test`, `test-backend`, `test-frontend`, `test-critical`, `test-critical-backend`, `test-critical-frontend`, `build`, `inventory`, `lint-data`, `audit-baseline`, and `audit-acceptance`. Run portable tests, E2E, and the benchmark with the commands above. For source review use `PYTHONPATH=app/backend/src app/backend/venv/bin/python scripts/quality/prepare-source-review.py --output /tmp/lessonai-source-review-UNIQUE.json` with a fresh path and the local corpus.
@@ -128,7 +128,7 @@ Run from the repository root. For PowerShell, use `app/backend/venv/Scripts/pyth
 - **Generation failures:** Routes such as `presentation.py` return HTTP 503 with a classified error code from `classify_generation_error`. Preserve the locked error envelope.
 - **Request models:** prefer Pydantic request models in route signatures over `dict`. New endpoints must not accept raw `dict`.
 - **Safe math execution:** never use `eval()` or `new Function()` in Python or JS. Parse via `lessonai/services/math_expression.py` (`ExpressionBudget`) and evaluate in bounded `spawn` subprocesses (`lessonai/core/jobs.py` -> `lessonai/services/math_worker.py`).
-- **Deterministic tests:** always run pytest with `GEMINI_API_KEY= GROQ_API_KEY= OPENROUTER_API_KEY=` so tests never call live LLM APIs.
+- **Deterministic tests:** always run pytest with `GEMINI_API_KEY= GROQ_API_KEY= OPENROUTER_API_KEY=` so tests never call live LLM APIs, and with `LESSONAI_CONFIG_DIR` set to a temp dir so they sign with a throwaway key instead of the teacher's.
 - **Test hygiene:** do not delete, skip, or weaken tests to get green. A skip or marker (for example `windows_only`, `office_required`) needs a written reason next to it.
 
 ## 8. Git Workflow
@@ -150,7 +150,7 @@ Run from the repository root. For PowerShell, use `app/backend/venv/Scripts/pyth
   - Editing or adding GitHub Actions workflows (the task prompt must say it is allowed).
   - Changing upload/worker limits in `ingress.py`, `jobs.py`, `uploads.py`.
   - Changing `.gitignore` tracking rules.
-  - Design choices for: persistent session/HMAC storage, circuit breaker, splitting `App.jsx` state, extending 3D solids beyond the three supported, camera sync rules.
+  - Design choices for: persistent owner-session storage, circuit breaker, splitting `App.jsx` state, extending 3D solids beyond the three supported, camera sync rules.
 - 🚫 **Never:**
   - Commit `.env`, API keys, signing keys, local DBs, or large corpus files.
   - Bulk-set `"status": "approved"` in `reviewed_sources.json`, or write any reviewer/approval entry without a human decision file attached to the task.
@@ -164,12 +164,13 @@ Run from the repository root. For PowerShell, use `app/backend/venv/Scripts/pyth
 ## 10. Gotchas
 When you resolve an item, update or remove it here.
 
-- **Config and secrets.** Pytest is configured in `[tool.pytest.ini_options]` of `app/backend/pyproject.toml` (`pythonpath = ["src"]`, `testpaths = ["tests"]`); run with `-c app/backend/pyproject.toml`. Runtime secrets/paths come from `app/backend/.env` (loaded by `lessonai/core/config.py`): `GEMINI_API_KEY`, `GROQ_API_KEY`, `OPENROUTER_API_KEY`, `LESSONAI_DATA_DIR`, `LESSONAI_OUTPUT_DIR`, `LESSONAI_LOG_LEVEL`, `LESSONAI_LOCAL_ORIGINS`. Template: `infra/env.example`.
+- **Config and secrets.** Pytest is configured in `[tool.pytest.ini_options]` of `app/backend/pyproject.toml` (`pythonpath = ["src"]`, `testpaths = ["tests"]`); run with `-c app/backend/pyproject.toml`. Runtime secrets/paths come from `app/backend/.env` (loaded by `lessonai/core/config.py`): `GEMINI_API_KEY`, `GROQ_API_KEY`, `OPENROUTER_API_KEY`, `LESSONAI_DATA_DIR`, `LESSONAI_OUTPUT_DIR`, `LESSONAI_CONFIG_DIR`, `LESSONAI_LOG_LEVEL`, `LESSONAI_LOCAL_ORIGINS`. Template: `infra/env.example`.
 - **Gemini failover.** `LLMGateway` has a 45 s generation deadline. Provider and model ordering depend on the task and provider preference.
 - **Gemini schema cleaning.** `google-genai` rejects `additionalProperties: true` (`ConfigDict(extra="allow")` on `SlideDeckSchema` and `LessonPlanSchema`) with a client-side `ValueError`. The cleaner `_clean_gemini_schema_node` currently strips `additionalProperties`/`discriminator` keys from the whole tree regardless of context and merges `oneOf` into `anyOf` without checking broken or circular `$ref`.
 - **Uvicorn reload.** The local Makefile recipe starts from the repository root with `--app-dir app/backend/src` and `--reload`. The command above adds `--reload-dir app/backend/src` to scope file watching to backend source.
 - **Port `8000` conflict.** `[Errno 48] Address already in use`: inspect with `lsof -i :8000` or run E2E with `LESSONAI_TEST_PORT=18080`.
-- **Ephemeral keys and sessions.** Owner sessions, visual confirmation, and deck/lesson quality approvals have a 24-hour TTL. Copilot sessions expire after 1 hour and proposals after 15 minutes, subject to their parent session. Restarting the backend clears in-memory sessions and signing keys, requiring teachers to renew affected confirmations.
+- **Ephemeral sessions.** Owner sessions have a 24-hour TTL. Copilot sessions expire after 1 hour and proposals after 15 minutes, subject to their parent session. All live in memory, so restarting the backend clears them.
+- **Persistent confirmation key (ADR 0005).** Figure confirmations and Expert Confirmations (deck and lesson-plan review tokens) are signed with `signing.key` in the per-user config dir from `config_dir()` in `lessonai/core/signing.py` (override: `LESSONAI_CONFIG_DIR`). Tokens never expire and survive restarts. A token dies when its fingerprint changes; one signed by a key this machine lacks (key file deleted or replaced, or a token from another machine) fails with `confirmation_key_changed`. A corrupt or unreadable key file returns 503 `signing_key_unavailable` and stays untouched for recovery.
 - **Exclusive file creation.** `prepare-source-review.py`, `project-review-probes.py`, `build_packaged_data.py` fail if the output path exists. Pass a fresh `/tmp/` path.
 - **Unsaved slide edits lock navigation.** `SlideEditorScreen.jsx` blocks switching slides, changing screens, or exporting while edits are dirty.
 - **Manual keyword unpacking in routes.** `lesson_plan.py`, `presentation.py`, `slides.py` unpack request attributes by hand (`topic=req.topic, ...`). Adding a field to `LessonRequest` or `OutlineRequest` means passing it explicitly in the route, in `services/generation/*.py`, and in `app/frontend/src/features/generation/lessonGenerationActions.js`. Some routes still accept raw `dict`; `chat.py` does so even though `ChatInteractRequest` and `ApplyPatchRequest` exist.
