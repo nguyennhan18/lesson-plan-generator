@@ -1,5 +1,6 @@
 """Server-signed confirmation of explicit teacher data, never an LLM boolean."""
 import time
+from typing import NamedTuple
 from lessonai.core import signing
 from lessonai.core.hashing import canonical, fingerprint  # re-exported for existing callers
 from lessonai.services.math_expression import parse_expression
@@ -21,21 +22,43 @@ KEY_CHANGED_MESSAGE = ("Xác nhận dữ kiện hình không còn hiệu lực v
 
 
 SOURCE_FIELDS = ("title", "subtitle", "bullet_points", "question", "main_definition_latex", "math_formulas", "worked_solution_steps", "blocks", "table_data", "source_refs")
+# Problem text and formulas of an Outline Item: `points` in the Dàn ý spec, `bullet_points`/`math_focus` on today's outline items.
+ITEM_SOURCE_FIELDS = ("title", "points", "bullet_points", "math_focus")
 
 
-def visual_source(slide):
+class Scope(NamedTuple):
+    ids: tuple            # What a confirmation is bound to.
+    source_fields: tuple  # What its source fingerprint covers.
+
+
+SCOPES = {"slide": Scope(("deck_id", "slide_id"), SOURCE_FIELDS), "outline_item": Scope(("project_id", "item_id"), ITEM_SOURCE_FIELDS)}
+
+
+def visual_source(source, fields=SOURCE_FIELDS):
     def prune(value):
         if isinstance(value,dict):return {key:prune(item) for key,item in value.items() if item not in (None,"",[],{})}
         if isinstance(value,list):return [prune(item) for item in value]
         return value
-    return prune({key:slide[key] for key in SOURCE_FIELDS if slide.get(key) not in (None,"",[])})
+    return prune({key:source[key] for key in fields if source.get(key) not in (None,"",[])})
+
+
+def requirement_scope(data):
+    """A confirmation belongs to one slide, or to one Outline Item of a Bài giảng (project_id)."""
+    if data.get("item_id") in (None, ""):
+        scope_kind, missing = "slide", "Cần định danh bài và slide trước khi xác nhận dữ kiện"
+    elif data.get("slide_id") in (None, ""):
+        scope_kind, missing = "outline_item", "Cần định danh Bài giảng và Mục dàn ý trước khi xác nhận dữ kiện"
+    else:
+        raise VisualError("Mỗi xác nhận chỉ gắn với một slide hoặc một Mục dàn ý")
+    scope = {name: str(data.get(name) or "") for name in SCOPES[scope_kind].ids}
+    if not all(scope.values()):
+        raise VisualError(missing)
+    return scope_kind, scope
 
 
 def confirm_requirement(data):
     """Called only by the explicit confirmation UI, not by generation/enrichment."""
-    scope = {name: str(data.get(name) or "") for name in ("deck_id", "slide_id")}
-    if not all(scope.values()):
-        raise VisualError("Cần định danh bài và slide trước khi xác nhận dữ kiện")
+    scope_kind, scope = requirement_scope(data)
     if not isinstance(data.get("source",{}),dict):
         raise VisualError("Nguồn dữ kiện không đúng cấu trúc")
     kind = data.get("kind")
@@ -65,8 +88,8 @@ def confirm_requirement(data):
         spec = {"kind": kind, **normalize_spec(data)}
     else:
         raise VisualError("Loại hình chưa được hỗ trợ")
-    spec["source_fingerprint"] = fingerprint(visual_source(data.get("source") or {}))
-    record = {**scope, "spec": spec, "confirmed_at": int(time.time()), "method": "teacher_confirmation"}
+    spec["source_fingerprint"] = fingerprint(visual_source(data.get("source") or {}, SCOPES[scope_kind].source_fields))
+    record = {"scope": scope_kind, **scope, "spec": spec, "confirmed_at": int(time.time()), "method": "teacher_confirmation"}
     return {"requirement_token": signing.sign(_PURPOSE, record), "requirement": record,
             "spec_fingerprint": fingerprint(spec)}
 
@@ -79,9 +102,9 @@ def checked_requirement(spec):
     except signing.InvalidToken:
         raise VisualError(_NOT_CONFIRMED) from None
     try:
-        for name in ("deck_id", "slide_id"):
-            if spec.get(name) != record[name]:
-                raise ValueError()
+        scope_kind, scope = requirement_scope(spec)
+        if record["scope"] != scope_kind or any(spec.get(name) != record[name] for name in scope):
+            raise ValueError()
         for name, value in record["spec"].items():
             actual = spec.get(name, "function" if name == "operation" else None)
             if actual != value:

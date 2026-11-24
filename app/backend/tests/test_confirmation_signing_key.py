@@ -208,6 +208,41 @@ def test_teacher_can_confirm_again_after_the_key_is_lost(api, deck, plan, config
             api.post("/api/v1/quality/lesson-plan/check", json=approve_plan(api, stale_plan)).json()["status"]] == [200, "ready", "ready"]
 
 
+CUBE = {"kind": "geometry", "polyhedron_type": "cube", "base_edge": 2, "height": 2}
+ITEM = {"id": "muc-the-tich", "title": "Thể tích khối lập phương cạnh $2$", "points": ["$V = a^3$"]}
+
+
+def confirm_for_item(api, item, project_id="bai-giang-1"):
+    response = api.post("/api/v1/visuals/confirm", json={**CUBE, "project_id": project_id, "item_id": item["id"], "source": item})
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def test_a_figure_confirmation_can_belong_to_an_outline_item(api):
+    confirmed = confirm_for_item(api, ITEM)
+    spec = {**CUBE, "project_id": "bai-giang-1", "item_id": ITEM["id"], **confirmed["requirement"]["spec"], "requirement_token": confirmed["requirement_token"]}
+    elsewhere = [{"item_id": "muc-khac"}, {"project_id": "bai-giang-2"}, {"item_id": None, "deck_id": "bai-giang-1", "slide_id": ITEM["id"]}]
+    assert [api.post("/api/v1/visuals/scene", json={**spec, **place}).status_code for place in [{}, *elsewhere]] == [200, 409, 409, 409]
+
+
+OUTLINE_SLIDE_ITEM = {"id": "muc-the-tich", "title": "Thể tích khối lập phương", "bullet_points": ["Cạnh bằng $2$"], "math_focus": "V = a^3"}
+
+
+@pytest.mark.parametrize("item, edit", [(ITEM, {"points": ["$V = 3a$"]}), (OUTLINE_SLIDE_ITEM, {"bullet_points": ["Cạnh bằng $3$"]}),
+                                        (OUTLINE_SLIDE_ITEM, {"math_focus": "V = 3a"})], ids=["points", "bullet_points", "math_focus"])
+def test_an_outline_item_confirmation_covers_the_item_text(api, item, edit):
+    def source_fingerprint(content):
+        return confirm_for_item(api, content)["requirement"]["spec"]["source_fingerprint"]
+    assert source_fingerprint(item) != source_fingerprint({**item, **edit})
+
+
+@pytest.mark.parametrize("owner", [{"deck_id": "bo-slide-1", "slide_id": "slide-1", "project_id": "bai-giang-1", "item_id": "muc-1"},
+                                   {"item_id": "muc-1"}, {"project_id": "bai-giang-1"}], ids=["slide-and-item", "item-without-lesson", "lesson-only"])
+def test_a_confirmation_names_one_slide_or_one_outline_item(api, owner):
+    response = api.post("/api/v1/visuals/confirm", json={**CUBE, **owner, "source": {}})
+    assert response.status_code == 422 and response.json()["detail"]["code"] == "visual_invalid", response.text
+
+
 def test_an_unusable_key_file_is_reported_and_never_overwritten(api, deck, plan, config_dir):
     plotted = {**deck, "slides": [{**deck["slides"][0], "chart_spec": confirm_plot(api, deck)}]}
     approved_deck, approved_plan = approve_deck(api, deck), approve_plan(api, plan)
