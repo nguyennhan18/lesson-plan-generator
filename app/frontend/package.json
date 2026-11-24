@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prototype": "vite --open \"/?prototype=lesson-flow&variant=B\"",
     "test": "node --test tests/*.test.js",
     "build": "vite build",
     "preview": "vite preview",
