@@ -1,40 +1,17 @@
-import base64
-import hashlib
-import hmac
-import json
-import secrets
-import time
 from pydantic import ValidationError
 from fastapi import APIRouter, Depends, HTTPException
 from lessonai.core.ownership import require_owner
 from lessonai.schemas.slide_schema import SlideDeckSchema
 from lessonai.services.content_quality import evaluate_deck, content_snapshot
-from lessonai.services.visual_requirements import canonical, fingerprint
+from lessonai.services.expert_confirmation import METHOD, apply_review, sign_review
 
 router = APIRouter(prefix="/api/v1/quality", tags=["Content acceptance"])
-_KEY = secrets.token_bytes(32)
-
-
-def reviewed(deck):
-    try:
-        token = deck.get("review_token", "")
-        if len(token) > 4000:
-            return False
-        payload, signature = token.split(".")
-        if not hmac.compare_digest(signature, hmac.new(_KEY, payload.encode(), hashlib.sha256).hexdigest()):
-            return False
-        record = json.loads(base64.urlsafe_b64decode(payload))
-        return record.get("method") == "issue_review_v1" and record["hash"] == fingerprint(content_snapshot(deck)) and record["expires"] > time.time()
-    except (ValueError, KeyError, TypeError):
-        return False
+_PURPOSE = "deck_review"
 
 
 def check_deck(deck):
-    report = evaluate_deck(deck)
-    if report["status"] != "blocked" and reviewed(deck):
-        report["status"] = "ready"
-        report["review_method"] = "teacher_confirmation_for_this_revision"
-    return report
+    return apply_review(evaluate_deck(deck), _PURPOSE, deck.get("review_token"), content_snapshot(deck),
+                        "teacher_confirmation_for_this_revision")
 
 
 @router.post("/check")
@@ -57,11 +34,9 @@ def approve(payload: dict, owner=Depends(require_owner)):
     supplied = payload.get("reviewed_issue_ids")
     if not isinstance(supplied, list) or any(not isinstance(value, str) for value in supplied) or sorted(supplied) != required or payload.get("content_fingerprint") != report["content_fingerprint"]:
         raise HTTPException(409, detail={"code": "review_incomplete", "message": "Cần đối chiếu từng mục cần duyệt của đúng phiên bản bài", "report": report})
-    review = {"method": "issue_review_v1", "reviewed_issue_ids": required,
+    review = {"method": METHOD, "reviewed_issue_ids": required,
               "content_fingerprint": report["content_fingerprint"]}
-    record = {"method": "issue_review_v1", "issues_hash": fingerprint(required), "hash": fingerprint(content_snapshot(deck)), "expires": int(time.time())+86400, "reviewer": hashlib.sha256(owner.encode()).hexdigest()[:16], "confirmed_at": int(time.time())}
-    encoded = base64.urlsafe_b64encode(canonical(record).encode()).decode()
-    token = encoded + "." + hmac.new(_KEY, encoded.encode(), hashlib.sha256).hexdigest()
+    token, record = sign_review(_PURPOSE, content_snapshot(deck), required, owner)
     return {"review_token": token, "report": {**report, "status": "ready", "review_method": "teacher_confirmation_for_this_revision", "review_record": {**review, "reviewer": record["reviewer"], "confirmed_at": record["confirmed_at"]}}}
 
 

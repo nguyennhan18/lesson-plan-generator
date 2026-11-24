@@ -22,7 +22,8 @@ from lessonai.core.jobs import JobError
 pytestmark=pytest.mark.critical_regressions
 
 @pytest.fixture
-def api():
+def api(tmp_path,monkeypatch):
+    monkeypatch.setenv('LESSONAI_CONFIG_DIR',str(tmp_path/'signing-config'))  # A throwaway key, never the teacher's (ADR 0005).
     with TestClient(create_app()) as client:
         assert client.post('/api/v1/session').status_code==200
         yield client

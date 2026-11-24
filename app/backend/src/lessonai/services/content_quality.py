@@ -61,9 +61,9 @@ def evaluate_deck(deck):
         issues.append({"field": "slides", "severity": "error", "message": "Bộ slide rỗng"})
     for index, slide in enumerate(slides):
         sid = slide.get("slide_id") or str(index)
-        def issue(field, message, severity="error"):
+        def issue(field, message, severity="error", code=None):
             issues.append({"slide_id": sid, "slide_index": index + 1, "field": field,
-                           "severity": severity, "message": message})
+                           "severity": severity, "message": message, **({"code": code} if code else {})})
         if not str(slide.get("title") or "").strip():
             issue("title", "Thiếu tiêu đề")
         if slide.get("layout") == "TWO_COLUMN" and not slide.get("worked_solution_steps"):
@@ -108,7 +108,7 @@ def evaluate_deck(deck):
                     if spec.get("source_fingerprint") != fingerprint(visual_source(slide)):
                         raise ValueError("Nội dung đề/giả thiết đã đổi sau lần xác nhận hình")
                 except ValueError as error:
-                    issue(field, str(error), "error")
+                    issue(field, str(error), "error", getattr(error, "code", None))
         # Prose, pedagogical flow and source accuracy are not proven by arithmetic checks.
         issue("content", "Cần giáo viên duyệt đề, giả thiết, nguồn và tiến trình bài dạy", "warning")
     for index, entry in enumerate(issues):
