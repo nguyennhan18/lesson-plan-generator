@@ -12,32 +12,16 @@ from lessonai.services.rendering import enrich_slide_deck_with_renders
 
 router = APIRouter()
 
-@router.post("/api/v1/slide/generate", response_model=SlideDeckSchema)
-def generate_slide_endpoint(req: LessonRequest):
-    """
-    API 4: Nhận yêu cầu từ người dùng, gọi Gemini AI sinh cấu trúc JSON Slide bài giảng (SlideDeckSchema).
-    Nếu req.plan có dữ liệu, Slide sẽ được đồng bộ chính xác theo Kế hoạch bài dạy 5512.
-    Tự động kết xuất ảnh đồ thị Matplotlib để Front-end hiển thị đồng bộ 100% với file PowerPoint.
-    """
-    try:
-        slide_deck = generate_slide_deck(
-            approved_outline=req.approved_outline, model_provider=req.model_provider, model_id=req.model_id,
-            topic=req.topic,
-            subject=req.subject,
-            grade=req.grade,
-            lesson_id=req.lesson_id,
-            use_rag=req.use_rag,
-            plan=req.plan,
-            class_proficiency=req.class_proficiency,
-            target_outcome=req.target_outcome,
-            session_id=req.session_id
-        )
-        deck_dict = slide_deck.model_dump()
-        from lessonai.services.content_quality import evaluate_deck
-        deck_dict["quality_report"] = evaluate_deck(deck_dict)
-        return enrich_slide_deck_with_renders(deck_dict)
-    except Exception as error:
-        raise HTTPException(503, detail=classify_generation_error(error, "slide")) from error
+@router.post("/api/v1/slide/generate")
+def generate_slide_endpoint():
+    """Đã nghỉ hưu ở #59: thay bằng /api/v1/workbench/slides."""
+    raise HTTPException(
+        status_code=410,
+        detail={
+            "code": "legacy_slide_generation_retired",
+            "message": "Endpoint sinh slide từ Kế hoạch bài dạy đã dừng; hãy dùng /api/v1/workbench/slides của Bàn làm việc.",
+        },
+    )
 
 
 @router.post("/api/v1/slide/enrich")

@@ -322,7 +322,8 @@ def export_lesson_plan_to_docx(
     doc = Document()
     from lessonai.services.lesson_quality import check_plan
     plan_quality = check_plan(plan_synced.model_dump(mode="json"))
-    if plan_quality["status"] == "ready":
+    needs_outline_review = isinstance(plan, dict) and bool(plan.get("needs_review") or (isinstance(plan.get("plan"), dict) and plan["plan"].get("needs_review")))
+    if plan_quality["status"] == "ready" and not needs_outline_review:
         doc.add_paragraph("GIÁO ÁN ĐÃ ĐƯỢC GIÁO VIÊN XÁC NHẬN — áp dụng cho nội dung phiên bản này.")
     else:
         doc.add_paragraph("BẢN NHÁP — Giáo án cần giáo viên đối chiếu nội dung và duyệt trước khi sử dụng.")

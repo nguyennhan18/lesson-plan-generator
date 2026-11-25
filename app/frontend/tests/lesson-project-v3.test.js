@@ -1,14 +1,21 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
+  addItemVisual,
+  addSlideElement,
+  convertLegacyProjectToV3,
   detectElementOverflow,
   listLessons,
   loadLesson,
   normalizeLesson,
+  placeVisualOnItemSlide,
   readLessonFile,
+  removeSlideElement,
   replaceItemSlides,
   saveLesson,
+  updateItemVisual,
   updateSlideElement,
+  updateSlidePoll,
 } from '../src/shared/storage/lessonProject.js';
 import { assertLegacyProject, restoreProject, saveProject } from '../src/shared/storage/projectStore.js';
 import { createWorkbenchActions, emptyWorkbench } from '../src/features/workbench/workbenchActions.js';
@@ -622,4 +629,190 @@ test('Cài đặt lưu nhà cung cấp và model, Phân tích lớp học cập 
   assert.deepEqual(desk.session.settings, { model_provider: 'groq', model_id: 'llama-3.3-70b-versatile' });
   desk.actions.applyClassLevel('advanced');
   assert.equal(desk.session.preferredLevel, 'advanced');
+});
+
+test('bỏ phiếu trắc nghiệm lưu vào polls[slide_id] và tự xóa khi sửa câu hỏi hoặc phương án (#47)', () => {
+  const base = normalizeLesson({
+    ...newFile(),
+    deck: {
+      revision: 1,
+      slides: [
+        {
+          slide_id: 's-quiz',
+          item_id: 'm4',
+          layout: 'Câu hỏi trắc nghiệm',
+          elements: [
+            {
+              element_id: 'el-q',
+              type: 'quiz',
+              x: 100,
+              y: 200,
+              w: 1400,
+              h: 640,
+              question: 'Cực đại tại đâu?',
+              options: [
+                { label: 'A', text: '1', correct: false, why: 'Sai' },
+                { label: 'B', text: '-1', correct: true, why: 'Đúng' },
+                { label: 'C', text: '0', correct: false, why: 'Sai' },
+                { label: 'D', text: '2', correct: false, why: 'Sai' },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  });
+  const voted = updateSlidePoll(base, 's-quiz', { A: 3, B: 18, C: 2, D: 1 });
+  assert.deepEqual(voted.polls['s-quiz'], { A: 3, B: 18, C: 2, D: 1 });
+
+  // Sửa vị trí phần tử quiz không xóa phiếu
+  const moved = updateSlideElement(voted, 's-quiz', 'el-q', { x: 120 });
+  assert.deepEqual(moved.polls['s-quiz'], { A: 3, B: 18, C: 2, D: 1 });
+
+  // Sửa nội dung câu hỏi xóa phiếu cũ
+  const editedQ = updateSlideElement(moved, 's-quiz', 'el-q', { question: 'Câu hỏi đã đổi?' });
+  assert.equal(editedQ.polls['s-quiz'], undefined);
+});
+
+test('thêm và xóa phần tử trên canvas tăng revision, xóa review_token và đánh dấu slide đã sửa tay (#48)', () => {
+  const base = normalizeLesson({
+    ...newFile(),
+    deck: {
+      revision: 2,
+      review_token: 'token-chuyen-mon',
+      slides: [
+        {
+          slide_id: 's1',
+          item_id: 'm1',
+          layout: 'Mở đầu',
+          elements: [{ element_id: 'e1', type: 'title', x: 120, y: 280, w: 1360, h: 220, text: 'Tiêu đề' }],
+        },
+      ],
+    },
+  });
+  const withFormula = addSlideElement(base, 's1', { element_id: 'e-f', type: 'formula', latex: 'x^2 + 1 = 0' });
+  assert.equal(withFormula.deck.revision, 3);
+  assert.equal(withFormula.deck.review_token, undefined);
+  assert.equal(withFormula.deck.slides[0].edited, true);
+  assert.equal(withFormula.deck.slides[0].elements.length, 2);
+
+  const afterRemove = removeSlideElement(withFormula, 's1', 'e-f');
+  assert.equal(afterRemove.deck.revision, 4);
+  assert.equal(afterRemove.deck.slides[0].elements.length, 1);
+});
+
+test('thêm Yêu cầu trực quan, đặt hình sang slide khác trong cùng Mục và chặn đặt sang Mục khác (#51)', () => {
+  const base = normalizeLesson({
+    ...newFile(),
+    deck: {
+      revision: 1,
+      slides: [
+        { slide_id: 's1', item_id: 'm1', layout: 'Mở đầu', elements: [] },
+        { slide_id: 's3a', item_id: 'm3', layout: 'Chữ trái, hình phải', elements: [] },
+        { slide_id: 's3b', item_id: 'm3', layout: 'Nội dung', elements: [] },
+      ],
+    },
+  });
+  const withVis = addItemVisual(base, 'm3', {
+    visual_id: 'v-new-graph',
+    kind: 'graph',
+    label: '$y = x^3$',
+    data: { expression: 'x^3', x_min: -2, x_max: 2 },
+  }, 's3a');
+  assert.ok(withVis.deck.slides[1].elements.some(el => el.visual_id === 'v-new-graph'));
+
+  // Đặt thêm lên slide s3b cùng thuộc Mục m3 -> thành công
+  const duplicated = placeVisualOnItemSlide(withVis, 'v-new-graph', 's3b');
+  assert.ok(duplicated.deck.slides[2].elements.some(el => el.visual_id === 'v-new-graph'));
+
+  // Đặt sang slide s1 thuộc Mục m1 -> bị chặn theo ADR 0003
+  assert.throws(
+    () => placeVisualOnItemSlide(duplicated, 'v-new-graph', 's1'),
+    { name: 'LessonDataError', message: /thuộc Mục «m3», không được đặt trên slide của Mục «m1»/ },
+  );
+
+  // Sửa dữ kiện của hình đã xác nhận đưa hình về trạng thái proposed
+  const resetVis = updateItemVisual(duplicated, 'm3', 'v-graph', { data: { expression: 'x^3 - 3x + 1', x_min: -5, x_max: 5 } });
+  const updatedGraph = resetVis.outline.items.find(it => it.item_id === 'm3').visuals.find(v => v.visual_id === 'v-graph');
+  assert.equal(updatedGraph.status, 'proposed');
+  assert.equal(updatedGraph.requirement_token, undefined);
+});
+
+test('chuyển dự án bản 2 sang Bài giảng bản 3 giữ nguyên bản 2 gốc trong IndexedDB, giữ giáo án/trắc nghiệm và lược bỏ hình dãy số/bất phương trình (#58)', async () => {
+  installFakeIndexedDB();
+  const v2Project = {
+    schema_version: 2,
+    project_id: 'du-an-ban-2-goc',
+    title: 'Khảo sát và hình không gian',
+    deck: {
+      presentation_title: 'Khảo sát và hình không gian',
+      slides: [
+        { slide_id: 'old-1', type: 'TITLE_SLIDE', title: 'Mở đầu bài học', bullet_points: ['Giới thiệu'] },
+        {
+          slide_id: 'old-2',
+          type: 'CONCEPT_SLIDE',
+          title: 'Đồ thị hàm bậc ba',
+          bullet_points: ['Xét $y = x^3 - 3x$'],
+          main_definition_latex: "y' = 3x^2 - 3",
+          chart_spec: { kind: 'function_plot', expression: 'x^3 - 3*x', x_min: -3, x_max: 3, requirement_token: 'old-tok' },
+        },
+        {
+          slide_id: 'old-3',
+          type: 'CONCEPT_SLIDE',
+          title: 'Cấp số cộng lớp 11',
+          bullet_points: ['Dãy số cộng'],
+          chart_spec: { kind: 'arithmetic_sequence', first_term: 1, common_difference: 2, count: 5 },
+        },
+        {
+          slide_id: 'old-4',
+          type: 'EXERCISE_SLIDE',
+          layout: 'QUIZ_OPTION',
+          title: 'Câu hỏi củng cố',
+          question: 'Đạo hàm của $x^3$ là?',
+          quiz_options: [
+            { label: 'A', text: '$3x^2$', is_correct: true, distractor_rationale: 'Đúng' },
+            { label: 'B', text: '$x^2$', is_correct: false, distractor_rationale: 'Thiếu hệ số 3' },
+            { label: 'C', text: '$3x$', is_correct: false, distractor_rationale: 'Sai số mũ' },
+            { label: 'D', text: '$1$', is_correct: false, distractor_rationale: 'Sai' },
+          ],
+        },
+      ],
+    },
+    plan: {
+      lesson_title: 'Khảo sát và hình không gian',
+      subject: 'Toán học',
+      grade: 12,
+      knowledge_goals: ['Nắm khảo sát hàm số'],
+      activities: [],
+    },
+  };
+  await saveProject(v2Project);
+
+  const desk = workbench();
+  await desk.actions.openLesson('du-an-ban-2-goc');
+
+  const migrated = desk.session.lesson;
+  assert.ok(migrated);
+  assert.equal(migrated.schema_version, 3);
+  assert.equal(migrated.project_id, 'du-an-ban-2-goc-v3');
+  assert.equal(migrated.migrated_from_v2, 'du-an-ban-2-goc');
+  assert.equal(migrated.outline.items.length, 4);
+  assert.equal(migrated.deck.slides.length, 4);
+  assert.equal(migrated.plan.lesson_title, 'Khảo sát và hình không gian');
+
+  // Hình đồ thị được chuyển sang proposed để xác nhận lại
+  const itemWithGraph = migrated.outline.items.find(it => it.title === 'Đồ thị hàm bậc ba');
+  assert.equal(itemWithGraph.visuals.length, 1);
+  assert.equal(itemWithGraph.visuals[0].kind, 'graph');
+  assert.equal(itemWithGraph.visuals[0].status, 'proposed');
+  assert.equal(itemWithGraph.visuals[0].requirement_token, undefined);
+
+  // Hình arithmetic_sequence bị lược bỏ và thông báo nêu rõ tên slide
+  const itemDropped = migrated.outline.items.find(it => it.title === 'Cấp số cộng lớp 11');
+  assert.equal(itemDropped.visuals.length, 0);
+  assert.match(desk.session.notice.message, /Cấp số cộng lớp 11/);
+
+  // Bản ghi bản 2 gốc trong IndexedDB vẫn còn nguyên vẹn
+  const rawList = await listLessons();
+  assert.ok(rawList.legacyProjects.some(p => p.project_id === 'du-an-ban-2-goc'));
 });

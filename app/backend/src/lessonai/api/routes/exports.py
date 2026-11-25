@@ -6,8 +6,9 @@ from lessonai.core.signing import SigningKeyUnavailable
 from lessonai.schemas.schemas import LessonPlanSchema
 from lessonai.schemas.slide_schema import SlideDeckSchema
 from lessonai.exporters.docx_exporter import export_lesson_plan_to_docx
-from lessonai.exporters.slide_exporter import export_slide_deck_to_pptx
+from lessonai.exporters.slide_exporter import export_slide_deck_to_pptx, export_workbench_pptx
 from lessonai.exporters.dual_package_exporter import export_dual_package, sanitize_filename
+from lessonai.services.workbench_quality import WorkbenchQualityCheckRequest
 from lessonai.utils.temp_file_cleaner import cleanup_memory_and_figures
 from fastapi import APIRouter
 from pydantic import ValidationError
@@ -59,6 +60,32 @@ def export_docx_endpoint(payload: Union[Dict[str, Any], LessonPlanSchema]):
         raise HTTPException(status_code=422, detail=str(error)) from error
     except Exception as error:
         raise HTTPException(status_code=500, detail="Không thể xuất Word. Nội dung bản soạn được giữ nguyên.") from error
+
+
+@router.post("/api/v1/workbench/export-pptx")
+def export_workbench_pptx_endpoint(payload: WorkbenchQualityCheckRequest):
+    """Xuất tệp PowerPoint (.pptx) 16:9 trực tiếp từ Bộ slide canvas bản 3 (#44)."""
+    try:
+        raw = payload.model_dump(mode="json")
+        pptx_stream = export_workbench_pptx(raw)
+        safe_title = sanitize_filename(payload.title or "Bai_Giang", max_length=50)
+        safe_filename = f"Slide_{safe_title}.pptx"
+        url_encoded_filename = quote(safe_filename)
+        return Response(
+            content=pptx_stream.getvalue(),
+            media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            headers={
+                "Content-Disposition": f'attachment; filename="{safe_filename}"; filename*=utf-8\'\'{url_encoded_filename}'
+            },
+        )
+    except (HTTPException, SigningKeyUnavailable):
+        raise
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    except Exception as error:
+        raise HTTPException(status_code=500, detail="Không thể xuất PowerPoint. Nội dung bản soạn được giữ nguyên.") from error
+    finally:
+        cleanup_memory_and_figures()
 
 
 @router.post("/api/v1/lesson-plan/export-slide")

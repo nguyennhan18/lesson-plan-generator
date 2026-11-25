@@ -45,10 +45,11 @@ layers = [
     "lessonai.schemas",
     "lessonai.core | lessonai.utils",
 ]
-# 10 vi phạm còn lại. Mỗi dòng nêu cách xử lý đã chốt; đợt gom services/ sẽ bỏ dần các dòng này.
+# 9 vi phạm còn lại. Mỗi dòng nêu cách xử lý đã chốt; đợt gom services/ sẽ bỏ dần các dòng này.
 ignore_imports = [
     # Chuyển graph_generator.py và render_latex_to_bytes sang services/visuals/ (ADR 0006).
     "lessonai.services.rendering -> lessonai.exporters.graph_generator",
+    "lessonai.services.workbench_visuals -> lessonai.exporters.graph_generator",
     "lessonai.services.rendering -> lessonai.exporters.slide_exporter",
     # Chuyển core/jobs.py thành services/jobs.py (nó chạy worker của services).
     "lessonai.core.jobs -> lessonai.services.math_worker",

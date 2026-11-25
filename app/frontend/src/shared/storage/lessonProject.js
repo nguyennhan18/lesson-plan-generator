@@ -237,6 +237,10 @@ export function detectElementOverflow(element) {
 export function updateSlideElement(lesson, slideId, elementId, changes, { snap = true, minW = 160, minH = 60 } = {}) {
   if (!lesson?.deck?.slides) fail('Bài giảng chưa có Bộ slide.');
   let touched = false;
+  let touchedItemId = null;
+  let contentModified = false;
+  let quizContentModified = false;
+
   const slides = lesson.deck.slides.map(slide => {
     if (slide.slide_id !== slideId) return slide;
     let slideChanged = false;
@@ -255,18 +259,107 @@ export function updateSlideElement(lesson, slideId, elementId, changes, { snap =
         next.x = Math.max(0, Math.min(STAGE.width - next.w, snap ? snapToGrid(rawX) : rawX));
         next.y = Math.max(0, Math.min(STAGE.height - next.h, snap ? snapToGrid(rawY) : rawY));
       }
+      if (Array.isArray(next.items) && (next.type === 'text' || next.type === 'steps') && changes.items !== undefined && changes.parts === undefined) {
+        next.parts = Math.max(1, next.items.length);
+      }
       if (TEXT_ELEMENT_TYPES.has(next.type)) {
         next.overflow = changes.overflow !== undefined ? Boolean(changes.overflow) : detectElementOverflow(next);
       }
       if (JSON.stringify(next) !== JSON.stringify(el)) {
         slideChanged = true;
         touched = true;
+        touchedItemId = slide.item_id;
+        for (const k of ['text', 'items', 'latex', 'headers', 'rows', 'question', 'options']) {
+          if (changes[k] !== undefined && JSON.stringify(changes[k]) !== JSON.stringify(el[k])) {
+            contentModified = true;
+          }
+        }
+        if (next.type === 'quiz' && (
+          (changes.question !== undefined && changes.question !== el.question) ||
+          (changes.options !== undefined && JSON.stringify(changes.options) !== JSON.stringify(el.options))
+        )) {
+          quizContentModified = true;
+        }
       }
       return next;
     });
     return slideChanged ? { ...slide, edited: true, elements } : slide;
   });
   if (!touched) return lesson;
+
+  // #47: Editing quiz question or options clears the saved poll for that slide.
+  const nextPolls = { ...(lesson.polls || {}) };
+  if (quizContentModified) {
+    delete nextPolls[slideId];
+  }
+
+  // #51: Editing problem text/formula on a slide resets confirmed visuals of that slide's Mục to proposed.
+  const nextItems = contentModified && touchedItemId
+    ? lesson.outline.items.map(item => {
+        if (item.item_id !== touchedItemId) return item;
+        return {
+          ...item,
+          visuals: item.visuals.map(visual => {
+            if (visual.status !== 'confirmed') return visual;
+            const { requirement_token, source_fingerprint, ...proposal } = visual;
+            return { ...proposal, status: 'proposed' };
+          }),
+        };
+      })
+    : lesson.outline.items;
+
+  const { review_token, ...restDeck } = lesson.deck;
+  return normalizeLesson({
+    ...lesson,
+    outline: { ...lesson.outline, items: nextItems },
+    polls: nextPolls,
+    deck: {
+      ...restDeck,
+      revision: (lesson.deck.revision ?? 0) + 1,
+      slides,
+    },
+  });
+}
+
+/**
+ * Add a new non-figure element (paragraph, text, steps, formula, table, image) to a slide (#48).
+ */
+export function addSlideElement(lesson, slideId, elementInput) {
+  if (!lesson?.deck?.slides) fail('Bài giảng chưa có Bộ slide.');
+  const type = elementInput?.type || 'paragraph';
+  if (FIGURE_TYPES.has(type)) fail('Hình tương tác phải được thêm qua Yêu cầu trực quan của Mục.');
+  const defaultBoxes = {
+    paragraph: { x: 100, y: 200, w: 1200, h: 140, text: 'Nội dung mới' },
+    text: { x: 100, y: 240, w: 1200, h: 320, items: ['Ý thứ nhất', 'Ý thứ hai'], parts: 2 },
+    steps: { x: 100, y: 240, w: 1200, h: 360, items: ['Bước 1', 'Bước 2'], parts: 2 },
+    formula: { x: 100, y: 660, w: 1200, h: 140, latex: "f'(x) = 0" },
+    table: { x: 100, y: 240, w: 1200, h: 360, headers: ['x', 'y'], rows: [['0', '1'], ['1', '0']] },
+    image: { x: 200, y: 200, w: 800, h: 460, src: elementInput?.src || '', alt: elementInput?.alt || 'Hình ảnh trên slide' },
+    caption: { x: 100, y: 780, w: 1200, h: 60, text: 'Chú thích' },
+  };
+  const base = defaultBoxes[type] || defaultBoxes.paragraph;
+  const el = {
+    element_id: elementInput?.element_id || crypto.randomUUID(),
+    type,
+    ...base,
+    ...elementInput,
+    x: snapToGrid(elementInput?.x ?? base.x),
+    y: snapToGrid(elementInput?.y ?? base.y),
+    w: snapToGrid(elementInput?.w ?? base.w),
+    h: snapToGrid(elementInput?.h ?? base.h),
+    reveal: elementInput?.reveal ?? 0,
+    parts: elementInput?.parts ?? base.parts ?? 1,
+  };
+  if (TEXT_ELEMENT_TYPES.has(el.type)) {
+    el.overflow = detectElementOverflow(el);
+  }
+  let added = false;
+  const slides = lesson.deck.slides.map(slide => {
+    if (slide.slide_id !== slideId) return slide;
+    added = true;
+    return { ...slide, edited: true, elements: [...slide.elements, el] };
+  });
+  if (!added) fail(`Không tìm thấy slide «${slideId}».`);
   const { review_token, ...restDeck } = lesson.deck;
   return normalizeLesson({
     ...lesson,
@@ -276,6 +369,459 @@ export function updateSlideElement(lesson, slideId, elementId, changes, { snap =
       slides,
     },
   });
+}
+
+/**
+ * Remove an element from a slide (#48).
+ */
+export function removeSlideElement(lesson, slideId, elementId) {
+  if (!lesson?.deck?.slides) fail('Bài giảng chưa có Bộ slide.');
+  let removed = false;
+  const slides = lesson.deck.slides.map(slide => {
+    if (slide.slide_id !== slideId) return slide;
+    const nextElements = slide.elements.filter(el => el.element_id !== elementId);
+    if (nextElements.length === slide.elements.length) return slide;
+    removed = true;
+    return { ...slide, edited: true, elements: nextElements };
+  });
+  if (!removed) return lesson;
+  const { review_token, ...restDeck } = lesson.deck;
+  return normalizeLesson({
+    ...lesson,
+    deck: {
+      ...restDeck,
+      revision: (lesson.deck.revision ?? 0) + 1,
+      slides,
+    },
+  });
+}
+
+/**
+ * Update poll tally counts for a quiz slide during presentation (#47).
+ */
+export function updateSlidePoll(lesson, slideId, counts) {
+  const cleanCounts = {
+    A: Math.max(0, Math.trunc(Number(counts?.A || 0))),
+    B: Math.max(0, Math.trunc(Number(counts?.B || 0))),
+    C: Math.max(0, Math.trunc(Number(counts?.C || 0))),
+    D: Math.max(0, Math.trunc(Number(counts?.D || 0))),
+  };
+  return normalizeLesson({
+    ...lesson,
+    polls: {
+      ...(lesson.polls || {}),
+      [slideId]: cleanCounts,
+    },
+  });
+}
+
+/**
+ * Add a new Yêu cầu trực quan to an outline item, and optionally place it on a slide of that item (#51, #53, #54, #55).
+ */
+export function addItemVisual(lesson, itemId, visualInput, targetSlideId = null) {
+  const visual = {
+    visual_id: visualInput?.visual_id || crypto.randomUUID(),
+    kind: visualInput.kind,
+    origin: visualInput.origin || 'teacher',
+    status: 'proposed',
+    label: visualInput.label || undefined,
+    data: visualInput.data || {},
+  };
+  let foundItem = false;
+  const items = lesson.outline.items.map(item => {
+    if (item.item_id !== itemId) return item;
+    foundItem = true;
+    return { ...item, visuals: [...item.visuals, visual] };
+  });
+  if (!foundItem) fail(`Không tìm thấy Mục «${itemId}».`);
+
+  let nextDeck = lesson.deck;
+  if (nextDeck?.slides?.length) {
+    const itemSlides = nextDeck.slides.filter(s => s.item_id === itemId);
+    const chosenSlide = itemSlides.find(s => s.slide_id === targetSlideId) || itemSlides[0];
+    if (chosenSlide) {
+      const figEl = {
+        element_id: crypto.randomUUID(),
+        type: visual.kind,
+        x: 700,
+        y: 140,
+        w: 820,
+        h: 680,
+        reveal: 0,
+        parts: visual.kind === 'bbt' ? 3 : 1,
+        visual_id: visual.visual_id,
+      };
+      const { review_token, ...restDeck } = nextDeck;
+      nextDeck = {
+        ...restDeck,
+        revision: (nextDeck.revision ?? 0) + 1,
+        slides: nextDeck.slides.map(s => (s.slide_id === chosenSlide.slide_id ? { ...s, edited: true, elements: [...s.elements, figEl] } : s)),
+      };
+    }
+  }
+  return normalizeLesson({
+    ...lesson,
+    outline: { ...lesson.outline, items },
+    deck: nextDeck,
+  });
+}
+
+/**
+ * Update or confirm a Yêu cầu trực quan on an outline item (#51, #53, #54, #55, #56).
+ * Editing visual data without providing a new requirement_token resets status to 'proposed'.
+ */
+export function updateItemVisual(lesson, itemId, visualId, updates) {
+  let changed = false;
+  const items = lesson.outline.items.map(item => {
+    if (item.item_id !== itemId) return item;
+    const visuals = item.visuals.map(v => {
+      if (v.visual_id !== visualId) return v;
+      changed = true;
+      if (updates.status === 'confirmed' && updates.requirement_token) {
+        return {
+          ...v,
+          ...updates,
+          data: updates.data ? { ...v.data, ...updates.data } : v.data,
+          status: 'confirmed',
+          requirement_token: updates.requirement_token,
+        };
+      }
+      const { requirement_token, source_fingerprint, ...rest } = v;
+      return {
+        ...rest,
+        ...updates,
+        data: updates.data ? { ...v.data, ...updates.data } : v.data,
+        status: 'proposed',
+      };
+    });
+    return { ...item, visuals };
+  });
+  if (!changed) return lesson;
+  const nextDeck = lesson.deck ? (() => {
+    const { review_token, ...rest } = lesson.deck;
+    return { ...rest, revision: (lesson.deck.revision ?? 0) + 1 };
+  })() : null;
+  return normalizeLesson({
+    ...lesson,
+    outline: { ...lesson.outline, items },
+    deck: nextDeck,
+  });
+}
+
+/**
+ * Place or duplicate a visual element onto another slide of the SAME Mục dàn ý (#51, ADR 0003).
+ */
+export function placeVisualOnItemSlide(lesson, visualId, targetSlideId) {
+  if (!lesson?.deck?.slides) fail('Bài giảng chưa có Bộ slide.');
+  const ownerItem = lesson.outline.items.find(item => item.visuals.some(v => v.visual_id === visualId));
+  if (!ownerItem) fail(`Yêu cầu trực quan «${visualId}» không có trong Dàn ý.`);
+  const visual = ownerItem.visuals.find(v => v.visual_id === visualId);
+  const targetSlide = lesson.deck.slides.find(s => s.slide_id === targetSlideId);
+  if (!targetSlide) fail(`Không tìm thấy slide «${targetSlideId}».`);
+  if (targetSlide.item_id !== ownerItem.item_id) {
+    fail(`Hình «${visualId}» thuộc Mục «${ownerItem.item_id}», không được đặt trên slide của Mục «${targetSlide.item_id}».`);
+  }
+  const figEl = {
+    element_id: crypto.randomUUID(),
+    type: visual.kind,
+    x: 700,
+    y: 140,
+    w: 820,
+    h: 680,
+    reveal: 0,
+    parts: visual.kind === 'bbt' ? 3 : 1,
+    visual_id: visual.visual_id,
+  };
+  const { review_token, ...restDeck } = lesson.deck;
+  return normalizeLesson({
+    ...lesson,
+    deck: {
+      ...restDeck,
+      revision: (lesson.deck.revision ?? 0) + 1,
+      slides: lesson.deck.slides.map(s => (s.slide_id === targetSlideId ? { ...s, edited: true, elements: [...s.elements, figEl] } : s)),
+    },
+  });
+}
+
+/**
+ * Convert a legacy schema_version: 2 project into a valid schema_version: 3 Bài giảng (#58).
+ * Preserves the original v2 project_id untouched in IndexedDB by assigning a distinct v3 project_id.
+ */
+export function convertLegacyProjectToV3(record) {
+  if (!isRecord(record) || record.schema_version !== LEGACY_SCHEMA_VERSION) {
+    fail('Chỉ hỗ trợ chuyển dự án bản 2 sang bản 3.');
+  }
+  const oldSlides = Array.isArray(record.deck?.slides) && record.deck.slides.length > 0
+    ? record.deck.slides
+    : Array.isArray(record.outline?.outline_slides)
+      ? record.outline.outline_slides
+      : [];
+
+  let hadVisualsToReconfirm = false;
+  const droppedDiscreteSlides = [];
+
+  const mapSlideRole = (s, idx, total) => {
+    const stype = String(s.type || '').toUpperCase();
+    const actRaw = String(s.activity_type || '').toLowerCase();
+    const hasQuiz = stype === 'QUIZ_SLIDE' || s.layout === 'QUIZ_OPTION' || (Array.isArray(s.quiz_options) && s.quiz_options.length === 4);
+    const hasSteps = Array.isArray(s.worked_solution_steps) && s.worked_solution_steps.length > 0;
+    if (idx === 0 && (stype === 'TITLE_SLIDE' || s.layout === 'TITLE_ONLY')) {
+      return { activity: 'Khởi động', kind: 'Mở đầu', layout: 'Mở đầu' };
+    }
+    if (stype === 'WARM_UP_SLIDE' || actRaw.includes('khoi_dong') || actRaw.includes('khởi động')) {
+      return { activity: 'Khởi động', kind: 'Tình huống khởi động', layout: 'Tình huống' };
+    }
+    if (stype === 'SUMMARY_SLIDE' || actRaw.includes('van_dung') || actRaw.includes('vận dụng') || actRaw.includes('tong_ket') || idx === total - 1) {
+      return { activity: 'Vận dụng', kind: 'Tổng kết', layout: 'Tổng kết' };
+    }
+    if (hasQuiz) {
+      return { activity: 'Luyện tập', kind: 'Câu hỏi trắc nghiệm', layout: 'Câu hỏi trắc nghiệm' };
+    }
+    if (stype === 'EXERCISE_SLIDE' || actRaw.includes('luyen_tap') || actRaw.includes('luyện tập')) {
+      return { activity: 'Luyện tập', kind: hasSteps ? 'Ví dụ' : 'Bài luyện tập', layout: hasSteps ? 'Ví dụ (đề và lời giải)' : 'Nội dung' };
+    }
+    return {
+      activity: 'Hình thành kiến thức',
+      kind: hasSteps ? 'Ví dụ' : 'Kiến thức trọng tâm',
+      layout: hasSteps ? 'Ví dụ (đề và lời giải)' : 'Kiến thức trọng tâm',
+    };
+  };
+
+  const rawEntries = (oldSlides.length > 0 ? oldSlides : [{ title: record.title || 'Bài giảng chuyển từ bản 2', type: 'TITLE_SLIDE' }]).map((s, idx, arr) => {
+    const role = mapSlideRole(s, idx, arr.length);
+    return { s, idx, ...role };
+  });
+
+  // Sort by activity order so Dàn ý strictly obeys Khởi động -> Hình thành kiến thức -> Luyện tập -> Vận dụng
+  rawEntries.sort((a, b) => ACTIVITIES.indexOf(a.activity) - ACTIVITIES.indexOf(b.activity) || a.idx - b.idx);
+
+  const count = rawEntries.length;
+  const baseMin = Math.max(1, Math.floor(LESSON_MINUTES / count));
+  let remMin = Math.max(0, LESSON_MINUTES - baseMin * count);
+
+  const items = [];
+  const v3Slides = [];
+
+  rawEntries.forEach((entry, orderIdx) => {
+    const { s, activity, kind } = entry;
+    let layout = entry.layout;
+    const itemId = `m-v2-${orderIdx + 1}`;
+    const slideId = s.slide_id || `s-v2-${orderIdx + 1}`;
+    const title = (typeof s.title === 'string' && s.title.trim()) ? s.title.trim() : `Mục ${orderIdx + 1}`;
+    const bullets = Array.isArray(s.bullet_points) ? s.bullet_points.filter(b => typeof b === 'string' && b.trim()) : [];
+    const steps = Array.isArray(s.worked_solution_steps) ? s.worked_solution_steps.filter(st => typeof st === 'string' && st.trim()) : [];
+    const formulas = [
+      ...(typeof s.main_definition_latex === 'string' && s.main_definition_latex.trim() ? [s.main_definition_latex.trim()] : []),
+      ...(Array.isArray(s.math_formulas) ? s.math_formulas.filter(f => typeof f === 'string' && f.trim()) : []),
+    ];
+    const points = [...bullets, ...steps, ...formulas.map(f => (f.startsWith('$') ? f : `$${f}$`))];
+    const minutes = Math.min(LESSON_MINUTES, baseMin + (remMin > 0 ? (remMin--, 1) : 0));
+
+    const visuals = [];
+    const chartKind = s.chart_spec?.kind;
+    if (chartKind === 'arithmetic_sequence' || chartKind === 'inequality_system') {
+      droppedDiscreteSlides.push(title);
+    } else if (chartKind === 'function_plot' && typeof s.chart_spec?.expression === 'string' && s.chart_spec.expression.trim()) {
+      hadVisualsToReconfirm = true;
+      visuals.push({
+        visual_id: `v-graph-${orderIdx + 1}`,
+        kind: 'graph',
+        origin: 'teacher',
+        status: 'proposed',
+        label: `$y = ${s.chart_spec.expression.trim()}$`,
+        data: {
+          expression: s.chart_spec.expression.trim(),
+          x_min: Number.isFinite(Number(s.chart_spec.x_min)) ? Number(s.chart_spec.x_min) : -4,
+          x_max: Number.isFinite(Number(s.chart_spec.x_max)) ? Number(s.chart_spec.x_max) : 4,
+        },
+      });
+      layout = 'Chữ trái, hình phải';
+    }
+
+    const polyType = typeof s.polyhedron_type === 'string' ? s.polyhedron_type.trim().toLowerCase() : (s.scene_spec?.polyhedron_type || '');
+    if ((s.has_3d || s.scene_spec) && ['cube', 'square_pyramid_regular', 'square_pyramid_at_a'].includes(polyType)) {
+      hadVisualsToReconfirm = true;
+      const a = Number(s.scene_spec?.base_edge) > 0 ? Number(s.scene_spec.base_edge) : 2;
+      const h = polyType === 'cube' ? a : (Number(s.scene_spec?.height) > 0 ? Number(s.scene_spec.height) : 3);
+      visuals.push({
+        visual_id: `v-solid-${orderIdx + 1}`,
+        kind: 'solid',
+        origin: 'teacher',
+        status: 'proposed',
+        label: polyType,
+        data: { polyhedron_type: polyType, base_edge: a, height: h },
+      });
+      layout = 'Chữ trái, hình phải';
+    }
+
+    items.push({
+      item_id: itemId,
+      activity,
+      kind,
+      title,
+      points,
+      slide_count: 1,
+      minutes,
+      visuals,
+      needs_review: false,
+    });
+
+    const hasVisual = visuals.length > 0;
+    const textW = hasVisual ? 560 : 1400;
+    const elements = [
+      {
+        element_id: `${slideId}-title`,
+        type: 'title',
+        hero: layout === 'Mở đầu',
+        x: layout === 'Mở đầu' ? 120 : 100,
+        y: layout === 'Mở đầu' ? 280 : 80,
+        w: layout === 'Mở đầu' ? 1360 : textW,
+        h: layout === 'Mở đầu' ? 220 : 100,
+        reveal: 0,
+        parts: 1,
+        text: title,
+      },
+    ];
+
+    if (typeof s.subtitle === 'string' && s.subtitle.trim()) {
+      elements.push({
+        element_id: `${slideId}-sub`,
+        type: 'paragraph',
+        x: 100,
+        y: 200,
+        w: textW,
+        h: 120,
+        reveal: 0,
+        parts: 1,
+        text: s.subtitle.trim(),
+      });
+    }
+
+    if (bullets.length > 0) {
+      elements.push({
+        element_id: `${slideId}-bullets`,
+        type: 'text',
+        x: 100,
+        y: 240,
+        w: textW,
+        h: 320,
+        reveal: 1,
+        parts: bullets.length,
+        items: bullets,
+      });
+    }
+
+    if (steps.length > 0) {
+      elements.push({
+        element_id: `${slideId}-steps`,
+        type: 'steps',
+        x: 100,
+        y: bullets.length > 0 ? 480 : 240,
+        w: textW,
+        h: 300,
+        reveal: 1,
+        parts: steps.length,
+        items: steps,
+      });
+    }
+
+    if (formulas.length > 0) {
+      elements.push({
+        element_id: `${slideId}-formula`,
+        type: 'formula',
+        x: 100,
+        y: 660,
+        w: textW,
+        h: 140,
+        reveal: 1,
+        parts: 1,
+        latex: formulas[0],
+      });
+    }
+
+    if (Array.isArray(s.quiz_options) && s.quiz_options.length === 4) {
+      const normalizedOpts = ['A', 'B', 'C', 'D'].map((lbl, i) => {
+        const rawOpt = s.quiz_options[i] || {};
+        return {
+          label: lbl,
+          text: String(rawOpt.text || `Phương án ${lbl}`),
+          correct: Boolean(rawOpt.is_correct ?? rawOpt.correct ?? (i === 0)),
+          why: String(rawOpt.distractor_rationale || rawOpt.why || 'Giải thích phương án'),
+        };
+      });
+      if (normalizedOpts.filter(o => o.correct).length !== 1) {
+        normalizedOpts.forEach((o, i) => { o.correct = i === 0; });
+      }
+      elements.push({
+        element_id: `${slideId}-quiz`,
+        type: 'quiz',
+        x: 100,
+        y: 200,
+        w: 1400,
+        h: 640,
+        reveal: 0,
+        parts: 1,
+        question: String(s.question || title),
+        options: normalizedOpts,
+      });
+    }
+
+    visuals.forEach((v, vIdx) => {
+      elements.push({
+        element_id: `${slideId}-vis-${vIdx + 1}`,
+        type: v.kind,
+        x: 700,
+        y: 140,
+        w: 820,
+        h: 680,
+        reveal: 0,
+        parts: 1,
+        visual_id: v.visual_id,
+      });
+    });
+
+    v3Slides.push({
+      slide_id: slideId,
+      item_id: itemId,
+      layout,
+      notes: typeof s.teacher_note === 'string' ? s.teacher_note : '',
+      elements,
+    });
+  });
+
+  const baseId = String(record.project_id || 'du-an-ban-2').trim();
+  const v3Id = baseId.endsWith('-v3') ? baseId : `${baseId}-v3`;
+  const title = record.title || record.deck?.presentation_title || record.plan?.lesson_title || 'Bài giảng chuyển từ bản 2';
+  const plan = isRecord(record.plan) ? { ...structuredClone(record.plan), review_token: undefined, needs_review: false } : null;
+
+  const lesson = normalizeLesson({
+    schema_version: LESSON_SCHEMA_VERSION,
+    project_id: v3Id,
+    migrated_from_v2: baseId,
+    title,
+    sgk: typeof record.sgk === 'string' ? record.sgk : undefined,
+    level: 'Trung bình',
+    outline: { items },
+    deck: { revision: 1, slides: v3Slides },
+    plan,
+    annotations: {},
+    polls: {},
+  });
+
+  const notices = ['Đã chuyển dự án bản 2 sang Bài giảng bản 3 (bản 2 gốc vẫn được giữ nguyên trên máy).'];
+  if (hadVisualsToReconfirm) {
+    notices.push('Các hình từ dự án bản 2 đã chuyển sang trạng thái chờ xác nhận dữ kiện lại.');
+  }
+  if (droppedDiscreteSlides.length > 0) {
+    notices.push(`Đã lược bỏ hình dãy số cộng / hệ bất phương trình không còn hỗ trợ ở các slide: ${droppedDiscreteSlides.join(', ')}.`);
+  }
+
+  return {
+    lesson,
+    hadVisualsToReconfirm,
+    droppedDiscreteSlides,
+    noticeMessage: notices.join(' '),
+  };
 }
 
 /**
@@ -384,12 +930,17 @@ const lessonSummary = record => ({
   expert_confirmed: isExpertConfirmed(record)
 });
 
-/** Bài giảng bản 3 saved on this browser, plus how many older projects only the old studio opens. */
+/** Bài giảng bản 3 saved on this browser, plus legacy v2 projects that can be converted to v3 (#58). */
 export async function listLessons() {
   const records = await listProjects();
   const lessons = records.filter(record => record?.schema_version === LESSON_SCHEMA_VERSION).map(lessonSummary)
     .sort((a, b) => a.title.localeCompare(b.title, 'vi') || String(a.project_id).localeCompare(String(b.project_id)));
-  return { lessons, legacyCount: records.length - lessons.length };
+  const legacyProjects = records.filter(record => record?.schema_version === LEGACY_SCHEMA_VERSION).map(record => ({
+    project_id: record.project_id,
+    title: typeof record.title === 'string' && record.title.trim() ? record.title : (record.deck?.presentation_title || 'Dự án bản 2 chưa đặt tên'),
+    slides: Array.isArray(record.deck?.slides) ? record.deck.slides.length : 0,
+  }));
+  return { lessons, legacyCount: records.length - lessons.length, legacyProjects };
 }
 
 // Key-order-independent JSON, to tell whether two Bài giảng hold the same content.

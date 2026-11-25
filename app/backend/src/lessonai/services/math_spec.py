@@ -39,10 +39,15 @@ CHECKS = {
         "operation": "math.exclusions",
         "scope": "Đa thức (tổng bậc tối đa 8, danh sách loại trừ rỗng chứng minh bằng cấu trúc AST) và phân thức một biến có mẫu số bậc tối đa 2 trên tập số thực",
     },
+    "asymptotes": {
+        "name": "rational_asymptotes_division", "version": "1", "method": "symbolic",
+        "operation": "math.asymptotes",
+        "scope": "Đa thức (tổng bậc tối đa 8, chứng minh không có tiệm cận) và phân thức hữu tỉ một biến có tử số bậc tối đa 2 trên mẫu số bậc 1 (chứng minh tiệm cận đứng và tiệm cận ngang/xiên bằng phép chia đa thức)",
+    },
     "solution_step": {
         "name": "structured_solution_step", "version": "1", "method": "symbolic",
         "operation": "math.solution_step",
-        "scope": "Bước giải có cấu trúc thuộc một trong các phép kiểm đã công bố (identity, derivative, roots, stationary_points, sign, extrema, exclusions); lời giải văn xuôi giữ unverified",
+        "scope": "Bước giải có cấu trúc thuộc một trong các phép kiểm đã công bố (identity, derivative, roots, stationary_points, sign, extrema, exclusions, asymptotes); lời giải văn xuôi giữ unverified",
     },
 }
 

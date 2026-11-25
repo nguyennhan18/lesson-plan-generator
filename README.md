@@ -275,11 +275,11 @@ Cấu trúc thư mục thực tế của dự án:
 │       ├── vite.config.js          # Cấu hình Vite & reverse proxy `/api` sang backend cổng 8000
 │       ├── playwright.config.js    # Cấu hình kiểm thử tự động Playwright trên trình duyệt thật
 │       ├── src/
-│       │   ├── App.jsx             # State container trung tâm & bộ điều hướng màn hình
-│       │   ├── features/           # Slices tính năng: dashboard, generation, slide-editor, lesson-plan, presentation, geometry, chat, exports, analytics
+│       │   ├── App.jsx             # State container của phiên Bàn làm việc
+│       │   ├── features/           # workbench (Bàn làm việc — giao diện duy nhất từ #59), lesson-plan, analytics
 │       │   └── shared/             # Thành phần dùng chung: API client, IndexedDB store, math components
 │       ├── tests/                  # Bộ kiểm thử đơn vị frontend (node --test)
-│       └── e2e/                    # Kịch bản kiểm thử tích hợp Playwright (workflows.spec.js)
+│       └── e2e/                    # Kịch bản kiểm thử tích hợp Playwright (ban-lam-viec.spec.js)
 ├── docs/                           # Tài liệu kiến trúc, đặc tả API và thiết kế giao diện
 ├── project-management/             # Nhật ký tiến độ (PROGRESS.md) và hồ sơ nghiệm thu (release-gates/)
 ├── reports/                        # Báo cáo bằng chứng kiểm thử và danh sách tệp thay đổi

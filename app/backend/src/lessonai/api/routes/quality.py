@@ -43,6 +43,22 @@ def approve(payload: dict, owner=Depends(require_owner)):
 from lessonai.schemas.schemas import LessonPlanSchema
 from lessonai.schemas.lesson_review import LessonReviewRequest, LessonQualityReport, LessonReviewResponse
 from lessonai.services.lesson_quality import evaluate_plan, check_plan, sign_plan_review
+from lessonai.services.workbench_quality import (
+    WorkbenchQualityApproveRequest,
+    WorkbenchQualityCheckRequest,
+    approve_workbench_deck,
+    check_workbench_deck,
+)
+
+
+@router.post('/workbench/check')
+def check_workbench(req: WorkbenchQualityCheckRequest, owner=Depends(require_owner)):
+    return check_workbench_deck(req.model_dump(mode="json"))
+
+
+@router.post('/workbench/approve')
+def approve_workbench(req: WorkbenchQualityApproveRequest, owner=Depends(require_owner)):
+    return approve_workbench_deck(req.model_dump(mode="json"), owner)
 
 
 @router.post('/lesson-plan/check', response_model=LessonQualityReport)

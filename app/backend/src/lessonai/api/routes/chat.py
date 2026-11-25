@@ -3,7 +3,22 @@ from pydantic import ValidationError
 from lessonai.core.ownership import require_owner
 from lessonai.schemas.slide_schema import SlideDeckSchema
 from lessonai.services import copilot
+from lessonai.services.workbench_assistant import (
+    WorkbenchAssistantRequest,
+    WorkbenchAssistantResponse,
+    propose_workbench_slide_edit,
+)
+from lessonai.llm.gateway import classify_generation_error
 router=APIRouter(prefix='/api/v1/chat',tags=['Chat Co-pilot'])
+
+@router.post('/workbench/assistant', response_model=WorkbenchAssistantResponse)
+def workbench_assistant(req: WorkbenchAssistantRequest, owner=Depends(require_owner)):
+    try:
+        return propose_workbench_slide_edit(req)
+    except HTTPException:
+        raise
+    except Exception as error:
+        raise HTTPException(503, detail=classify_generation_error(error, 'Trợ giảng AI')) from error
 
 @router.post('/sessions')
 def create_session(data: dict, owner=Depends(require_owner)):

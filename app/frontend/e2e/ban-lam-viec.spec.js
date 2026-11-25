@@ -50,7 +50,6 @@ function watch(page) {
 
 async function openWorkbench(page) {
   await page.goto('/');
-  await page.getByRole('switch', { name: 'Bàn làm việc' }).check();
   await expect(page.getByRole('complementary', { name: 'Bài giảng đã lưu' })).toBeVisible();
 }
 
@@ -129,7 +128,6 @@ test('Bài giảng đã nhập còn sau khi tải lại trang, và xuất JSON t
   expect(exported.outline.items[0]).toMatchObject({ visuals: [], needs_review: false });
 
   await page.reload();
-  await expect(page.getByRole('switch', { name: 'Bàn làm việc' })).toBeChecked();
   const saved = page.getByRole('complementary', { name: 'Bài giảng đã lưu' }).getByRole('button', { name: /Khảo sát hàm số bậc ba/ });
   await expect(saved).toContainText('7 Mục, chưa có slide');
   await saved.click();
@@ -145,8 +143,8 @@ test('dữ liệu sai hoặc phiên bản khác bị từ chối kèm thông bá
   wrong.outline.items[2].slide_count = 5;
   await importLesson(page, wrong);
   await expect(page.getByRole('alert')).toContainText('Dữ liệu Bài giảng không hợp lệ: Mục 3 («m3»): số slide phải là số nguyên từ 1 đến 4.');
-  await importLesson(page, { schema_version: 2, project_id: 'du-an-cu', deck: { slides: [] } });
-  await expect(page.getByRole('alert')).toContainText('Phiên bản chưa hỗ trợ: tệp là dự án bản 2 của giao diện cũ.');
+  await importLesson(page, { schema_version: 4, project_id: 'du-an-la', deck: { slides: [] } });
+  await expect(page.getByRole('alert')).toContainText('Phiên bản chưa hỗ trợ: tệp ghi bản 4; Bàn làm việc chỉ mở được Bài giảng bản 3.');
   await expect(page.getByRole('complementary', { name: 'Bài giảng đã lưu' })).toContainText('Chưa có Bài giảng bản 3 nào trên máy này.');
   expect(problems).toEqual([]);
 });
@@ -182,21 +180,43 @@ test('Bộ slide có Xác nhận chuyên môn thì nhãn trên thanh trên có v
   await expect(page.getByRole('banner').getByText('Bản nháp', { exact: true })).toHaveCount(0);
 });
 
-test('giao diện cũ vẫn là mặc định và không mở Bài giảng bản 3 mà báo phiên bản chưa hỗ trợ', async ({ page }) => {
+test('Bàn làm việc là giao diện mặc định duy nhất và tự động chuyển dự án bản 2 sang Bài giảng bản 3 (#58, #59)', async ({ page }) => {
+  const problems = watch(page);
   await page.goto('/');
-  await expect(page.getByRole('switch', { name: 'Bàn làm việc' })).not.toBeChecked();
-  await page.getByText('Phục hồi JSON', { exact: false }).locator('input').setInputFiles({ name: 'ban-3.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(lessonFile())) });
-  await expect(page.getByRole('alert')).toContainText('Phiên bản chưa hỗ trợ: đây là Bài giảng bản 3, chỉ mở được trong Bàn làm việc.');
+  await expect(page.getByRole('switch', { name: 'Bàn làm việc' })).toHaveCount(0);
+  await expect(page.getByRole('complementary', { name: 'Bài giảng đã lưu' })).toBeVisible();
 
-  await page.getByRole('switch', { name: 'Bàn làm việc' }).check();
-  await importLesson(page, lessonFile());
-  await expect(outlineTree(page)).toBeVisible();
-  await page.getByRole('switch', { name: 'Bàn làm việc' }).uncheck();
-  await page.reload();
-  await page.getByLabel('Chọn dự án').selectOption('e2e-bai-giang-ban-3');
-  await expect(page.getByRole('alert')).toContainText('Phiên bản chưa hỗ trợ: đây là Bài giảng bản 3');
-  await page.getByRole('button', { name: 'Biên Tập Slide', exact: true }).click();
-  await expect(page.getByLabel('Tên bài giảng')).toBeVisible();
+  await importLesson(page, {
+    schema_version: 2,
+    project_id: 'e2e-du-an-ban-2',
+    title: 'Bài giảng từ bản 2',
+    deck: {
+      presentation_title: 'Bài giảng từ bản 2',
+      slides: [
+        { slide_id: 'v2-s1', type: 'TITLE_SLIDE', title: 'Mở đầu bản 2', bullet_points: ['Giới thiệu'] },
+        {
+          slide_id: 'v2-s2',
+          type: 'CONCEPT_SLIDE',
+          title: 'Đồ thị bản 2',
+          bullet_points: ['Hàm bậc ba'],
+          chart_spec: { kind: 'function_plot', expression: 'x^3 - 3*x', x_min: -3, x_max: 3 },
+        },
+        {
+          slide_id: 'v2-s3',
+          type: 'CONCEPT_SLIDE',
+          title: 'Slide cấp số cộng cũ',
+          bullet_points: ['Dãy số'],
+          chart_spec: { kind: 'arithmetic_sequence', first_term: 1, common_difference: 2, count: 5 },
+        },
+      ],
+    },
+  });
+
+  await expect(page.getByRole('alert')).toContainText('Đã chuyển dự án bản 2 sang Bài giảng bản 3');
+  await expect(page.getByRole('alert')).toContainText('Slide cấp số cộng cũ');
+  await expect(outlineTree(page).getByRole('listitem')).toHaveCount(3);
+  await expect(page.getByTestId('wb-canvas')).toContainText('Mở đầu bản 2');
+  expect(problems).toEqual([]);
 });
 
 test('màn soạn đủ ba cột ở độ rộng 1280 px, chữ dùng font đóng gói, hiệu ứng tắt khi giảm chuyển động', async ({ page }) => {
@@ -218,8 +238,6 @@ test('màn soạn đủ ba cột ở độ rộng 1280 px, chữ dùng font đó
   const sheet = await page.getByRole('main').getByRole('article').boundingBox();
   expect(sheet.x).toBeGreaterThanOrEqual(centre.x);
   expect(sheet.x + sheet.width).toBeLessThanOrEqual(centre.x + centre.width);
-  const toggle = await page.getByRole('switch', { name: 'Bàn làm việc' }).boundingBox();
-  expect(toggle.x + toggle.width).toBeLessThanOrEqual(1280);
 
   await page.evaluate(() => document.fonts.ready);
   const faces = await page.evaluate(() => [...document.fonts].filter(face => !face.family.startsWith('KaTeX')).map(face => `${face.family} ${face.weight} ${face.status}`));
@@ -555,5 +573,244 @@ test('đổi model trong Cài đặt thì Lập Dàn ý gửi đúng model, Phâ
     model_provider: 'groq',
     model_id: 'llama-3.3-70b-versatile',
   });
+  expect(problems).toEqual([]);
+});
+
+test('sửa phần tử trên canvas, từ chối ảnh hỏng, bỏ phiếu trắc nghiệm khi chiếu và xóa phiếu khi sửa câu hỏi (#47, #48)', async ({ page }) => {
+  const problems = watch(page);
+  await openWorkbench(page);
+  await importLesson(page, lessonFileWithSlides());
+
+  const canvas = page.getByTestId('wb-canvas');
+  // Nhấp đúp sửa tiêu đề trên Slide 1 kèm công thức $y = x^3$
+  const titleEl = canvas.locator('[data-element-id="e1-title"]');
+  await titleEl.dblclick();
+  const inlineInput = canvas.getByLabel('Sửa nội dung phần tử trên canvas');
+  await inlineInput.fill('Khảo sát $y = x^3 - 3x$');
+  await inlineInput.blur();
+  await expect(titleEl.getByRole('math')).toHaveCount(1);
+
+  // Tải tệp ảnh hỏng lên slide -> báo lỗi rõ và không làm hỏng slide
+  const props = page.getByRole('complementary', { name: 'Thuộc tính' });
+  await props.getByLabel('Tải ảnh lên slide').setInputFiles({
+    name: 'anh-hong.png',
+    mimeType: 'image/png',
+    buffer: Buffer.from('not-a-valid-png-file'),
+  });
+  await expect(props.getByRole('alert')).toContainText('Tệp ảnh bị hỏng');
+
+  // Chuyển sang Slide 3 (Câu hỏi trắc nghiệm) và vào Trình chiếu để bỏ phiếu (#47)
+  await page.getByRole('region', { name: 'Dải slide' }).getByRole('button', { name: 'Slide 3' }).click();
+  await page.getByRole('button', { name: 'Trình chiếu' }).click();
+  const presenter = page.getByRole('region', { name: 'Màn trình chiếu' });
+  await expect(presenter.getByTestId('wb-quiz-total')).toHaveText('0 phiếu');
+
+  await presenter.getByRole('button', { name: 'Tăng phiếu B' }).click();
+  await presenter.getByRole('button', { name: 'Tăng phiếu B' }).click();
+  await presenter.getByRole('button', { name: 'Tăng phiếu A' }).click();
+  await expect(presenter.getByTestId('wb-quiz-count-B')).toHaveText('2');
+  await expect(presenter.getByTestId('wb-quiz-total')).toHaveText('3 phiếu');
+
+  await presenter.getByRole('button', { name: 'Hiện đáp án' }).click();
+  await expect(presenter.locator('[data-quiz-option="B"]')).toHaveClass(/is-correct/);
+  await expect(presenter.getByTestId('wb-quiz-why-B')).toContainText('Đổi dấu từ + sang -');
+
+  await page.keyboard.press('Escape');
+  await expect(presenter).toBeHidden();
+
+  // Sửa câu hỏi trắc nghiệm trên Slide 3 -> số phiếu cũ được xóa về 0
+  await canvas.locator('[data-element-id="e3-quiz"]').click();
+  await props.getByRole('textbox', { name: 'Câu hỏi trắc nghiệm' }).fill('Câu hỏi trắc nghiệm mới sau khi sửa?');
+  await props.getByRole('button', { name: 'Lưu nội dung phần tử' }).click();
+
+  await page.getByRole('button', { name: 'Trình chiếu' }).click();
+  await expect(presenter.getByTestId('wb-quiz-total')).toHaveText('0 phiếu');
+  await page.keyboard.press('Escape');
+  expect(problems).toEqual([]);
+});
+
+test('Kiểm tra bài, Xác nhận chuyên môn, nhắc trước khi chiếu, Trợ giảng AI, Kế hoạch bài dạy và Xuất PPTX (#44, #45, #49, #50)', async ({ page }) => {
+  const problems = watch(page);
+  await openWorkbench(page);
+  const file = lessonFileWithSlides();
+  // Đặt hình chưa xác nhận v-bbt lên slide s2 của Mục m4 để kiểm tra nhắc trước khi chiếu (#49)
+  file.deck.slides[1].item_id = 'm4';
+  file.deck.slides[1].elements.push({
+    element_id: 'e2-bbt',
+    type: 'bbt',
+    x: 700,
+    y: 140,
+    w: 820,
+    h: 680,
+    reveal: 0,
+    parts: 3,
+    visual_id: 'v-bbt',
+  });
+  await importLesson(page, file);
+
+  // 1. Bấm Trình chiếu khi còn hình chưa xác nhận trên slide -> hiện hộp thoại "Trước khi trình chiếu"
+  await page.getByRole('button', { name: 'Trình chiếu' }).click();
+  const preflight = page.getByRole('dialog', { name: 'Trước khi trình chiếu' });
+  await expect(preflight).toBeVisible();
+  await expect(preflight).toContainText('Bảng biến thiên');
+  await preflight.getByRole('button', { name: 'Quay lại kiểm tra' }).click();
+
+  // 2. Bảng Kiểm tra bài & Xác nhận chuyên môn hiện hình chưa xác nhận và phần tử tràn chữ, cho phép lưu Xác nhận chuyên môn
+  const qualityModal = page.getByRole('dialog', { name: 'Kiểm tra bài & Xác nhận chuyên môn' });
+  await expect(qualityModal).toBeVisible();
+  await expect(qualityModal).toContainText('Hình chưa xác nhận dữ kiện');
+  await expect(qualityModal).toContainText('Phần tử tràn chữ (1)');
+  await qualityModal.getByLabel('Tôi đã đối chiếu đề, điều kiện, lời giải, nguồn và tiến trình của phiên bản này').check();
+  await qualityModal.getByRole('button', { name: 'Lưu Xác nhận chuyên môn' }).click();
+  await expect(qualityModal).toBeHidden();
+  await expect(page.getByRole('banner').getByText('Đã xác nhận chuyên môn', { exact: true })).toHaveCSS('border-top-style', 'solid');
+
+  // 3. Trợ giảng AI đề xuất sửa chữ cho slide đang chọn; áp dụng làm mất Xác nhận chuyên môn (#45)
+  await page.route('**/api/v1/chat/workbench/assistant', route => route.fulfill({
+    json: {
+      ai_response: 'Đã tinh chỉnh tiêu đề ngắn gọn hơn.',
+      slide_id: 's1',
+      diffs: [{ element_id: 'e1-title', type: 'title', before: { text: 'Khảo sát hàm số bậc ba' }, after: { text: 'Khảo sát hàm bậc 3' } }],
+      patched_slide: {
+        ...file.deck.slides[0],
+        edited: true,
+        elements: [
+          { ...file.deck.slides[0].elements[0], text: 'Khảo sát hàm bậc 3' },
+          file.deck.slides[0].elements[1],
+        ],
+      },
+    },
+  }));
+  await page.getByRole('tab', { name: 'Trợ giảng AI' }).click();
+  const rightPane = page.getByRole('complementary', { name: 'Thuộc tính' });
+  await rightPane.getByLabel('Yêu cầu cho slide đang chọn').fill('Rút gọn tiêu đề');
+  await rightPane.getByRole('button', { name: 'Gửi yêu cầu' }).click();
+  await expect(rightPane.getByTestId('wb-assistant-proposal')).toContainText('Khảo sát hàm bậc 3');
+  await rightPane.getByRole('button', { name: 'Áp dụng' }).click();
+  await expect(page.getByTestId('wb-canvas')).toContainText('Khảo sát hàm bậc 3');
+  await expect(page.getByRole('banner').getByText('Bản nháp', { exact: true })).toBeVisible();
+
+  // 4. Soạn Kế hoạch bài dạy 5512 từ Dàn ý và đánh dấu lệch Dàn ý khi sửa Mục (#50)
+  const steps = {
+    step_1_assign: 'Giáo viên chuyển giao nhiệm vụ học tập.',
+    step_2_excute: 'Học sinh thực hiện nhiệm vụ.',
+    step_3_report: 'Học sinh báo cáo kết quả.',
+    step_4_conclusion: 'Giáo viên nhận xét và kết luận.',
+  };
+  await page.route('**/api/v1/workbench/lesson-plan', route => route.fulfill({
+    json: {
+      warnings: [],
+      plan: {
+        lesson_title: 'Khảo sát hàm số bậc ba',
+        subject: 'Toán học',
+        grade: 12,
+        knowledge_goals: ['Nắm sơ đồ khảo sát hàm số'],
+        competency_goals: ['Tư duy toán học'],
+        skills_goals: ['Vẽ đồ thị'],
+        character_goals: ['Chăm chỉ'],
+        teaching_equipment: ['SGK Toán 12'],
+        activities: [
+          { activity_number: 1, time_minutes: 7, goal: 'Hoạt động 1 (Khởi động): Khảo sát hàm số bậc ba', expected_product: 'Trả lời mở đầu', execution: steps },
+          { activity_number: 2, time_minutes: 22, goal: 'Hoạt động 2 (Hình thành kiến thức): Sơ đồ khảo sát hàm số', expected_product: 'Bảng biến thiên và đồ thị', execution: steps },
+          { activity_number: 3, time_minutes: 11, goal: 'Hoạt động 3 (Luyện tập): Bài tập cực trị', expected_product: 'Lời giải đúng', execution: steps },
+          { activity_number: 4, time_minutes: 5, goal: 'Hoạt động 4 (Vận dụng): Tổng kết và nhiệm vụ về nhà', expected_product: 'Ba bước khảo sát', execution: steps },
+        ],
+      },
+    },
+  }));
+  await page.getByRole('tab', { name: /Kế hoạch bài dạy/ }).click();
+  await page.getByRole('button', { name: 'Soạn Kế hoạch bài dạy' }).click();
+  await expect(page.getByRole('main')).toContainText('Hoạt động 1 (Khởi động)');
+
+  // Sửa một Mục dàn ý -> Kế hoạch bài dạy hiện nhãn "Lệch Dàn ý"
+  await page.getByRole('tab', { name: 'Thuộc tính' }).click();
+  await outlineTree(page).getByRole('listitem').first().getByRole('button').first().click();
+  await rightPane.getByLabel('Tiêu đề Mục').fill('Khảo sát hàm số bậc ba (đã cập nhật)');
+  await rightPane.getByRole('button', { name: 'Lưu Mục' }).click();
+  await expect(page.getByTestId('wb-plan-stale-badge')).toHaveText('Lệch Dàn ý');
+
+  // 5. Xuất PPTX từ menu Tệp (#44)
+  await page.getByRole('tab', { name: 'Bộ slide' }).click();
+  await page.getByRole('button', { name: 'Tệp', exact: true }).click();
+  const pptxDownload = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Xuất PPTX' }).click();
+  const pptxFile = await pptxDownload;
+  expect(pptxFile.suggestedFilename()).toMatch(/\.pptx$/);
+  expect(problems).toEqual([]);
+});
+
+test('xác nhận và trình chiếu Đồ thị tương tác (miền tô, cực trị, giao điểm, tiệm cận) và Bảng biến thiên 3 bước (#51–#57)', async ({ page }) => {
+  const problems = watch(page);
+  await openWorkbench(page);
+  const file = lessonFileWithSlides();
+  // Đặt cả Đồ thị v-graph và Bảng biến thiên v-bbt của Mục m4 lên slide s2
+  file.outline.items[3].title = 'Ví dụ 1. Khảo sát $y = x^3 - 3x$';
+  file.outline.items[3].visuals = [
+    { visual_id: 'v-graph', kind: 'graph', origin: 'ai', status: 'proposed', label: '$y = x^3 - 3x$', data: { expression: 'x^3 - 3*x', x_min: -3, x_max: 3, area: { target: 'ox', a: -1, b: 1 } } },
+    { visual_id: 'v-bbt', kind: 'bbt', origin: 'ai', status: 'proposed', label: '$y = x^3 - 3x$', data: { expression: 'x^3 - 3*x' } },
+  ];
+  file.deck.slides[1] = {
+    slide_id: 's2',
+    item_id: 'm4',
+    layout: 'Chữ trái, hình phải',
+    notes: '',
+    elements: [
+      { element_id: 'e2-title', type: 'title', x: 100, y: 40, w: 1400, h: 80, reveal: 0, parts: 1, text: 'Ví dụ khảo sát và vẽ đồ thị' },
+      { element_id: 'e2-graph', type: 'graph', x: 80, y: 140, w: 700, h: 680, reveal: 0, parts: 1, visual_id: 'v-graph' },
+      { element_id: 'e2-bbt', type: 'bbt', x: 820, y: 140, w: 700, h: 680, reveal: 1, parts: 3, visual_id: 'v-bbt' },
+    ],
+  };
+  await importLesson(page, file);
+
+  // Chọn Mục 4 và xác nhận dữ kiện cho cả v-graph (kèm miền tô [-1; 1]) và v-bbt
+  await treeItem(page, 'Ví dụ 1.').getByRole('button').first().click();
+  const cardGraph = page.getByTestId('wb-confirm-v-graph');
+  await cardGraph.getByLabel('Dữ kiện khớp đề bài').check();
+  await cardGraph.getByRole('button', { name: 'Xác nhận dữ kiện' }).click();
+  await expect(cardGraph).toContainText('(đã xác nhận)');
+
+  const cardBbt = page.getByTestId('wb-confirm-v-bbt');
+  await expect(cardBbt).toContainText('Hàm bậc ba');
+  await cardBbt.getByLabel('Dữ kiện khớp đề bài').check();
+  await cardBbt.getByRole('button', { name: 'Xác nhận dữ kiện' }).click();
+  await expect(cardBbt).toContainText('(đã xác nhận)');
+
+  // Chọn Slide 2 và vào Trình chiếu
+  await page.getByRole('region', { name: 'Dải slide' }).getByRole('button', { name: 'Slide 2' }).click();
+  await expect(page.getByTestId('wb-canvas').getByTestId('wb-graph-widget')).toBeVisible();
+  await expect(page.getByTestId('wb-canvas').getByTestId('wb-bbt-widget')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Trình chiếu' }).click();
+  const presenter = page.getByRole('region', { name: 'Màn trình chiếu' });
+  await expect(presenter).toBeVisible();
+
+  // Ở bước 0 trên Slide 2: Đồ thị và miền tô hiện ra, Bảng biến thiên chưa hiện (reveal=1)
+  await expect(presenter.getByTestId('wb-graph-curve').first()).toBeVisible();
+  await expect(presenter.getByTestId('wb-graph-area').first()).toBeVisible();
+  await expect(presenter.getByTestId('wb-bbt-widget')).toHaveCount(0);
+
+  // Bật Cực trị và Giao với trục trên đồ thị; nút Tiệm cận bị vô hiệu với hàm bậc ba (#57)
+  await presenter.getByRole('button', { name: 'Cực trị' }).click();
+  await expect(presenter.getByTestId('wb-graph-extremum')).toHaveCount(2);
+  await expect(presenter.getByTestId('wb-graph-widget')).toContainText('CĐ(−1; 2)');
+  await expect(presenter.getByTestId('wb-graph-widget')).toContainText('CT(1; −2)');
+
+  await presenter.getByRole('button', { name: 'Giao với trục' }).click();
+  await expect(presenter.getByTestId('wb-graph-intercept').first()).toBeVisible();
+  await expect(presenter.getByRole('button', { name: 'Tiệm cận' })).toBeDisabled();
+
+  // Tiến 3 bước tiếp theo: Bảng biến thiên hiện dần dòng x -> dòng y' -> dòng y (#55)
+  await page.keyboard.press('ArrowRight');
+  await expect(presenter.getByTestId('wb-bbt-row-x')).toBeVisible();
+  await expect(presenter.getByTestId('wb-bbt-row-yp')).toHaveCount(0);
+
+  await page.keyboard.press('ArrowRight');
+  await expect(presenter.getByTestId('wb-bbt-row-yp')).toBeVisible();
+  await expect(presenter.getByTestId('wb-bbt-row-y')).toHaveCount(0);
+
+  await page.keyboard.press('ArrowRight');
+  await expect(presenter.getByTestId('wb-bbt-row-y')).toBeVisible();
+
+  await page.keyboard.press('Escape');
   expect(problems).toEqual([]);
 });
