@@ -1,6 +1,6 @@
 """Math gate checks: each claim is proven in a bounded worker or stays unverified, never sampled into `verified`."""
 from lessonai.core.hashing import CANONICAL_HASH_VERSION, fingerprint
-from lessonai.core.jobs import get_runner
+from lessonai.services.jobs import get_runner
 
 # Mapping "claim kind -> check -> declared scope". Kinds without a check stay unverified for teacher review.
 CHECKS = {

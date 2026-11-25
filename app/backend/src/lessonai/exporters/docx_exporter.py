@@ -28,13 +28,7 @@ import mathml2omml
 from lessonai.schemas.schemas import LessonPlanSchema, LessonActivity, ExecutionSteps
 from lessonai.schemas.slide_schema import SlideDeckSchema, SlideSchema
 from lessonai.exporters.slide_exporter import latex_to_unicode_math, POLYHEDRON_LABELS
-
-
-def clean_xml_string(s: str) -> str:
-    """Lọc và xóa các ký tự rác / ký tự ẩn không hợp lệ trong văn bản tránh lỗi XML Word"""
-    if not isinstance(s, str):
-        s = str(s or "")
-    return re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x84\x86-\x9F]', '', s)
+from lessonai.utils.xml_text import clean_xml_string
 
 
 def set_cell_background(cell, fill_hex: str):
@@ -320,7 +314,7 @@ def export_lesson_plan_to_docx(
     plan_synced, deck_info = synchronize_lesson_and_slide_deck(plan, slide_deck)
 
     doc = Document()
-    from lessonai.services.lesson_quality import check_plan
+    from lessonai.services.quality.lesson_quality import check_plan
     plan_quality = check_plan(plan_synced.model_dump(mode="json"))
     needs_outline_review = isinstance(plan, dict) and bool(plan.get("needs_review") or (isinstance(plan.get("plan"), dict) and plan["plan"].get("needs_review")))
     if plan_quality["status"] == "ready" and not needs_outline_review:
@@ -328,12 +322,12 @@ def export_lesson_plan_to_docx(
     else:
         doc.add_paragraph("BẢN NHÁP — Giáo án cần giáo viên đối chiếu nội dung và duyệt trước khi sử dụng.")
     if deck_info.get("quiz_items") or deck_info.get("worked_examples"):
-        from lessonai.api.routes.quality import check_deck
+        from lessonai.services.quality.acceptance import check_deck
         raw_deck = slide_deck or (plan.get("slide_deck") if isinstance(plan, dict) else None)
         deck_quality = check_deck(SlideDeckSchema.model_validate(raw_deck).model_dump(mode="json")) if isinstance(raw_deck, (dict, SlideDeckSchema)) else {"status": "needs_review"}
         if deck_quality["status"] != "ready":
             doc.add_paragraph("BẢN NHÁP — Phần câu hỏi/lời giải bổ sung từ slide chưa được xác nhận; duyệt giáo án không bao gồm phần này.")
-    from lessonai.services.artifact_provenance import attach_docx_provenance, plan_provenance
+    from lessonai.services.quality.artifact_provenance import attach_docx_provenance, plan_provenance
     attach_docx_provenance(doc, plan_provenance(plan_synced.model_dump(mode="json")))
 
     # 2. Căn chỉnh lề theo quy chuẩn văn bản hành chính Việt Nam (Nghị định 30/2020/NĐ-CP - Khổ giấy A4 210x297mm)

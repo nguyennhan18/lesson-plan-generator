@@ -1,6 +1,6 @@
 """Canonical coordinates shared by measurement, web and export (#53, #54)."""
 import math
-from lessonai.services.visual_requirements import VisualError, fingerprint
+from lessonai.services.quality.visual_requirements import VisualError, fingerprint
 
 KINDS = {"cube", "square_pyramid_regular", "square_pyramid_at_a"}
 OXYZ_OBJECT_TYPES = {"point", "vector", "line", "plane", "sphere"}
@@ -148,7 +148,7 @@ def build_scene(data):
 
 
 def render_scene_png(spec, deck_id, slide_id):
-    from lessonai.services.visual_requirements import checked_requirement
+    from lessonai.services.quality.visual_requirements import checked_requirement
     if spec.get("deck_id") != deck_id or spec.get("slide_id") != slide_id:
         raise VisualError("Hình không thuộc slide đang xuất")
     checked_requirement(spec)

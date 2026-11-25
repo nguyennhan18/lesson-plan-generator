@@ -6,7 +6,7 @@ from lessonai.llm.gateway import llm_gateway
 from lessonai.schemas.schemas import LessonPlanSchema
 from lessonai.schemas.workbench_slides import WorkbenchApprovedOutlineItem, WorkbenchSlidesRequest
 from lessonai.services.generation.outline_contract import normalize_outline_text
-from lessonai.services.validation import validate_5512_lesson_plan
+from lessonai.services.quality.validation import validate_5512_lesson_plan
 
 ACTIVITY_NUM_BY_NAME = {
     "Khởi động": 1,

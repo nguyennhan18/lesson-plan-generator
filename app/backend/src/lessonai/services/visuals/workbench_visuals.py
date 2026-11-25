@@ -5,14 +5,14 @@ import re
 from typing import Any
 from uuid import uuid4
 
-from lessonai.core.jobs import get_runner
+from lessonai.services.jobs import get_runner
 from lessonai.core.render_runtime import serialized_render
 from lessonai.schemas.math_spec_schema import MathClaim, MathFunction
-from lessonai.services.geometry_scene import build_oxyz_scene, build_scene, normalize_oxyz_spec, normalize_spec
-from lessonai.services.math_expression import parse_expression
-from lessonai.services.math_spec import verify_claim
-from lessonai.services.math_worker import _has_unsafe_ast_nodes, _solve_factorized_poly_roots, _symbolic, _tree
-from lessonai.services.visual_requirements import VisualError, checked_requirement
+from lessonai.services.visuals.geometry_scene import build_oxyz_scene, build_scene, normalize_oxyz_spec, normalize_spec
+from lessonai.services.math.math_expression import parse_expression
+from lessonai.services.math.math_spec import verify_claim
+from lessonai.services.math.math_worker import _has_unsafe_ast_nodes, _solve_factorized_poly_roots, _symbolic, _tree
+from lessonai.services.quality.visual_requirements import VisualError, checked_requirement
 
 BBT_FAMILY_LABELS = {
     "cubic": "Hàm bậc ba",
@@ -138,7 +138,7 @@ def build_verified_bbt(payload: dict[str, Any]) -> dict[str, Any]:
     events.sort(key=lambda item: item["x"])
 
     # Determine interval signs and verify through Cổng toán
-    from lessonai.services.math_worker import _derivative_analysis
+    from lessonai.services.math.math_worker import _derivative_analysis
     analysis, a_err = _derivative_analysis(expr, x)
     if a_err:
         raise VisualError(a_err)
@@ -290,7 +290,7 @@ def compute_graph_special_points(expression: str) -> dict[str, Any]:
 
     # 1. Extrema
     extrema_result = {"supported": False, "unsupported_reason": None, "items": []}
-    from lessonai.services.math_worker import _derivative_analysis, _prepare_polynomial_on_regime
+    from lessonai.services.math.math_worker import _derivative_analysis, _prepare_polynomial_on_regime
     prepared, prep_err = _prepare_polynomial_on_regime(
         {"function": expression, "variable": "x", "parameters": []},
         ("none", None),
@@ -468,7 +468,7 @@ def sample_workbench_graph(payload: dict[str, Any]) -> dict[str, Any]:
     })
 
     # Compute y viewport limits
-    from lessonai.exporters.graph_generator import function_y_limits
+    from lessonai.services.visuals.graph_generator import function_y_limits
     y_cfg = {}
     if payload.get("viewport_y_min") is not None and payload.get("viewport_y_max") is not None:
         y_cfg = {"y_min": float(payload["viewport_y_min"]), "y_max": float(payload["viewport_y_max"])}

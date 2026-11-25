@@ -1,5 +1,5 @@
 from fastapi import HTTPException
-from lessonai.services.validation import audit_slide_deck, DeckAuditResponse
+from lessonai.services.quality.validation import audit_slide_deck, DeckAuditResponse
 from fastapi import APIRouter
 
 router = APIRouter(prefix='/api/v1/validation', tags=['Validation & Pedagogical Linter'])

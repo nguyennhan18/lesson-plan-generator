@@ -18,12 +18,12 @@ from typing import Any, Dict, List
 
 from fastapi.testclient import TestClient
 
-from lessonai.core.jobs import get_runner
+from lessonai.services.jobs import get_runner
 from lessonai.main import create_app
 from lessonai.schemas.slide_schema import SlideDeckSchema
-from lessonai.services.geometry_scene import build_scene
-from lessonai.services.math_worker import verify_equality
-from lessonai.services.visual_requirements import VisualError, confirm_requirement
+from lessonai.services.visuals.geometry_scene import build_scene
+from lessonai.services.math.math_worker import verify_equality
+from lessonai.services.quality.visual_requirements import VisualError, confirm_requirement
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_SUITE_PATH = REPO_ROOT / "data" / "fixtures" / "math12_benchmark_suite.json"

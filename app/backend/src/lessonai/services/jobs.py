@@ -19,7 +19,7 @@ def _entry(connection, operation, payload):
             resource.setrlimit(resource.RLIMIT_AS,(1536*1024*1024,1536*1024*1024))
             resource.setrlimit(resource.RLIMIT_CPU,(20,20))
         if operation.startswith("math."):
-            from lessonai.services.math_worker import execute
+            from lessonai.services.math.math_worker import execute
         elif operation.startswith("ingest."):
             from lessonai.services.uploads import execute
         else:

@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import ValidationError
 from lessonai.core.ownership import require_owner
 from lessonai.schemas.slide_schema import SlideDeckSchema
-from lessonai.services import copilot
-from lessonai.services.workbench_assistant import (
+from lessonai.services.assistant import copilot
+from lessonai.services.assistant.workbench_assistant import (
     WorkbenchAssistantRequest,
     WorkbenchAssistantResponse,
     propose_workbench_slide_edit,

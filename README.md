@@ -465,7 +465,7 @@ Hệ thống xác định ranh giới kỹ thuật rõ ràng giữa những gì 
 - **Ràng buộc an toàn tài nguyên (Ingress & Worker Limits):**
   - **Giới hạn yêu cầu HTTP:** `BodyLimitMiddleware` chặn các body vượt quá **16 MiB** hoặc quá thời hạn nhận 15 giây.
   - **Giới hạn tệp tải lên:** Tệp Office tải lên tối đa **12 MiB/tệp**, tối đa **60 MiB** sau khi giải nén trong bộ nhớ, tối đa **3.000 thành phần nén**, từ chối các đường dẫn chứa ký tự bất thường (`..`, symbolic links).
-  - **Tiến trình worker cô lập:** Các tác vụ tính toán toán học và phân tích tệp tải lên được thực thi trong tiến trình con độc lập (`multiprocessing.Process` qua `lessonai.core.jobs.JobRunner`) với thời gian chờ (timeout) nghiêm ngặt. Trên Linux, tiến trình con được áp trần tài nguyên hệ điều hành (`RLIMIT_AS` 1.5 GiB và `RLIMIT_CPU` 20 giây).
+  - **Tiến trình worker cô lập:** Các tác vụ tính toán toán học và phân tích tệp tải lên được thực thi trong tiến trình con độc lập (`multiprocessing.Process` qua `lessonai.services.jobs.JobRunner`) với thời gian chờ (timeout) nghiêm ngặt. Trên Linux, tiến trình con được áp trần tài nguyên hệ điều hành (`RLIMIT_AS` 1.5 GiB và `RLIMIT_CPU` 20 giây).
 
 ---
 

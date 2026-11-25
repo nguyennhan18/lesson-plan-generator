@@ -6,7 +6,7 @@ from pathlib import PurePosixPath
 import stat
 import zipfile
 from lxml import etree  # type: ignore[attr-defined]  # pyright: ignore[reportAttributeAccessIssue]
-from lessonai.core.jobs import JobError
+from lessonai.services.jobs import JobError
 
 MAX_FILE = 12 * 1024 * 1024
 MAX_UNPACKED = 60 * 1024 * 1024
@@ -99,7 +99,7 @@ def execute(operation, payload):
             raise JobError("upload_limit", "Nội dung tài liệu quá dài")
         blocks, assets, warnings = office_assets(content, extension)
         result["blocks"] = (result.get("blocks") or []) + blocks
-        from lessonai.services.artifact_provenance import read_office_provenance
+        from lessonai.services.quality.artifact_provenance import read_office_provenance
         with zipfile.ZipFile(io.BytesIO(content)) as archive:
             provenance = read_office_provenance(archive)
         if provenance:

@@ -19,8 +19,10 @@ from PIL import Image
 
 
 from lessonai.schemas.slide_schema import SlideDeckSchema, SlideType, ThemeType
-from lessonai.exporters.graph_generator import generate_math_plot, is_plottable, expression_chart_is_disabled
+from lessonai.services.visuals.graph_generator import generate_math_plot, is_plottable, expression_chart_is_disabled
 from lessonai.core.render_runtime import serialized_render
+from lessonai.services.visuals.latex_render import render_latex_to_bytes
+from lessonai.utils.xml_text import clean_xml_string
 
 
 def decode_base64_data_url(data_url: Optional[str]) -> Optional[io.BytesIO]:
@@ -104,13 +106,6 @@ def compute_aspect_preserving_fit(
     fit_top = box_top + (box_h - fit_h) / 2.0
 
     return fit_left, fit_top, fit_w, fit_h
-
-
-def clean_xml_string(s: str) -> str:
-    """Lọc ký tự rác / ẩn để tránh lỗi khi chèn XML vào PowerPoint"""
-    if not isinstance(s, str):
-        s = str(s or "")
-    return re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x84\x86-\x9F]', '', s)
 
 
 _GREEK_MAP = {
@@ -225,73 +220,6 @@ def latex_to_unicode_math(text: str) -> str:
 
     text = re.sub(r'[ \t]+', ' ', text)
     return text.strip()
-
-
-@serialized_render
-def render_latex_to_bytes(latex_str: str) -> bytes:
-    """Render a formula, preserving raw LaTeX when mathtext cannot parse it.
-
-    A rendering failure is explicit: never replace nonempty content with an
-    invisible pixel and report the export as successful.
-    """
-    if not isinstance(latex_str, str) or not latex_str.strip():
-        raise ValueError("Không có công thức để render")
-
-    if len(latex_str)>4000:
-        raise ValueError("Công thức quá dài để render; cần chia nhỏ")
-    clean_str = latex_str.replace(r'\(', '').replace(r'\)', '').strip()
-
-    clean_str = re.sub(r'\\ge(?![a-zA-Z])', r'\\geq', clean_str)
-    clean_str = re.sub(r'\\le(?![a-zA-Z])', r'\\leq', clean_str)
-    clean_str = re.sub(r'\\implies(?![a-zA-Z])', r'\\Rightarrow', clean_str)
-    clean_str = re.sub(r'\\iff(?![a-zA-Z])', r'\\Leftrightarrow', clean_str)
-    clean_str = re.sub(r'\\to(?![a-zA-Z])', r'\\rightarrow', clean_str)
-    clean_str = clean_str.replace(r'\quad', ' ').replace(r'\qquad', ' ')
-    clean_str = clean_str.replace(r'\tg', r'\tan').replace(r'\ctg', r'\cot')
-
-    # Adaptive Font Scaling: Tự động thu nhỏ cỡ font cho công thức cực dài (> 35 ký tự)
-    # Giữ nguyên 20pt cho công thức ngắn; co dần xuống 10pt cho công thức dài >= 115 ký tự
-    formula_len = len(clean_str)
-    calc_fontsize = max(10, min(20, int(20 - (max(0, formula_len - 35) / 8.0))))
-    calc_fallback_font = max(9, min(18, int(18 - (max(0, formula_len - 35) / 8.0))))
-
-    fig, ax = plt.subplots(figsize=(0.1, 0.1))
-    ax.axis('off')
-
-    try:
-        formatted_latex = f"${clean_str}$" if not clean_str.startswith("$") else clean_str
-        ax.text(
-            0.5, 0.5, formatted_latex,
-            fontsize=calc_fontsize, ha='center', va='center', color='#1e3a8a'
-        )
-        buf = io.BytesIO()
-        fig.savefig(buf, format='png', bbox_inches='tight', pad_inches=0.04, dpi=300, transparent=True)
-        plt.close(fig)
-        buf.seek(0)
-        return buf.getvalue()
-    except Exception:
-        plt.close(fig)
-        try:
-            # Fallback 1: render bằng Unicode text
-            fig, ax = plt.subplots(figsize=(0.1, 0.1))
-            ax.axis('off')
-            unicode_str = "LaTeX gốc: " + clean_xml_string(latex_str)
-            ax.text(
-                0.5, 0.5, unicode_str,
-                fontsize=calc_fallback_font, ha='center', va='center', color='#1e3a8a', fontname='DejaVu Sans'
-            )
-            buf = io.BytesIO()
-            fig.savefig(buf, format='png', bbox_inches='tight', pad_inches=0.04, dpi=300, transparent=True)
-            plt.close(fig)
-            buf.seek(0)
-            return buf.getvalue()
-        except Exception:
-            try:
-                plt.close(fig)
-            except Exception:
-                pass
-            raise ValueError("Không thể render công thức; chưa tạo file xuất")
-
 
 
 def _plain(obj):
@@ -1205,7 +1133,7 @@ def _append_table_pages(prs, source, data, subject, grade):
     if not data:
         return
     import textwrap
-    from lessonai.services.content_blocks import table_rows
+    from lessonai.services.quality.content_blocks import table_rows
     try:
         rows = table_rows(data)
     except ValueError:
@@ -1326,8 +1254,8 @@ def _append_pptx_text_with_omml(paragraph, text: str, font_name: str, font_pt: f
 
 def export_workbench_pptx(payload: Dict[str, Any]) -> io.BytesIO:
     """Export a Bàn làm việc v3 canvas deck to a 16:9 PowerPoint (.pptx) file (#44)."""
-    from lessonai.services.workbench_quality import check_workbench_deck
-    from lessonai.services.visual_requirements import (
+    from lessonai.services.quality.workbench_quality import check_workbench_deck
+    from lessonai.services.quality.visual_requirements import (
         ITEM_SOURCE_FIELDS,
         ConfirmationKeyChanged,
         VisualError,
@@ -1335,8 +1263,8 @@ def export_workbench_pptx(payload: Dict[str, Any]) -> io.BytesIO:
         fingerprint,
         visual_source,
     )
-    from lessonai.services.geometry_scene import _draw_scene, build_scene
-    from lessonai.services.workbench_visuals import (
+    from lessonai.services.visuals.geometry_scene import _draw_scene, build_scene
+    from lessonai.services.visuals.workbench_visuals import (
         render_bbt_png,
         render_oxyz_png,
         render_workbench_graph_png,
@@ -1572,13 +1500,13 @@ def export_slide_deck_to_pptx(data: Union[Dict[str, Any], SlideDeckSchema]) -> i
 
     if not slides_data:
         raise ValueError("Không có slide để xuất")
-    from lessonai.api.routes.quality import check_deck
+    from lessonai.services.quality.acceptance import check_deck
     report = check_deck(deck_dict)
     # Every exported page explicitly carries the content-review state.
     draft = report["status"] != "ready"
 
 
-    from lessonai.services.content_blocks import block_errors
+    from lessonai.services.quality.content_blocks import block_errors
     for source in slides_data:
         errors = list(block_errors(source))
         if errors:
@@ -1586,7 +1514,7 @@ def export_slide_deck_to_pptx(data: Union[Dict[str, Any], SlideDeckSchema]) -> i
 
     for idx, slide_data in enumerate(slides_data):
         slide_data=dict(slide_data)
-        from lessonai.services.visual_requirements import checked_slide_requirement
+        from lessonai.services.quality.visual_requirements import checked_slide_requirement
         for field in ("chart_spec","scene_spec"):
             if slide_data.get(field):
                 try:checked_slide_requirement(deck_dict,slide_data,slide_data[field])
@@ -1620,7 +1548,7 @@ def export_slide_deck_to_pptx(data: Union[Dict[str, Any], SlideDeckSchema]) -> i
                 slide_data.pop(key, None)
             if slide_data.get("scene_spec"):
                 try:
-                    from lessonai.services.geometry_scene import render_scene_png
+                    from lessonai.services.visuals.geometry_scene import render_scene_png
                     import base64
                     slide_data["snapshot_3d_base64"] = "data:image/png;base64," + base64.b64encode(render_scene_png(slide_data["scene_spec"], deck_dict.get("deck_id"), slide_data.get("slide_id"))).decode()
                 except ValueError:

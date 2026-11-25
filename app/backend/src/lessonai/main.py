@@ -1,6 +1,6 @@
 """FastAPI application composition. Run: uvicorn lessonai.main:app --app-dir src."""
 from contextlib import asynccontextmanager
-from lessonai.core.jobs import close_runner
+from lessonai.services.jobs import close_runner
 from lessonai.core.config import FRONTEND_DIST_DIR, configure_logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

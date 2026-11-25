@@ -2,9 +2,9 @@
 import re
 import time
 from functools import lru_cache
-from lessonai.services.math_worker import verify_equality
-from lessonai.services.math_expression import parse_expression
-from lessonai.services.visual_requirements import fingerprint, checked_requirement, visual_source
+from lessonai.services.math.math_worker import verify_equality
+from lessonai.services.math.math_expression import parse_expression
+from lessonai.services.quality.visual_requirements import fingerprint, checked_requirement, visual_source
 
 MATH = re.compile(r"\$\$?(.*?)\$\$?|\\\((.*?)\\\)|\\\[(.*?)\\\]", re.S)
 
@@ -68,7 +68,7 @@ def evaluate_deck(deck):
             issue("title", "Thiếu tiêu đề")
         if slide.get("layout") == "TWO_COLUMN" and not slide.get("worked_solution_steps"):
             issue("worked_solution_steps", "Thiếu bước giải cho bố cục bài giải")
-        from lessonai.services.content_blocks import block_errors
+        from lessonai.services.quality.content_blocks import block_errors
         for field, message in block_errors(slide):
             issue(field, message)
         options = slide.get("quiz_options") or []

@@ -1,7 +1,7 @@
 """Deterministic outline fidelity checks; no inferred replacement content."""
 import re
 import unicodedata
-from lessonai.services.geometry_scene import KINDS
+from lessonai.services.visuals.geometry_scene import KINDS
 
 
 def key(value):

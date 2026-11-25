@@ -7,7 +7,7 @@ CI ở 9980026 bao phủ 18 tests portable trên corpus tổng hợp. Sáu test 
 Đối chiếu manifest với nguồn thật dùng lệnh riêng:
 
 ```sh
-app/backend/venv/bin/python -m lessonai.services.manifest_corpus_check MANIFEST.json --corpus CORPUS.jsonl --output NEW_REPORT.json
+app/backend/venv/bin/python -m lessonai.tooling.manifest_corpus_check MANIFEST.json --corpus CORPUS.jsonl --output NEW_REPORT.json
 ```
 
 Có thể lặp --corpus cho nhiều JSONL. Lệnh chỉ đọc nguồn, xuất file bằng chế độ exclusive, không ghi approval. Báo cáo có commit và hash mã đang thực thi (vì working tree có thể khác commit), hash byte manifest/corpus, số lượng và lỗi. Nội dung mỗi đơn vị được băm bằng source_hash v2. Nguồn thay đổi hoặc biến mất trả FIXTURE_MANIFEST_STALE / exit 2; ID corpus trùng/thiếu bị từ chối; lỗi I/O exit 3. Phạm vi hiện tại là nội dung JSONL, chưa chứng thực asset hoặc lựa chọn nguồn chuyên môn. Logic stale có test synthetic portable; báo cáo kiểm tra corpus thật chỉ xuất khi manifest lô được lập, không coi snapshot tự tạo rồi kiểm ngay là bằng chứng nguồn đã duyệt.

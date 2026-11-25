@@ -293,11 +293,11 @@ def export_dual_package(payload: Dict[str, Any], use_concurrency: bool = True) -
 
     # 6. Tạo Manifest
     import json
-    from lessonai.api.routes.quality import check_deck
-    from lessonai.services.visual_requirements import fingerprint
-    from lessonai.services.content_quality import content_snapshot
+    from lessonai.services.quality.acceptance import check_deck
+    from lessonai.services.quality.visual_requirements import fingerprint
+    from lessonai.services.quality.content_quality import content_snapshot
     if workbench_payload is not None:
-        from lessonai.services.workbench_quality import check_workbench_deck
+        from lessonai.services.quality.workbench_quality import check_workbench_deck
         quality = check_workbench_deck(workbench_payload)
         deck_payload = workbench_payload.get("deck") or {}
         deck_fp = quality.get("content_fingerprint")
@@ -305,8 +305,8 @@ def export_dual_package(payload: Dict[str, Any], use_concurrency: bool = True) -
         deck_payload = deck_obj.model_dump(mode="json") if deck_obj else None
         quality = check_deck(deck_payload) if deck_payload else {"status": "needs_review"}
         deck_fp = fingerprint(content_snapshot(deck_payload)) if deck_payload else None
-    from lessonai.services.lesson_quality import check_plan
-    from lessonai.services.artifact_provenance import plan_provenance
+    from lessonai.services.quality.lesson_quality import check_plan
+    from lessonai.services.quality.artifact_provenance import plan_provenance
     plan_payload = LessonPlanSchema.model_validate(plan_raw).model_dump(mode="json") if plan_raw else None
     plan_quality = check_plan(plan_payload) if plan_payload else {"status": "absent"}
     manifest_text = json.dumps({

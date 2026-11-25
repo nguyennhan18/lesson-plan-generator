@@ -1,7 +1,7 @@
 import os
 import asyncio
 from fastapi import APIRouter,HTTPException,UploadFile,File
-from lessonai.core.jobs import get_runner,JobError
+from lessonai.services.jobs import get_runner,JobError
 from lessonai.services.uploads import MAX_FILE
 router=APIRouter(prefix='/api/v1/ingest',tags=['Ingest'])
 

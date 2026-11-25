@@ -17,7 +17,7 @@ from lessonai.schemas.chain_schemas import (
     LessonRepairPayload,
 )
 from lessonai.schemas.schemas import LessonActivity, LessonPlanSchema
-from lessonai.services.validation import ValidationResult, validate_5512_lesson_plan
+from lessonai.services.quality.validation import ValidationResult, validate_5512_lesson_plan
 
 _DEFAULT_ACTIVITY_TITLES = {
     1: "Hoạt động 1: Khởi động (Mở đầu)",

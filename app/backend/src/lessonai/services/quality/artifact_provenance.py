@@ -1,8 +1,8 @@
 """Preserve provenance in an Office custom XML part, without granting trust on import."""
 import json
 from lxml import etree
-from lessonai.services.lesson_quality import plan_snapshot
-from lessonai.services.visual_requirements import fingerprint
+from lessonai.services.quality.lesson_quality import plan_snapshot
+from lessonai.services.quality.visual_requirements import fingerprint
 
 NAMESPACE = 'urn:lessonai:provenance:v1'
 PART_NAME = 'customXml/lessonai-provenance.xml'

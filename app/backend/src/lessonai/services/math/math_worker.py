@@ -1,6 +1,6 @@
 """Only this isolated worker constructs symbolic expressions from checked trees."""
 import math
-from lessonai.services.math_expression import parse_expression, ExpressionError
+from lessonai.services.math.math_expression import parse_expression, ExpressionError
 
 
 def _symbolic(node):
@@ -843,7 +843,7 @@ def execute(operation, payload):
 
 
 def verify_equality(lhs, rhs, *, symbols=("x", "a", "b"), syntax="expression"):
-    from lessonai.core.jobs import get_runner, JobError
+    from lessonai.services.jobs import get_runner, JobError
     try:
         return get_runner().run("math.verify", {"lhs": lhs, "rhs": rhs,
                                 "symbols": symbols, "syntax": syntax})

@@ -62,7 +62,7 @@ All errors pass through the global exception handlers in `app/backend/src/lesson
 
 ### `POST /api/v1/visuals/confirm`
 - **Auth:** Requires `lessonai_owner` cookie (`Depends(require_owner)` in `app/backend/src/lessonai/api/routes/visuals.py:11`).
-- **Request Payload (`data: dict`, validated in `app/backend/src/lessonai/services/visual_requirements.py:36-76`):**
+- **Request Payload (`data: dict`, validated in `app/backend/src/lessonai/services/quality/visual_requirements.py:36-76`):**
   - Common required keys (`visual_requirements.py:38-43`):
     - `deck_id` (`str`, non-empty)
     - `slide_id` (`str`, non-empty)
@@ -70,7 +70,7 @@ All errors pass through the global exception handlers in `app/backend/src/lesson
     - `kind` (`str`): One of `"function_plot"`, `"arithmetic_sequence"`, `"inequality_system"`, `"geometry"`.
   - Kind-specific keys:
     1. `kind == "function_plot"` (`visual_requirements.py:44-61`):
-       - `expression` (`str`): Must parse under `parse_expression()` (`app/backend/src/lessonai/services/math_expression.py`).
+       - `expression` (`str`): Must parse under `parse_expression()` (`app/backend/src/lessonai/services/math/math_expression.py`).
        - `operation` (`str`, default `"function"`): `"function"` or `"derivative"`.
        - `x_min`, `x_max` (`float`): `-1e6 <= x_min < x_max <= 1e6`.
        - `y_min`, `y_max` (`float`, optional): If either is provided, both must be provided and `-1e6 <= y_min < y_max <= 1e6`.
@@ -79,7 +79,7 @@ All errors pass through the global exception handlers in `app/backend/src/lesson
     3. `kind == "inequality_system"` (`app/backend/src/lessonai/services/discrete_visuals.py:17-30`):
        - `constraints` (`list[dict]`, length `1..12`): Each item requires `a`, `b`, `c` (`float`, `a != 0` or `b != 0`) and `relation` in `("<=", ">=", "<", ">")`.
        - `x_min`, `x_max`, `y_min`, `y_max` (`float`, `x_min < x_max` and `y_min < y_max`).
-    4. `kind == "geometry"` (`app/backend/src/lessonai/services/geometry_scene.py:8-21`):
+    4. `kind == "geometry"` (`app/backend/src/lessonai/services/visuals/geometry_scene.py:8-21`):
        - `polyhedron_type` (`str`): Must be in `KINDS = {"cube", "square_pyramid_regular", "square_pyramid_at_a"}` (`geometry_scene.py:5`).
        - `base_edge` (`float`, `0 < a <= 1e6`).
        - `height` (`float`, `0 < h <= 1e6`; optional for `"cube"`, but if provided must equal `base_edge`).
@@ -99,7 +99,7 @@ All errors pass through the global exception handlers in `app/backend/src/lesson
 
 ---
 
-## 3. AI Copilot Chat & Live Slide Patching (`app/backend/src/lessonai/api/routes/chat.py`, `services/copilot.py`)
+## 3. AI Copilot Chat & Live Slide Patching (`app/backend/src/lessonai/api/routes/chat.py`, `services/assistant/copilot.py`)
 
 All `/api/v1/chat/*` routes require `Depends(require_owner)` (`chat.py:9, 17, 28, 32, 37`).
 
@@ -114,10 +114,10 @@ All `/api/v1/chat/*` routes require `Depends(require_owner)` (`chat.py:9, 17, 28
 ## 4. Slide Enrichment, Chart Render, Deck Audit & Package Exports (`slides.py`, `validation.py`, `exports.py`)
 
 - **`POST /api/v1/slide/enrich` (`app/backend/src/lessonai/api/routes/slides.py:40-46`):**
-  - Accepts `deck: dict` (`SlideDeckSchema`-compatible dict), clears stale cached images (`chart_image_base64`, `formula_image_base64`, `chart_render_status`, `chart_render_error`), and populates fresh renders via `enrich_slide_deck_with_renders(deck)` (`app/backend/src/lessonai/services/rendering.py`).
+  - Accepts `deck: dict` (`SlideDeckSchema`-compatible dict), clears stale cached images (`chart_image_base64`, `formula_image_base64`, `chart_render_status`, `chart_render_error`), and populates fresh renders via `enrich_slide_deck_with_renders(deck)` (`app/backend/src/lessonai/services/visuals/rendering.py`).
 - **`POST /api/v1/chart/render` (`app/backend/src/lessonai/api/routes/slides.py:49-66`):**
-  - Accepts `spec: dict` containing a confirmed `requirement_token` (`checked_requirement(spec)` in `app/backend/src/lessonai/exporters/graph_generator.py:32, 38`). Returns `image/png` bytes or `409` (`visual_needs_review`), `422` (`expression_invalid` / `chart_invalid`), `503` (`job_busy`), `504` (`job_timeout`).
-- **`POST /api/v1/validation/audit-deck` (`app/backend/src/lessonai/api/routes/validation.py:7-20`, `app/backend/src/lessonai/services/validation.py:1001-1048`):**
+  - Accepts `spec: dict` containing a confirmed `requirement_token` (`checked_requirement(spec)` in `app/backend/src/lessonai/services/visuals/graph_generator.py:32, 38`). Returns `image/png` bytes or `409` (`visual_needs_review`), `422` (`expression_invalid` / `chart_invalid`), `503` (`job_busy`), `504` (`job_timeout`).
+- **`POST /api/v1/validation/audit-deck` (`app/backend/src/lessonai/api/routes/validation.py:7-20`, `app/backend/src/lessonai/services/quality/validation.py:1001-1048`):**
   - Accepts `deck_payload: dict` containing either `{slides: [...]}` directly or `{slide_deck: {slides: [...]}}` plus optional `"use_ai_proofreader": bool` (`default: False`, `validation.py:1011-1020`). Returns `DeckAuditResponse` (`is_clean`, `total_warnings`, `warnings: List[SlideWarningItem]`).
 - **`POST /api/v1/lesson-plan/export-docx` (`app/backend/src/lessonai/api/routes/exports.py:16-60`):**
   - Accepts `payload: Union[Dict[str, Any], LessonPlanSchema]` — either a direct `LessonPlanSchema` payload or a wrapper `dict` `{"plan": <LessonPlanSchema>, "slide_deck": <optional SlideDeckSchema>}` (also accepts alias `"lesson_plan"`).

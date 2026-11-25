@@ -187,12 +187,12 @@ def _enforce_slide_deck_contracts(
         if slide_deck.model_extra:
             slide_deck.model_extra.pop(field, None)
 
-    from lessonai.services.content_blocks import block_errors
+    from lessonai.services.quality.content_blocks import block_errors
     from lessonai.services.generation.outline_contract import (
         normalize_polyhedron_type,
         validate_slide_outline_item,
     )
-    from lessonai.services.geometry_scene import KINDS
+    from lessonai.services.visuals.geometry_scene import KINDS
 
     for slide in slide_deck.slides:
         slide.polyhedron_type = normalize_polyhedron_type(slide.polyhedron_type)

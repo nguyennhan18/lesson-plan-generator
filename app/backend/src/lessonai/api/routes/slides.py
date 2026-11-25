@@ -4,11 +4,11 @@ from lessonai.schemas.schemas import LessonRequest
 from lessonai.schemas.slide_schema import SlideDeckSchema
 from lessonai.services.generation import generate_slide_deck
 from lessonai.llm.gateway import classify_generation_error
-from lessonai.exporters.graph_generator import generate_math_plot, is_plottable
+from lessonai.services.visuals.graph_generator import generate_math_plot, is_plottable
 from lessonai.core.feature_availability import ExpressionProcessingUnavailable
 from lessonai.core.signing import SigningKeyUnavailable
 from fastapi import APIRouter
-from lessonai.services.rendering import enrich_slide_deck_with_renders
+from lessonai.services.visuals.rendering import enrich_slide_deck_with_renders
 
 router = APIRouter()
 
@@ -38,9 +38,9 @@ def enrich_slide_endpoint(deck: dict):
 @router.post("/api/v1/chart/render")
 def render_chart_endpoint(spec: dict):
     """Render đồ thị từ cấu hình chart_spec và trả về file ảnh PNG trực tiếp"""
-    from lessonai.services.visual_requirements import VisualError
-    from lessonai.core.jobs import JobError
-    from lessonai.services.math_expression import ExpressionError
+    from lessonai.services.quality.visual_requirements import VisualError
+    from lessonai.services.jobs import JobError
+    from lessonai.services.math.math_expression import ExpressionError
     try:
         png_bytes = generate_math_plot(spec)
         return Response(content=png_bytes, media_type="image/png")

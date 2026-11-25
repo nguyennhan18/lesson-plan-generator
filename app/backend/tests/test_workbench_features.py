@@ -165,7 +165,7 @@ def test_workbench_ai_assistant_allows_text_edits_and_rejects_visual_patches(api
         "slide_id": slide["slide_id"],
         "changes": [{"element_id": "e4", "text": "Khảo sát hàm bậc ba"}],
     }
-    with patch("lessonai.services.workbench_assistant.llm_gateway.generate_structured", return_value=valid_llm):
+    with patch("lessonai.services.assistant.workbench_assistant.llm_gateway.generate_structured", return_value=valid_llm):
         res = api.post("/api/v1/chat/workbench/assistant", json={
             "project_id": payload["project_id"],
             "title": payload["title"],
@@ -183,7 +183,7 @@ def test_workbench_ai_assistant_allows_text_edits_and_rejects_visual_patches(api
         "slide_id": slide["slide_id"],
         "changes": [{"element_id": "e5", "type": "graph", "visual_id": "v-other"}],
     }
-    with patch("lessonai.services.workbench_assistant.llm_gateway.generate_structured", return_value=forbidden_llm):
+    with patch("lessonai.services.assistant.workbench_assistant.llm_gateway.generate_structured", return_value=forbidden_llm):
         res_bad = api.post("/api/v1/chat/workbench/assistant", json={
             "project_id": payload["project_id"],
             "title": payload["title"],

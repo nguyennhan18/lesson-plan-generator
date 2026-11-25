@@ -12,12 +12,12 @@ from docx import Document
 from pptx import Presentation
 from lessonai.main import create_app
 from lessonai.schemas.slide_schema import SlideDeckSchema
-from lessonai.services.copilot import CopilotOutput
-from lessonai.services.visual_requirements import confirm_requirement,visual_source
+from lessonai.services.assistant.copilot import CopilotOutput
+from lessonai.services.quality.visual_requirements import confirm_requirement,visual_source
 from lessonai.rag.content_units import source_hash,approved_units
 from lessonai.rag.curriculum_registry import infer_lesson_id
 from lessonai.services.uploads import inspect_office
-from lessonai.core.jobs import JobError
+from lessonai.services.jobs import JobError
 
 pytestmark=pytest.mark.critical_regressions
 
@@ -76,7 +76,7 @@ def test_copilot_proposal_ownership_revision_idempotence_reset(api,deck):
     sid=api.post('/api/v1/chat/sessions',json={'slide_deck':deck}).json()['session_id']
     output=CopilotOutput(ai_response='Đổi tiêu đề theo yêu cầu',slide_id=deck['slides'][0]['slide_id'],changes={'title':'Tiêu đề đã sửa'})
     payload={'session_id':sid,'slide_deck':deck,'slide_id':output.slide_id,'user_message':'Sửa tiêu đề'}
-    with patch('lessonai.services.copilot.llm_gateway.generate_structured',return_value=output):
+    with patch('lessonai.services.assistant.copilot.llm_gateway.generate_structured',return_value=output):
         response=api.post('/api/v1/chat/interact',json=payload)
     assert response.status_code==200,response.text
     proposal=response.json()['suggested_patch'];assert proposal and proposal['before']['title']=='Bài của giáo viên'
@@ -98,7 +98,7 @@ def test_copilot_proposal_ownership_revision_idempotence_reset(api,deck):
 
 def test_copilot_provider_failure_does_not_create_patch(api,deck):
     sid=api.post('/api/v1/chat/sessions',json={'slide_deck':deck}).json()['session_id']
-    with patch('lessonai.services.copilot.llm_gateway.generate_structured',side_effect=TimeoutError('offline')):
+    with patch('lessonai.services.assistant.copilot.llm_gateway.generate_structured',side_effect=TimeoutError('offline')):
         response=api.post('/api/v1/chat/interact',json={'session_id':sid,'slide_deck':deck,'slide_id':deck['slides'][0]['slide_id'],'user_message':'Sửa bài'})
     assert response.status_code==503
     assert api.get('/api/v1/chat/history/'+sid).json()['history']==[]
@@ -211,7 +211,7 @@ def test_outline_contract_rejects_wrong_order_and_preserves_approved_content(dec
 
 def test_outline_contract_3d_draft_and_polyhedron_kinds(api):
     from lessonai.services.generation.slides import generate_slide_deck
-    from lessonai.services.content_quality import evaluate_deck
+    from lessonai.services.quality.content_quality import evaluate_deck
 
     outline_3d = {
         'outline_slides': [{

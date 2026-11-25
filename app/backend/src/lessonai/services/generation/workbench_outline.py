@@ -1,6 +1,6 @@
 """Create one validated outline from one structured LLM response with Langfuse v5 role tracing."""
 import json
-from lessonai.services.workbench_visuals import filter_grounded_outline_visuals
+from lessonai.services.visuals.workbench_visuals import filter_grounded_outline_visuals
 
 from lessonai.llm import tracing
 from lessonai.llm.gateway import llm_gateway

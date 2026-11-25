@@ -1,10 +1,10 @@
 """Independent lesson-plan acceptance and signed, content-bound teacher review."""
 import time
 from lessonai.schemas.schemas import LessonPlanSchema
-from lessonai.services.content_quality import _walk, check_formula
-from lessonai.services.expert_confirmation import apply_review, review_state, sign_review
-from lessonai.services.validation import validate_5512_lesson_plan
-from lessonai.services.visual_requirements import fingerprint
+from lessonai.services.quality.content_quality import _walk, check_formula
+from lessonai.services.quality.expert_confirmation import apply_review, review_state, sign_review
+from lessonai.services.quality.validation import validate_5512_lesson_plan
+from lessonai.services.quality.visual_requirements import fingerprint
 
 _PURPOSE = "lesson_plan_review"
 

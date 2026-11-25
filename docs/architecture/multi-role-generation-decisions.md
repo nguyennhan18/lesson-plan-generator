@@ -256,9 +256,9 @@ Cập nhật mỗi khi một phép kiểm được thêm. Ô chưa có phép ki�
 
 ## Tham chiếu mã nguồn
 
-- `app/backend/src/lessonai/services/math_worker.py`: `_verify`, `_plot` và `_domain`.
-- `app/backend/src/lessonai/services/math_expression.py`: parser có giới hạn; parse không phải chứng minh.
+- `app/backend/src/lessonai/services/math/math_worker.py`: `_verify`, `_plot` và `_domain`.
+- `app/backend/src/lessonai/services/math/math_expression.py`: parser có giới hạn; parse không phải chứng minh.
 - `app/backend/src/lessonai/schemas/schemas.py`: `OutlineSlideItem.math_focus` hiện là chuỗi tùy chọn.
 - `app/frontend/src/features/generation/OutlineWorkspace.jsx`: điểm duyệt dàn ý hiện tại.
 - `app/frontend/src/shared/math/FunctionPlotter.jsx`: sửa công thức và xác nhận dữ kiện đồ thị hiện tại.
-- `app/backend/src/lessonai/services/geometry_scene.py`: các loại hình đang hỗ trợ.
+- `app/backend/src/lessonai/services/visuals/geometry_scene.py`: các loại hình đang hỗ trợ.

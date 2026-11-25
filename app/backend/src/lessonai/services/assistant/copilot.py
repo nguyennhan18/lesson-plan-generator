@@ -8,8 +8,8 @@ from pydantic import BaseModel, Field
 from fastapi import HTTPException
 from lessonai.llm.gateway import llm_gateway
 from lessonai.schemas.slide_schema import SlideDeckSchema
-from lessonai.services.content_quality import evaluate_deck, content_snapshot
-from lessonai.services.visual_requirements import fingerprint
+from lessonai.services.quality.content_quality import evaluate_deck, content_snapshot
+from lessonai.services.quality.visual_requirements import fingerprint
 
 _lock = threading.RLock()
 _sessions = {}

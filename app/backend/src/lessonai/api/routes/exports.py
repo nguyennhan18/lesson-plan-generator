@@ -8,7 +8,7 @@ from lessonai.schemas.slide_schema import SlideDeckSchema
 from lessonai.exporters.docx_exporter import export_lesson_plan_to_docx
 from lessonai.exporters.slide_exporter import export_slide_deck_to_pptx, export_workbench_pptx
 from lessonai.exporters.dual_package_exporter import export_dual_package, sanitize_filename
-from lessonai.services.workbench_quality import WorkbenchQualityCheckRequest
+from lessonai.services.quality.workbench_quality import WorkbenchQualityCheckRequest
 from lessonai.utils.temp_file_cleaner import cleanup_memory_and_figures
 from fastapi import APIRouter
 from pydantic import ValidationError

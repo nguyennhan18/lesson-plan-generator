@@ -4,7 +4,7 @@ import time
 from typing import NamedTuple
 from lessonai.core import signing
 from lessonai.core.hashing import canonical, fingerprint  # re-exported for existing callers
-from lessonai.services.math_expression import parse_expression
+from lessonai.services.math.math_expression import parse_expression
 
 _PURPOSE = "visual_confirmation"
 _NOT_CONFIRMED = "Dữ kiện hình chưa được xác nhận hoặc đã thay đổi. Cần đối chiếu lại với đề bài."
@@ -111,16 +111,16 @@ def confirm_requirement(data):
     if kind in {"function_plot", "graph"}:
         spec = _validate_graph_spec(kind, merged)
     elif kind == "bbt":
-        from lessonai.services.workbench_visuals import classify_bbt_family
+        from lessonai.services.visuals.workbench_visuals import classify_bbt_family
         expression = merged.get("expression")
         parse_expression(expression)
         family_info = classify_bbt_family(expression)
         spec = {"kind": "bbt", "expression": expression, "family": family_info["family"], "family_label": family_info["family_label"]}
     elif kind in {"geometry", "solid"}:
-        from lessonai.services.geometry_scene import normalize_spec
+        from lessonai.services.visuals.geometry_scene import normalize_spec
         spec = {"kind": kind, **normalize_spec(merged)}
     elif kind == "oxyz":
-        from lessonai.services.geometry_scene import normalize_oxyz_spec
+        from lessonai.services.visuals.geometry_scene import normalize_oxyz_spec
         spec = {"kind": "oxyz", **normalize_oxyz_spec(merged)}
     else:
         raise VisualError("Loại hình chưa được hỗ trợ")

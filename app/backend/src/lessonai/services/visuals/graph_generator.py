@@ -5,9 +5,9 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from lessonai.core.render_runtime import serialized_render
-from lessonai.core.jobs import get_runner
-from lessonai.services.math_expression import parse_expression
-from lessonai.services.visual_requirements import checked_requirement, VisualError
+from lessonai.services.jobs import get_runner
+from lessonai.services.math.math_expression import parse_expression
+from lessonai.services.quality.visual_requirements import checked_requirement, VisualError
 
 
 def _plain_value(value):
@@ -109,7 +109,7 @@ def _draw(config, points, figsize):
 
 
 from functools import lru_cache
-from lessonai.services.visual_requirements import canonical
+from lessonai.services.quality.visual_requirements import canonical
 
 
 @lru_cache(maxsize=32)

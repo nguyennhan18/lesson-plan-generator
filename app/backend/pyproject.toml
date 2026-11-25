@@ -17,9 +17,6 @@ py-modules = ["main"]
 where = ["src"]
 include = ["lessonai*"]
 
-[tool.setuptools.package-data]
-lessonai = ["templates/*.pptx", "templates/*.json"]
-
 [tool.setuptools.dynamic]
 dependencies = {file = ["requirements.txt"]}
 
@@ -45,20 +42,9 @@ layers = [
     "lessonai.schemas",
     "lessonai.core | lessonai.utils",
 ]
-# 9 vi phạm còn lại. Mỗi dòng nêu cách xử lý đã chốt; đợt gom services/ sẽ bỏ dần các dòng này.
+# Chỉ còn một ngoại lệ lâu dài.
 ignore_imports = [
-    # Chuyển graph_generator.py và render_latex_to_bytes sang services/visuals/ (ADR 0006).
-    "lessonai.services.rendering -> lessonai.exporters.graph_generator",
-    "lessonai.services.workbench_visuals -> lessonai.exporters.graph_generator",
-    "lessonai.services.rendering -> lessonai.exporters.slide_exporter",
-    # Chuyển core/jobs.py thành services/jobs.py (nó chạy worker của services).
-    "lessonai.core.jobs -> lessonai.services.math_worker",
-    "lessonai.core.jobs -> lessonai.services.uploads",
-    # Chuyển check_deck ra khỏi route, vào services/quality/.
-    "lessonai.exporters.slide_exporter -> lessonai.api.routes.quality",
-    "lessonai.exporters.docx_exporter -> lessonai.api.routes.quality",
-    "lessonai.exporters.dual_package_exporter -> lessonai.api.routes.quality",
-    # Ngoại lệ lâu dài: validator của LessonRequest/OutlineRequest gọi infer_lesson_id.
+    # Validator của LessonRequest/OutlineRequest gọi infer_lesson_id của registry.
     # Sửa chỗ này là đổi hành vi phân tích request, nên tách thành việc riêng.
     "lessonai.schemas.schemas -> lessonai.rag.curriculum_registry",
 ]

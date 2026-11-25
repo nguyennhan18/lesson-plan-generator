@@ -59,7 +59,7 @@ class MathExpertOutput(BaseModel):
     doubts: list[Doubt] = []                # Nghi vấn về Dàn ý / math_intent
 ```
 
-Khi gửi sang Cổng toán, mỗi `ExpertClaim` được rút gọn về `MathClaim(id, kind, expression)`. **Lưu ý:** hash của bằng chứng hiện chỉ gồm `function`, `kind`, `expression` (`statement()` trong `services/math_spec.py`), chưa gồm `applies_when`. Với `derivative` thì không sao, vì đạo hàm đúng với mọi `a`. Với mệnh đề có điều kiện như cực trị khi `a > 0`, phép kiểm ở #21–#22 phải đưa `applies_when` vào `statement` và vào hash. Chưa có phép kiểm thì mệnh đề vẫn là `unverified`.
+Khi gửi sang Cổng toán, mỗi `ExpertClaim` được rút gọn về `MathClaim(id, kind, expression)`. **Lưu ý:** hash của bằng chứng hiện chỉ gồm `function`, `kind`, `expression` (`statement()` trong `services/math/math_spec.py`), chưa gồm `applies_when`. Với `derivative` thì không sao, vì đạo hàm đúng với mọi `a`. Với mệnh đề có điều kiện như cực trị khi `a > 0`, phép kiểm ở #21–#22 phải đưa `applies_when` vào `statement` và vào hash. Chưa có phép kiểm thì mệnh đề vẫn là `unverified`.
 
 ## 3. System prompt (bản nháp)
 

@@ -1,7 +1,7 @@
 import base64
-from lessonai.exporters.graph_generator import generate_math_plot, is_plottable, expression_chart_is_disabled
+from lessonai.services.visuals.graph_generator import generate_math_plot, is_plottable, expression_chart_is_disabled
 from lessonai.core.feature_availability import EXPRESSION_UNAVAILABLE_MESSAGE
-from lessonai.exporters.slide_exporter import render_latex_to_bytes
+from lessonai.services.visuals.latex_render import render_latex_to_bytes
 
 
 def enrich_slide_deck_with_renders(deck_dict: dict) -> dict:
@@ -20,7 +20,7 @@ def enrich_slide_deck_with_renders(deck_dict: dict) -> dict:
         slide["chart_render_status"] = "not_requested"
         if chart_spec and chart_spec.get("kind") not in (None, "none"):
             try:
-                from lessonai.services.visual_requirements import checked_slide_requirement
+                from lessonai.services.quality.visual_requirements import checked_slide_requirement
                 checked_slide_requirement(deck_dict,slide,chart_spec)
                 png_bytes = generate_math_plot(chart_spec, figsize=(4.6, 3.6))
                 slide["chart_image_base64"] = "data:image/png;base64," + base64.b64encode(png_bytes).decode()

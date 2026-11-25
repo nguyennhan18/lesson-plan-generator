@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
 from lessonai.schemas.math_spec_schema import MathSpecVerifyRequest, MathSpecVerifyResponse
-from lessonai.services.math_spec import verify_math_spec
+from lessonai.services.math.math_spec import verify_math_spec
 
 router = APIRouter(prefix="/api/v1/math-spec", tags=["Math gate"])
 

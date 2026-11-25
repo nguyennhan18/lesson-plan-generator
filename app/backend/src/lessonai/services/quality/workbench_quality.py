@@ -5,9 +5,9 @@ from pydantic import BaseModel, ConfigDict, Field
 from lessonai.core import signing
 from lessonai.core.hashing import fingerprint
 from lessonai.schemas.workbench_slides import WorkbenchApprovedOutline, WorkbenchSlide
-from lessonai.services.content_quality import _walk, check_formula
-from lessonai.services.expert_confirmation import METHOD, apply_review, sign_review
-from lessonai.services.visual_requirements import (
+from lessonai.services.quality.content_quality import _walk, check_formula
+from lessonai.services.quality.expert_confirmation import METHOD, apply_review, sign_review
+from lessonai.services.quality.visual_requirements import (
     ITEM_SOURCE_FIELDS,
     ConfirmationKeyChanged,
     VisualError,

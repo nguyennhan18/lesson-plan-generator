@@ -2,16 +2,11 @@ from pydantic import ValidationError
 from fastapi import APIRouter, Depends, HTTPException
 from lessonai.core.ownership import require_owner
 from lessonai.schemas.slide_schema import SlideDeckSchema
-from lessonai.services.content_quality import evaluate_deck, content_snapshot
-from lessonai.services.expert_confirmation import METHOD, apply_review, sign_review
+from lessonai.services.quality.content_quality import evaluate_deck, content_snapshot
+from lessonai.services.quality.expert_confirmation import METHOD, sign_review
+from lessonai.services.quality.acceptance import PURPOSE as _PURPOSE, check_deck
 
 router = APIRouter(prefix="/api/v1/quality", tags=["Content acceptance"])
-_PURPOSE = "deck_review"
-
-
-def check_deck(deck):
-    return apply_review(evaluate_deck(deck), _PURPOSE, deck.get("review_token"), content_snapshot(deck),
-                        "teacher_confirmation_for_this_revision")
 
 
 @router.post("/check")
@@ -42,8 +37,8 @@ def approve(payload: dict, owner=Depends(require_owner)):
 
 from lessonai.schemas.schemas import LessonPlanSchema
 from lessonai.schemas.lesson_review import LessonReviewRequest, LessonQualityReport, LessonReviewResponse
-from lessonai.services.lesson_quality import evaluate_plan, check_plan, sign_plan_review
-from lessonai.services.workbench_quality import (
+from lessonai.services.quality.lesson_quality import evaluate_plan, check_plan, sign_plan_review
+from lessonai.services.quality.workbench_quality import (
     WorkbenchQualityApproveRequest,
     WorkbenchQualityCheckRequest,
     approve_workbench_deck,

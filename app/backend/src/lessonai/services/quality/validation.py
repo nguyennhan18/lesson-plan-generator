@@ -737,7 +737,7 @@ def verify_math_with_sympy_in_slide(slide: Dict[str, Any], slide_index: int) -> 
                         for match in _MATH_SEGMENT_REGEX.finditer(str(val)):
                             candidate_formulas.append((match.group(0), f"quiz_options[{q_idx}].{key}"))
 
-    from lessonai.services.content_quality import math_fields, check_formula
+    from lessonai.services.quality.content_quality import math_fields, check_formula
     for field, formula in math_fields(slide):
         result = check_formula(formula)
         if result["status"] != "verified":

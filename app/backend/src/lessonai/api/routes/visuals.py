@@ -1,9 +1,9 @@
 from fastapi import APIRouter, HTTPException, Depends
-from lessonai.services.visual_requirements import confirm_requirement, checked_requirement, VisualError
-from lessonai.services.geometry_scene import build_scene
-from lessonai.services.workbench_visuals import build_verified_bbt, sample_workbench_graph
-from lessonai.services.math_expression import ExpressionError
-from lessonai.core.jobs import JobError
+from lessonai.services.quality.visual_requirements import confirm_requirement, checked_requirement, VisualError
+from lessonai.services.visuals.geometry_scene import build_scene
+from lessonai.services.visuals.workbench_visuals import build_verified_bbt, sample_workbench_graph
+from lessonai.services.math.math_expression import ExpressionError
+from lessonai.services.jobs import JobError
 
 from lessonai.core.ownership import require_owner
 
