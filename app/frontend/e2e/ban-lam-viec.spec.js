@@ -397,7 +397,7 @@ test('nạp JSON bản 3 có slide thì canvas và dải slide hiển thị, ch�
   expect(Number(match[2]) % 20).toBe(0);
 
   // Chọn slide 3 từ cây Dàn ý -> kiểm tra dấu tràn chữ và câu hỏi trắc nghiệm tĩnh
-  await treeItem(page, 'Hàm số').getByRole('button').first().click();
+  await treeItem(page, 'đạt cực đại').getByRole('button').first().click();
   await outlineTree(page).getByRole('button', { name: 'Mục 5, Slide 3' }).click();
   await expect(canvas.locator('[data-element-id="e3-title"]')).toHaveAttribute('data-overflow', 'true');
   await expect(canvas).toContainText('Tràn chữ');

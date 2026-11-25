@@ -57,6 +57,8 @@ def generate_outline(request: WorkbenchOutlineRequest, lesson_id: str | None, ti
                 system_prompt=WORKBENCH_OUTLINE_PLANNER_PROMPT.system_prompt,
                 response_schema=GeneratedOutline,
                 task_type="outline",
+                model_provider=request.model_provider,
+                model_id=request.model_id,
                 single_attempt=True,
                 role_name=WORKBENCH_OUTLINE_PLANNER_PROMPT.name,
                 prompt_name=WORKBENCH_OUTLINE_PLANNER_PROMPT.name,
