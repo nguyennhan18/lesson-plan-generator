@@ -7,6 +7,7 @@ import logging
 import os
 import shutil
 import tempfile
+import unicodedata
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -21,6 +22,7 @@ from lessonai.core.config import DATA_DIR
 
 
 REGISTRY_FILENAME = "reviewed_sources.json"
+HASH_VERSION = 2
 logger = logging.getLogger(__name__)
 
 
@@ -104,6 +106,7 @@ def _normalize_record(record: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     if status == "approved" and (not reviewer or not reviewed_at):
         return None
     normalized = {
+        "hash_version": record.get("hash_version"),
         "source_id": source_id,
         "source_type": source_type,
         "document_version": document_version,
@@ -201,6 +204,7 @@ def register_source_approval(source: Dict[str, Any], reviewer: str, *, status: s
         raise ValueError("Source approval payload must be an object")
     checksum = source_hash(source)
     record = {
+        "hash_version": HASH_VERSION,
         "source_id": source.get("source_id") or source.get("id") or source.get("slide_id") or source.get("question_id"),
         "source_type": source.get("source_type"),
         "document_version": document_version or source.get("document_version") or source.get("version") or "unknown",
@@ -281,8 +285,19 @@ def source_snapshot(item):
     return {key: value for key, value in sorted(item.items()) if key not in {"tokens", "quality_score", "retrieval_score"}}
 
 
+def _canonical_content(value):
+    """v2: normalize string values (not identifiers/keys), preserving structure."""
+    if isinstance(value, str):
+        return unicodedata.normalize("NFC", value.replace("\r\n", "\n").replace("\r", "\n"))
+    if isinstance(value, list):
+        return [_canonical_content(item) for item in value]
+    if isinstance(value, dict):
+        return {key: _canonical_content(item) for key, item in value.items()}
+    return value
+
+
 def source_hash(item):
-    payload = json.dumps(source_snapshot(item), sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    payload = json.dumps(_canonical_content(source_snapshot(item)), sort_keys=True, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
     return hashlib.sha256(payload).hexdigest()
 
 
@@ -326,11 +341,12 @@ def approval_identity(item):
         "source_type": item_dict.get("source_type"),
         "document_version": item_dict.get("document_version") or item_dict.get("version") or "unknown",
         "content_hash": content_hash,
+        "hash_version": HASH_VERSION,
         "asset_hashes": asset_manifest(item_dict),
     }
 
 
-def approved_units(items):
+def approved_units(items, *, rejection_reasons=None):
     registry = load_approval_registry()
     records = registry.get("sources", []) if isinstance(registry, dict) else []
     if not isinstance(records, list):
@@ -338,6 +354,10 @@ def approved_units(items):
     approved = {}
     for record in records:
         if not isinstance(record, dict):
+            continue
+        if type(record.get("hash_version")) is not int or record.get("hash_version") != HASH_VERSION:
+            if rejection_reasons is not None:
+                rejection_reasons.append({"source_id": record.get("source_id"), "reason": "hash_version_mismatch"})
             continue
         status = str(record.get("status") or "").lower()
         if status != "approved":

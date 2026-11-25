@@ -6,6 +6,7 @@ from lessonai.services.generation import generate_slide_deck
 from lessonai.llm.gateway import classify_generation_error
 from lessonai.exporters.graph_generator import generate_math_plot, is_plottable
 from lessonai.core.feature_availability import ExpressionProcessingUnavailable
+from lessonai.core.signing import SigningKeyUnavailable
 from fastapi import APIRouter
 from lessonai.services.rendering import enrich_slide_deck_with_renders
 
@@ -29,7 +30,6 @@ def generate_slide_endpoint(req: LessonRequest):
             plan=req.plan,
             class_proficiency=req.class_proficiency,
             target_outcome=req.target_outcome,
-            outline_slides=req.outline_slides,
             session_id=req.session_id
         )
         deck_dict = slide_deck.model_dump()
@@ -45,6 +45,8 @@ def enrich_slide_endpoint(deck: dict):
     """Bổ sung ảnh đồ thị và công thức vào dữ liệu slide deck bất kỳ để hiển thị đúng trên front-end"""
     try:
         return enrich_slide_deck_with_renders(deck)
+    except SigningKeyUnavailable:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Lỗi khi xử lý slide preview: {str(e)}")
 

@@ -12,6 +12,19 @@ from docx.text.paragraph import Paragraph
 Source: TypeAlias = Union[str, Path, bytes, BinaryIO, BytesIO]
 
 from .common import read_source, clean_text
+from lessonai.services.office_math import extract_docx_paragraph_text
+
+
+def _get_docx_paragraph_text(para: Any) -> str:
+    """Trích xuất và làm sạch văn bản từ đoạn văn Word, tự động chuyển đổi công thức toán OMML sang LaTeX."""
+    if para is None:
+        return ""
+    p_elm = getattr(para, "_p", None)
+    if p_elm is not None:
+        raw = extract_docx_paragraph_text(p_elm)
+        if raw.strip():
+            return clean_text(raw)
+    return clean_text(getattr(para, "text", ""))
 
 
 def _dedupe_row_cells(row: Any) -> List[str]:
@@ -20,7 +33,7 @@ def _dedupe_row_cells(row: Any) -> List[str]:
     đồng thời khử trùng lặp các ô bị gộp ngang/dọc (Merged Cells):
     - Kiểm tra định danh thẻ XML gốc `cell._tc`.
     - Nếu thẻ `_tc` đã xuất hiện trong hàng -> bỏ qua để không bị nhân đôi văn bản.
-    - Làm sạch văn bản từng ô bằng clean_text().
+    - Làm sạch văn bản từng ô bằng _get_docx_paragraph_text() qua các paragraph con.
     """
     cells_text: List[str] = []
     seen_tc = set()
@@ -32,7 +45,13 @@ def _dedupe_row_cells(row: Any) -> List[str]:
                 continue
             seen_tc.add(tc)
 
-        cells_text.append(clean_text(cell.text))
+        paras = getattr(cell, "paragraphs", [])
+        if paras:
+            cell_texts = [_get_docx_paragraph_text(p) for p in paras]
+            combined = "\n".join(t for t in cell_texts if t)
+            cells_text.append(combined if combined else clean_text(getattr(cell, "text", "")))
+        else:
+            cells_text.append(clean_text(getattr(cell, "text", "")))
 
     return cells_text
 
@@ -72,7 +91,7 @@ def _detect_title(doc: Any) -> str:
     lesson_keywords = ("tên bài dạy", "bài dạy:", "bài ", "chủ đề", "chuyên đề")
 
     for para in doc.paragraphs:
-        text = clean_text(para.text)
+        text = _get_docx_paragraph_text(para)
         if not text:
             continue
 
@@ -144,7 +163,7 @@ def parse_docx(source: Source) -> Dict[str, Any]:
 
     for item in _iter_block_items(doc):
         if isinstance(item, Paragraph):
-            text = clean_text(item.text)
+            text = _get_docx_paragraph_text(item)
             if text:
                 paragraphs.append(text)
                 blocks.append({"type": "paragraph", "text": text})

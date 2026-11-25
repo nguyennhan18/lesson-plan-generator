@@ -2,6 +2,7 @@ from typing import Union, Dict, Any
 from urllib.parse import quote
 from fastapi import HTTPException
 from fastapi.responses import Response
+from lessonai.core.signing import SigningKeyUnavailable
 from lessonai.schemas.schemas import LessonPlanSchema
 from lessonai.schemas.slide_schema import SlideDeckSchema
 from lessonai.exporters.docx_exporter import export_lesson_plan_to_docx
@@ -50,7 +51,7 @@ def export_docx_endpoint(payload: Union[Dict[str, Any], LessonPlanSchema]):
                 "Content-Disposition": f'attachment; filename="{safe_filename}"; filename*=utf-8\'\'{url_encoded_filename}'
             }
         )
-    except HTTPException:
+    except (HTTPException, SigningKeyUnavailable):
         raise
     except ValidationError as error:
         raise HTTPException(status_code=422, detail=error.errors(include_context=False)) from error
@@ -79,7 +80,7 @@ def export_slide_endpoint(deck: SlideDeckSchema):
                 "Content-Disposition": f'attachment; filename="{safe_filename}"; filename*=utf-8\'\'{url_encoded_filename}'
             }
         )
-    except HTTPException:
+    except (HTTPException, SigningKeyUnavailable):
         raise
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
@@ -120,7 +121,7 @@ def export_dual_package_endpoint(payload: Dict[str, Any]):
                 "X-Pptx-SHA256": result.pptx_sha256,
             }
         )
-    except HTTPException:
+    except (HTTPException, SigningKeyUnavailable):
         raise
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))

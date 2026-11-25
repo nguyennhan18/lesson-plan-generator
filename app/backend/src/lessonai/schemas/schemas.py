@@ -84,10 +84,6 @@ class LessonRequest(BaseModel):
         description="Mục tiêu chuẩn đầu ra mong muốn của bài dạy"
     )
     plan: Optional[LessonPlanSchema] = Field(default=None, description="Kế hoạch bài dạy đã có để đồng bộ Slide")
-    outline_slides: SkipJsonSchema[Optional[List["OutlineSlideItem"]]] = Field(
-        default=None,
-        description="Danh sách các thẻ dàn ý slide đã được giáo viên duyệt ở Trạm 2 để nối chuỗi vào Giáo án & Slide"
-    )
     session_id: SkipJsonSchema[Optional[str]] = Field(
         default=None,
         description="Mã phiên Langfuse gom chung toàn bộ chuỗi Outline -> Giáo án -> Slide"

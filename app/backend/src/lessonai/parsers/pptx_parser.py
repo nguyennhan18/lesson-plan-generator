@@ -8,6 +8,19 @@ from pptx.enum.shapes import MSO_SHAPE_TYPE
 Source: TypeAlias = Union[str, Path, bytes, BinaryIO, BytesIO]
 
 from .common import read_source, clean_text
+from lessonai.services.office_math import extract_pptx_paragraph_text
+
+
+def _get_pptx_paragraph_text(para: Any) -> str:
+    """Trích xuất và làm sạch văn bản từ đoạn văn PowerPoint, tự động chuyển đổi công thức toán OMML sang LaTeX."""
+    if para is None:
+        return ""
+    p_elm = getattr(para, "_p", None)
+    if p_elm is not None:
+        raw = extract_pptx_paragraph_text(p_elm)
+        if raw.strip():
+            return clean_text(raw)
+    return clean_text(getattr(para, "text", ""))
 
 
 def _extract_shapes_text(
@@ -40,7 +53,7 @@ def _extract_shapes_text(
         tf = getattr(shape, "text_frame", None)
         if tf is not None:
             for para in getattr(tf, "paragraphs", []):
-                cleaned_para = clean_text(getattr(para, "text", ""))
+                cleaned_para = _get_pptx_paragraph_text(para)
                 if cleaned_para:
                     paragraphs.append(cleaned_para)
 
@@ -68,7 +81,16 @@ def _extract_table(table: Any) -> List[List[str]]:
             if getattr(cell, "is_spanned", False):
                 row_cells.append("")
             else:
-                row_cells.append(clean_text(cell.text))
+                tf = getattr(cell, "text_frame", None)
+                if tf is not None and getattr(tf, "paragraphs", None):
+                    cell_paras = []
+                    for p in tf.paragraphs:
+                        cp = _get_pptx_paragraph_text(p)
+                        if cp:
+                            cell_paras.append(cp)
+                    row_cells.append("\n".join(cell_paras) if cell_paras else clean_text(getattr(cell, "text", "")))
+                else:
+                    row_cells.append(clean_text(getattr(cell, "text", "")))
 
         # Chỉ giữ lại hàng nếu có ít nhất 1 ô có nội dung khác rỗng
         if any(row_cells):
@@ -87,7 +109,14 @@ def _get_title(slide: Any) -> str:
     # 1. Kiểm tra Title Placeholder chuẩn của PowerPoint
     title_shape = getattr(slide.shapes, "title", None)
     if title_shape is not None and getattr(title_shape, "has_text_frame", False):
-        title_text = clean_text(getattr(title_shape, "text", ""))
+        tf = getattr(title_shape, "text_frame", None)
+        if tf is not None and getattr(tf, "paragraphs", None):
+            title_paras = [_get_pptx_paragraph_text(p) for p in tf.paragraphs]
+            title_text = "\n".join(t for t in title_paras if t)
+            if not title_text:
+                title_text = clean_text(getattr(title_shape, "text", ""))
+        else:
+            title_text = clean_text(getattr(title_shape, "text", ""))
         if title_text:
             return title_text
 
@@ -99,7 +128,13 @@ def _get_title(slide: Any) -> str:
     if text_shapes:
         # Sắp xếp theo vị trí từ cao xuống thấp (top nhỏ nhất là nằm trên cùng của slide)
         text_shapes.sort(key=lambda s: (getattr(s, "top", 0) or 0))
-        first_text = clean_text(getattr(text_shapes[0], "text", ""))
+        first_shape = text_shapes[0]
+        tf = getattr(first_shape, "text_frame", None)
+        if tf is not None and getattr(tf, "paragraphs", None):
+            first_paras = [_get_pptx_paragraph_text(p) for p in tf.paragraphs]
+            first_text = "\n".join(t for t in first_paras if t) or clean_text(getattr(first_shape, "text", ""))
+        else:
+            first_text = clean_text(getattr(first_shape, "text", ""))
         # Chỉ lấy dòng đầu tiên nếu hộp văn bản đó có nhiều dòng
         return first_text.split("\n")[0]
 

@@ -1202,9 +1202,16 @@ def build_speaker_notes(
 
 def _append_table_pages(prs, source, data, subject, grade):
     """Native editable tables with bounded cell lines and row heights."""
+    if not data:
+        return
     import textwrap
     from lessonai.services.content_blocks import table_rows
-    rows = table_rows(data)
+    try:
+        rows = table_rows(data)
+    except ValueError:
+        return
+    if not rows or not rows[0]:
+        return
     columns = len(rows[0])
     if columns > 8:
         raise ValueError("Bảng có hơn 8 cột; hãy chia bảng trước khi xuất để bảo đảm đọc được")
@@ -1223,23 +1230,35 @@ def _append_table_pages(prs, source, data, subject, grade):
         current.append((cells, row_height)); height += row_height
     if current:
         pages.append(current)
-    for rows_on_page in pages:
+    for p_idx, rows_on_page in enumerate(pages):
         page = prs.slides.add_slide(prs.slide_layouts[6])
         heading = page.shapes.add_textbox(Inches(.5), Inches(.3), Inches(9), Inches(.7))
-        heading.text_frame.text = str(source.get('title', '')) + " — Bảng (tiếp)"
+        suffix = " — Bảng" if p_idx == 0 else " — Bảng (tiếp)"
+        heading.text_frame.text = str(source.get('title', '')) + suffix
         for run in heading.text_frame.paragraphs[0].runs:
             run.font.size = Pt(22)
         table = page.shapes.add_table(len(rows_on_page), columns, Inches(.6), Inches(1.2), Inches(8.8), Inches(sum(h for _, h in rows_on_page))).table
         for i, (cells, height) in enumerate(rows_on_page):
             table.rows[i].height = Inches(height)
+            is_header = (p_idx == 0 and i == 0)
             for j, text in enumerate(cells):
                 cell = table.cell(i, j)
                 cell.text = text
+                cell.vertical_anchor = MSO_ANCHOR.MIDDLE
                 cell.margin_top = cell.margin_bottom = Inches(.03)
                 cell.margin_left = cell.margin_right = Inches(.06)
+                if is_header:
+                    cell.fill.solid()
+                    cell.fill.fore_color.rgb = RGBColor(238, 242, 246)
                 for paragraph in cell.text_frame.paragraphs:
+                    if is_header or len(text.strip()) <= 6:
+                        paragraph.alignment = PP_ALIGN.CENTER
+                    else:
+                        paragraph.alignment = PP_ALIGN.LEFT
                     for run in paragraph.runs:
-                        run.font.size = Pt(18)
+                        run.font.size = Pt(18) if len(text.splitlines()) <= 3 else Pt(14)
+                        if is_header:
+                            run.font.bold = True
         build_speaker_notes(page, source, subject=subject, grade=grade)
 
 

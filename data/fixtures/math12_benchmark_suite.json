@@ -1,0 +1,409 @@
+{
+  "schema_version": 1,
+  "suite_id": "math12-gdpt2018-canonical-benchmark-v1",
+  "title": "Bộ đề chuẩn & Phản ví dụ Toán 12 (CT GDPT 2018 - KNTT) phục vụ nghiệm thu M1/M3/M5",
+  "teacher_signoff": {
+    "status": "pending_teacher_signoff",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": "Khung bộ đề chuẩn và kỳ vọng kỹ thuật đã được thiết lập đầy đủ cho 5 nhóm (valid, faulty, under_specified, contradictory, out_of_scope). Bắt buộc phải có chữ ký nghiệm thu của giáo viên chuyên môn Toán 12 trước khi đóng cổng bàn giao."
+  },
+  "cases": [
+    {
+      "case_id": "BM-VALID-01",
+      "category": "valid",
+      "lesson_id": "M12-C1-B1",
+      "topic": "Bài 1: Tính đơn điệu và cực trị của hàm số",
+      "description": "Khảo sát hàm đa thức bậc ba y = x^3 - 3x + 1 với đồ thị đã xác nhận dữ kiện và bước tính giá trị cực trị đúng.",
+      "visual_spec": {
+        "kind": "function_plot",
+        "expression": "x^3 - 3*x + 1",
+        "operation": "function",
+        "x_min": -3.0,
+        "x_max": 3.0
+      },
+      "slide": {
+        "slide_id": "bm-valid-01-s1",
+        "title": "Ví dụ 1: Cực trị của hàm số bậc ba",
+        "layout": "TWO_COLUMN",
+        "bullet_points": [
+          "Xét hàm số $y = x^3 - 3x + 1$ trên $\\mathbb{R}$."
+        ],
+        "worked_solution_steps": [
+          "Bước 1: Giá trị tại điểm cực đại $x = -1$ là $(-1)^3 - 3(-1) + 1 = 3$.",
+          "Bước 2: Giá trị tại điểm cực tiểu $x = 1$ là $1^3 - 3(1) + 1 = -1$."
+        ],
+        "math_assertions": [
+          {
+            "role": "identity",
+            "syntax": "expression",
+            "symbols": ["x"],
+            "lhs": "(x - 1)*(x^2 + x - 2)",
+            "rhs": "x^3 - 3*x + 2"
+          }
+        ]
+      },
+      "expected_outcome": {
+        "plot_status": "computed",
+        "min_plot_segments": 1,
+        "quality_status": "needs_review",
+        "blocking_error_count": 0,
+        "teacher_approval_allowed": true
+      }
+    },
+    {
+      "case_id": "BM-VALID-02",
+      "category": "valid",
+      "lesson_id": "M12-C1-B3",
+      "topic": "Bài 3: Đường tiệm cận của đồ thị hàm số",
+      "description": "Đồ thị hàm phân thức y = 1/x trên [-2, 2] có tiệm cận đứng x = 0; phải tách thành 2 nhánh riêng biệt, không nối liền qua điểm gián đoạn.",
+      "visual_spec": {
+        "kind": "function_plot",
+        "expression": "1/x",
+        "operation": "function",
+        "x_min": -2.0,
+        "x_max": 2.0
+      },
+      "slide": {
+        "slide_id": "bm-valid-02-s1",
+        "title": "Ví dụ 2: Tiệm cận đứng của hàm phân thức",
+        "layout": "TWO_COLUMN",
+        "bullet_points": [
+          "Khảo sát đường tiệm cận của hàm số $y = \\frac{1}{x}$ trên $[-2; 2] \\setminus \\{0\\}$."
+        ],
+        "worked_solution_steps": [
+          "Bước 1: Tập xác định $D = \\mathbb{R} \\setminus \\{0\\}$.",
+          "Bước 2: Tại $x = 1$, giá trị hàm số thỏa mãn $1 / 1 = 1$."
+        ]
+      },
+      "expected_outcome": {
+        "plot_status": "computed",
+        "min_plot_segments": 2,
+        "discontinuity_x": 0.0,
+        "quality_status": "needs_review",
+        "blocking_error_count": 0,
+        "teacher_approval_allowed": true
+      }
+    },
+    {
+      "case_id": "BM-VALID-03",
+      "category": "valid",
+      "lesson_id": "M12-C2-B1",
+      "topic": "Bài 6: Vectơ trong không gian (Hình lập phương)",
+      "description": "Hình lập phương ABCD.A'B'C'D' cạnh a = 4; tọa độ 8 đỉnh chuẩn xác và thể tích V = 64.",
+      "geometry_spec": {
+        "kind": "geometry",
+        "polyhedron_type": "cube",
+        "base_edge": 4.0,
+        "height": 4.0
+      },
+      "slide": {
+        "slide_id": "bm-valid-03-s1",
+        "title": "Ví dụ 3: Hình lập phương cạnh a = 4",
+        "layout": "TWO_COLUMN",
+        "has_3d": true,
+        "bullet_points": [
+          "Cho hình lập phương $ABCD.A'B'C'D'$ có cạnh $a = 4$."
+        ],
+        "worked_solution_steps": [
+          "Bước 1: Diện tích đáy hình vuông là $4^2 = 16$.",
+          "Bước 2: Thể tích khối lập phương là $4^3 = 64$."
+        ]
+      },
+      "expected_outcome": {
+        "scene_status": "constraints_checked",
+        "expected_volume": 64.0,
+        "expected_altitude_foot": [0.0, 0.0, 0.0],
+        "quality_status": "needs_review",
+        "blocking_error_count": 0,
+        "teacher_approval_allowed": true
+      }
+    },
+    {
+      "case_id": "BM-VALID-04",
+      "category": "valid",
+      "lesson_id": "M12-CD-B1",
+      "topic": "Chuyên đề 1: Thể tích khối chóp tứ giác đều",
+      "description": "Hình chóp tứ giác đều S.ABCD đáy cạnh a = 4, chiều cao SO = 3; chân đường cao O = (2, 2, 0) là tâm hình vuông đáy.",
+      "geometry_spec": {
+        "kind": "geometry",
+        "polyhedron_type": "square_pyramid_regular",
+        "base_edge": 4.0,
+        "height": 3.0
+      },
+      "slide": {
+        "slide_id": "bm-valid-04-s1",
+        "title": "Ví dụ 4: Hình chóp tứ giác đều S.ABCD",
+        "layout": "TWO_COLUMN",
+        "has_3d": true,
+        "bullet_points": [
+          "Cho hình chóp tứ giác đều $S.ABCD$ có cạnh đáy $a = 4$ và chiều cao $SO = 3$."
+        ],
+        "worked_solution_steps": [
+          "Bước 1: Diện tích đáy $S_{ABCD} = 4^2 = 16$.",
+          "Bước 2: Thể tích khối chóp $V = \\frac{1}{3} \\cdot 16 \\cdot 3 = 16$."
+        ]
+      },
+      "expected_outcome": {
+        "scene_status": "constraints_checked",
+        "expected_volume": 16.0,
+        "expected_altitude_foot": [2.0, 2.0, 0.0],
+        "equal_lateral_edges": true,
+        "quality_status": "needs_review",
+        "blocking_error_count": 0,
+        "teacher_approval_allowed": true
+      }
+    },
+    {
+      "case_id": "BM-VALID-05",
+      "category": "valid",
+      "lesson_id": "M12-CD-B1",
+      "topic": "Chuyên đề 1: Thể tích khối chóp có SA vuông góc với đáy",
+      "description": "Hình chóp S.ABCD đáy hình vuông cạnh a = 4, SA vuông góc đáy và SA = 3; chân đường cao tại A(0, 0, 0), phân biệt rõ với chóp đều.",
+      "geometry_spec": {
+        "kind": "geometry",
+        "polyhedron_type": "square_pyramid_at_a",
+        "base_edge": 4.0,
+        "height": 3.0
+      },
+      "slide": {
+        "slide_id": "bm-valid-05-s1",
+        "title": "Ví dụ 5: Hình chóp S.ABCD có SA vuông góc đáy",
+        "layout": "TWO_COLUMN",
+        "has_3d": true,
+        "bullet_points": [
+          "Cho hình chóp $S.ABCD$ có đáy $ABCD$ là hình vuông cạnh $a = 4$, $SA \\perp (ABCD)$ và $SA = 3$."
+        ],
+        "worked_solution_steps": [
+          "Bước 1: Đường cao của hình chóp là $SA = 3$ với chân đường cao tại $A$.",
+          "Bước 2: Thể tích khối chóp là $\\frac{1}{3} \\cdot 4^2 \\cdot 3 = 16$."
+        ]
+      },
+      "expected_outcome": {
+        "scene_status": "constraints_checked",
+        "expected_volume": 16.0,
+        "expected_altitude_foot": [0.0, 0.0, 0.0],
+        "equal_lateral_edges": false,
+        "quality_status": "needs_review",
+        "blocking_error_count": 0,
+        "teacher_approval_allowed": true
+      }
+    },
+    {
+      "case_id": "BM-FAULTY-01",
+      "category": "faulty",
+      "lesson_id": "M12-C1-B1",
+      "topic": "Bài 1: Tính đơn điệu và cực trị của hàm số (Lời giải sai số học)",
+      "description": "Bước giải tính sai giá trị cực trị (2^3 - 3*2 + 1 = 5 thay vì 3); cổng chất lượng phải chặn (blocked) và không cho phép approve.",
+      "slide": {
+        "slide_id": "bm-faulty-01-s1",
+        "title": "Ví dụ lỗi số học trong lời giải",
+        "layout": "TWO_COLUMN",
+        "bullet_points": [
+          "Tính giá trị của hàm số $y = x^3 - 3x + 1$ tại $x = 2$."
+        ],
+        "worked_solution_steps": [
+          "Bước 1: Thay $x = 2$ vào hàm số ta có $2^3 - 3 \\cdot 2 + 1 = 5$."
+        ]
+      },
+      "expected_outcome": {
+        "quality_status": "blocked",
+        "min_blocking_errors": 1,
+        "teacher_approval_allowed": false
+      }
+    },
+    {
+      "case_id": "BM-FAULTY-02",
+      "category": "faulty",
+      "lesson_id": "M12-C4-B1",
+      "topic": "Bài 11: Nguyên hàm (Đồng nhất thức đại số sai)",
+      "description": "Khai triển hằng đẳng thức sai (x + 1)^2 = x^2 + 1 trong math_assertions; phải bị đánh dấu failed và chặn duyệt.",
+      "slide": {
+        "slide_id": "bm-faulty-02-s1",
+        "title": "Ví dụ lỗi biến đổi hằng đẳng thức",
+        "layout": "SINGLE_COLUMN",
+        "bullet_points": [
+          "Biến đổi biểu thức dưới dấu nguyên hàm."
+        ],
+        "math_assertions": [
+          {
+            "role": "identity",
+            "syntax": "expression",
+            "symbols": ["x"],
+            "lhs": "(x + 1)^2",
+            "rhs": "x^2 + 1"
+          }
+        ]
+      },
+      "expected_outcome": {
+        "equality_status": "failed",
+        "quality_status": "blocked",
+        "min_blocking_errors": 1,
+        "teacher_approval_allowed": false
+      }
+    },
+    {
+      "case_id": "BM-FAULTY-03",
+      "category": "faulty",
+      "lesson_id": "M12-C3-B1",
+      "topic": "Bài 9: Khoảng biến thiên và khoảng tứ phân vị (Trắc nghiệm sai cấu trúc)",
+      "description": "Slide trắc nghiệm QUIZ_OPTION có 2 phương án đúng và thiếu giải thích bẫy sai lầm (distractor_rationale).",
+      "slide": {
+        "slide_id": "bm-faulty-03-s1",
+        "title": "Câu hỏi trắc nghiệm lỗi cấu trúc",
+        "layout": "QUIZ_OPTION",
+        "question": "Khoảng biến thiên của mẫu số liệu ghép nhóm $[150; 155), [155; 175)$ là:",
+        "quiz_options": [
+          {"label": "A", "text": "25", "is_correct": true, "distractor_rationale": null},
+          {"label": "B", "text": "25 cm", "is_correct": true, "distractor_rationale": null},
+          {"label": "C", "text": "5", "is_correct": false, "distractor_rationale": null},
+          {"label": "D", "text": "20", "is_correct": false, "distractor_rationale": "Nhầm đầu mút"}
+        ]
+      },
+      "expected_outcome": {
+        "quality_status": "blocked",
+        "min_blocking_errors": 1,
+        "teacher_approval_allowed": false
+      }
+    },
+    {
+      "case_id": "BM-UNDER-01",
+      "category": "under_specified",
+      "lesson_id": "M12-C1-B3",
+      "topic": "Bài 3: Đường tiệm cận (Biến đổi làm thay đổi miền xác định)",
+      "description": "Rút gọn (x^2 - 1)/(x - 1) thành x + 1 làm mất điểm khuyết x = 1; không được chứng nhận là đồng nhất thức trên toàn R.",
+      "equality_check": {
+        "lhs": "(x^2 - 1)/(x - 1)",
+        "rhs": "x + 1",
+        "symbols": ["x"],
+        "syntax": "expression"
+      },
+      "expected_outcome": {
+        "equality_status": "unverified",
+        "reason_contains": "miền xác định"
+      }
+    },
+    {
+      "case_id": "BM-UNDER-02",
+      "category": "under_specified",
+      "lesson_id": "M12-C1-B2",
+      "topic": "Bài 2: GTLN và GTNN (Khai căn bậc hai thiếu điều kiện dấu)",
+      "description": "Đẳng thức sqrt(x^2) = x không đúng với mọi x thuộc R (thiếu giả thiết x >= 0); phải trả về unverified.",
+      "equality_check": {
+        "lhs": "sqrt(x^2)",
+        "rhs": "x",
+        "symbols": ["x"],
+        "syntax": "expression"
+      },
+      "expected_outcome": {
+        "equality_status": "unverified"
+      }
+    },
+    {
+      "case_id": "BM-UNDER-03",
+      "category": "under_specified",
+      "lesson_id": "M12-CD-B1",
+      "topic": "Chuyên đề 1: Hình chóp đáy vuông chưa rõ vị trí chân đường cao",
+      "description": "Chỉ định danh mơ hồ pyramid_square (không rõ chóp đều hay SA vuông góc đáy); bắt buộc từ chối, không tự suy diễn thành chóp đều.",
+      "geometry_spec": {
+        "kind": "geometry",
+        "polyhedron_type": "pyramid_square",
+        "base_edge": 4.0,
+        "height": 3.0
+      },
+      "expected_outcome": {
+        "visual_confirmation_error": true,
+        "http_status": 422
+      }
+    },
+    {
+      "case_id": "BM-CONTRA-01",
+      "category": "contradictory",
+      "lesson_id": "M12-C2-B1",
+      "topic": "Bài 6: Hình lập phương có chiều cao khác cạnh đáy",
+      "description": "Khai báo hình lập phương (cube) nhưng cạnh đáy base_edge = 4 và chiều cao height = 5 mâu thuẫn nhau.",
+      "geometry_spec": {
+        "kind": "geometry",
+        "polyhedron_type": "cube",
+        "base_edge": 4.0,
+        "height": 5.0
+      },
+      "expected_outcome": {
+        "visual_confirmation_error": true,
+        "http_status": 422,
+        "reason_contains": "Chiều cao hình lập phương phải bằng cạnh"
+      }
+    },
+    {
+      "case_id": "BM-CONTRA-02",
+      "category": "contradictory",
+      "lesson_id": "M12-C1-B1",
+      "topic": "Bài 1: Đề bài thay đổi giả thiết sau khi đã xác nhận đồ thị",
+      "description": "Giáo viên xác nhận đồ thị cho hàm y = x^3 - 3x + 1 nhưng sau đó sửa đề bài trên slide thành y = x^4 - 2x^2; cổng chất lượng phải phát hiện lệch source_fingerprint và chặn.",
+      "visual_spec": {
+        "kind": "function_plot",
+        "expression": "x^3 - 3*x + 1",
+        "operation": "function",
+        "x_min": -3.0,
+        "x_max": 3.0
+      },
+      "slide_before_edit": {
+        "slide_id": "bm-contra-02-s1",
+        "title": "Khảo sát hàm bậc ba",
+        "layout": "SINGLE_COLUMN",
+        "bullet_points": [
+          "Khảo sát hàm số $y = x^3 - 3x + 1$."
+        ]
+      },
+      "slide_after_edit": {
+        "slide_id": "bm-contra-02-s1",
+        "title": "Khảo sát hàm trùng phương",
+        "layout": "SINGLE_COLUMN",
+        "bullet_points": [
+          "Khảo sát hàm số $y = x^4 - 2x^2$."
+        ]
+      },
+      "expected_outcome": {
+        "quality_status": "blocked",
+        "min_blocking_errors": 1,
+        "teacher_approval_allowed": false
+      }
+    },
+    {
+      "case_id": "BM-OOS-01",
+      "category": "out_of_scope",
+      "lesson_id": "M12-CD-B2",
+      "topic": "Chuyên đề 2: Khối lăng trụ / khối tròn xoay ngoài phạm vi 3 khối chuẩn M1",
+      "description": "Yêu cầu dựng lăng trụ tam giác (prism_triangle) ngoài 3 loại hình không gian hỗ trợ; phải từ chối rõ ràng, không vẽ hình thay thế.",
+      "geometry_spec": {
+        "kind": "geometry",
+        "polyhedron_type": "prism_triangle",
+        "base_edge": 4.0,
+        "height": 5.0
+      },
+      "expected_outcome": {
+        "visual_confirmation_error": true,
+        "http_status": 422
+      }
+    },
+    {
+      "case_id": "BM-OOS-02",
+      "category": "out_of_scope",
+      "lesson_id": "M12-C4-B2",
+      "topic": "Bài 12: Biểu thức đa thức bậc > 8 và đầu vào biểu thức độc hại",
+      "description": "Đa thức bậc 9 vượt ngưỡng kiểm định bậc <= 8 phải trả về unverified; biểu thức độc hại gọi __import__ phải bị chặn ở 422.",
+      "equality_check": {
+        "lhs": "(x + 1)^9",
+        "rhs": "x^9 + 1",
+        "symbols": ["x"],
+        "syntax": "expression"
+      },
+      "unsafe_plot_expression": "__import__('os').getcwd()",
+      "expected_outcome": {
+        "equality_status": "unverified",
+        "reason_contains": "Bậc đa thức ngoài phạm vi",
+        "unsafe_plot_http_status": 422
+      }
+    }
+  ]
+}

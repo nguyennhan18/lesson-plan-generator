@@ -1,14 +1,14 @@
-"""Langfuse v5 Full Observability cho Role-Based Prompt Chaining & LLM Gateway.
+"""Langfuse v5 Full Observability cho Role-Based Prompt Chaining & LLM Gateway (feature/ban-lam-viec).
 
 Nguyên tắc thiết kế:
 - Tracing chỉ là tầng quan sát (Observability): mọi lỗi của SDK/mạng đều được bắt và ghi log nhẹ,
-  không bao giờ làm gián đoạn luồng sinh bài giảng của giáo viên.
+  không bao giờ làm gián đoạn luồng sinh bài giảng hay làm mất Bản soạn của giáo viên.
 - Hỗ trợ phân cấp chuẩn Langfuse v5:
-  * `chain`      : Toàn bộ pipeline của một API (Outline / Lesson Plan / Slide Deck), gom theo `session_id`.
-  * `retriever`  : Bước truy xuất ngữ cảnh sư phạm Pedagogical RAG.
+  * `chain`      : Toàn bộ pipeline của một API (Workbench Outline v3 / Outline v2 / Lesson Plan / Slide Deck), gom theo `session_id`.
+  * `retriever`  : Bước truy xuất ngữ cảnh sư phạm Pedagogical RAG đã duyệt.
   * `agent`      : Từng vai trò chuyên biệt trong chuỗi Prompt Chaining (kèm `prompt_name` & `prompt_version`).
   * `generation` : Từng lần gọi model cụ thể trong `LLMGateway` (kèm `usage_details` input/output/total tokens).
-  * `evaluator`  : Các cổng kiểm định Deterministic Gates (5512, SymPy, SGK Theorem, Chart Plottable).
+  * `evaluator`  : Các cổng kiểm định Deterministic Gates (Workbench contract, 5512, `outline_contract`, `KINDS` 3D, `block_errors`, `source_refs` SHA-256).
 - Tự động tắt gọi mạng khi thiếu khóa, khi `LANGFUSE_TRACING_ENABLED=false`, hoặc khi chạy dưới `pytest`
   (trừ khi test chủ động bơm mock client qua `set_client_for_testing`).
 """

@@ -108,7 +108,6 @@ export default function LessonPlanScreen({
         subject,
         grade,
         lesson_id: selectedLessonId,
-        use_rag: true,
         proficiency,
         outcome
       });
@@ -307,13 +306,13 @@ export default function LessonPlanScreen({
             />
           </div>
 
-          {/* Thông tin RAG Grounding */}
+          {/* Nhắc kiểm tra chuyên môn trước khi trình chiếu */}
           <div className="p-3 rounded-2xl bg-[#f3f3f3] border border-[#e0e0e0] text-[11px] text-[#141414] space-y-1">
             <div className="font-bold text-[#141414] flex items-center gap-1.5">
-              <Sparkles size={13} className="text-[#141414]" /> Pedagogical RAG Toán 12 KNTT:
+              <Sparkles size={13} className="text-[#141414]" /> Kiểm tra bản nháp AI:
             </div>
             <p className="text-[#707070]">
-              Chỉ học liệu đã được duyệt mới được dùng làm nguồn. Bài AI tạo là bản nháp; cần đối chiếu đề, giả thiết, lời giải và nguồn trước khi giảng dạy.
+              Bài AI tạo là bản nháp chưa đối chiếu nguồn; hãy kiểm tra đề, giả thiết, lời giải và nội dung trước khi giảng dạy.
             </p>
           </div>
 

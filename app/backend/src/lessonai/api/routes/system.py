@@ -14,7 +14,7 @@ def health_check():
     return {
         "status": "online",
         "has_api_key": bool(os.getenv("GEMINI_API_KEY")),
-        "version": "0.1.0"
+        "version": "0.2.0"
     }
 
 

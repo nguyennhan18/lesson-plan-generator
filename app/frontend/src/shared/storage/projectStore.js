@@ -1,6 +1,19 @@
 /** Durable project envelopes; failures are surfaced to the editor, never seeded. */
 export const newId = () => crypto.randomUUID();
 
+export const LEGACY_SCHEMA_VERSION = 2; // projects of the old studio
+export const LESSON_SCHEMA_VERSION = 3; // Bài giảng of the Bàn làm việc (lessonProject.js)
+export const UNSUPPORTED_VERSION = 'Phiên bản chưa hỗ trợ';
+
+/** The old studio opens only schema_version 2; a Bài giảng bản 3 belongs to the Bàn làm việc. */
+export function assertLegacyProject(project) {
+  const version = project?.schema_version;
+  if (version === LESSON_SCHEMA_VERSION) throw new Error(`${UNSUPPORTED_VERSION}: đây là Bài giảng bản 3, chỉ mở được trong Bàn làm việc. Hãy bật Bàn làm việc để mở.`);
+  if (Number.isInteger(version) && version > LESSON_SCHEMA_VERSION) throw new Error(`${UNSUPPORTED_VERSION}: dự án ghi bản ${version}.`);
+  if (version !== LEGACY_SCHEMA_VERSION || !project.project_id) throw new Error('Dự án không đúng định dạng');
+  return project;
+}
+
 export function normalizeDeck(input) {
   if (!input || !Array.isArray(input.slides)) throw new Error('Dữ liệu bộ slide không hợp lệ');
   if (input.schema_version && input.schema_version > 2) throw new Error('Phiên bản dự án chưa được hỗ trợ');
@@ -97,7 +110,13 @@ export async function saveProject(project) {
     const expected = observedVersions.get(project.project_id) ?? 0;
     const read = store.get(project.project_id);
     read.onsuccess = () => {
-      if ((read.result?._storage_revision ?? 0) !== expected) {
+      const stored = read.result;
+      if ((stored?.schema_version ?? 0) > (project.schema_version ?? 0)) {
+        failure = new Error(`${UNSUPPORTED_VERSION}: không ghi đè Bài giảng bản ${stored.schema_version} bằng dự án bản ${project.schema_version ?? 'không rõ'}.`);
+        tx.abort();
+        return;
+      }
+      if ((stored?._storage_revision ?? 0) !== expected) {
         failure = new Error('Dự án đã được sửa ở tab khác. Tải JSON dự phòng trước khi mở lại dự án.');
         tx.abort();
         return;
@@ -121,7 +140,8 @@ export async function restoreProject() {
   const id = localStorage.getItem('lessonai-active-project');
   if (id) {
     const saved = await loadProject(id);
-    if (saved) return saved;
+    // A Bài giảng bản 3 under the same ID belongs to the Bàn làm việc; the old studio never reopens it.
+    if (saved?.schema_version === LEGACY_SCHEMA_VERSION) return saved;
   }
   const raw = sessionStorage.getItem('lessonai_slide_deck_json_v1');
   if (raw && !localStorage.getItem('lessonai-v1-migrated')) {

@@ -396,7 +396,7 @@ class LLMGateway:
             ]
 
         if task_type in ("lesson_plan", "lesson_architect", "lesson_author", "lesson_repair"):
-            # 1. Soạn Kế hoạch bài dạy 5512 & các vai trò trong chuỗi Giáo án
+            # 1. Soạn Kế hoạch bài dạy 5512 (Ưu tiên OpenRouter nếu có, sau đó Google, Groq)
             if self.openrouter_key and "openrouter:deepseek/deepseek-chat" not in self._dead_models:
                 routes.append(ProviderRoute("openrouter", "deepseek/deepseek-chat", "https://openrouter.ai/api/v1", self.openrouter_key))
             if self.gemini_key:
@@ -409,7 +409,7 @@ class LLMGateway:
                 routes.append(ProviderRoute("openrouter", "meta-llama/llama-3.3-70b-instruct", "https://openrouter.ai/api/v1", self.openrouter_key))
 
         elif task_type in ("slide", "slide_narrative", "slide_visual_quiz", "slide_repair", "outline"):
-            # 2. Sinh cấu trúc Slide bài giảng & các vai trò trong chuỗi Slide/Outline
+            # 2. Sinh cấu trúc Slide bài giảng (Ưu tiên OpenRouter nếu có, sau đó Groq LPU, Google)
             if self.openrouter_key and "openrouter:deepseek/deepseek-chat" not in self._dead_models:
                 routes.append(ProviderRoute("openrouter", "deepseek/deepseek-chat", "https://openrouter.ai/api/v1", self.openrouter_key))
             if self.groq_key:
@@ -443,8 +443,6 @@ class LLMGateway:
 
         else:
             # Tuyến mặc định an toàn
-            if self.openrouter_key and "openrouter:deepseek/deepseek-chat" not in self._dead_models:
-                routes.append(ProviderRoute("openrouter", "deepseek/deepseek-chat", "https://openrouter.ai/api/v1", self.openrouter_key))
             if self.gemini_key and google_models:
                 routes.extend(ProviderRoute("google", m, api_key=self.gemini_key) for m in google_models[:3])
             if self.groq_key and groq_models:
@@ -462,6 +460,7 @@ class LLMGateway:
         model_provider: Optional[str] = None,
         model_id: Optional[str] = None,
         *,
+        single_attempt: bool = False,
         role_name: Optional[str] = None,
         prompt_name: Optional[str] = None,
         prompt_version: Optional[str] = None,
@@ -470,7 +469,7 @@ class LLMGateway:
         Thực thi sinh dữ liệu có cấu trúc Pydantic Schema qua chuỗi Fallback thông minh.
         Tích hợp Exponential Backoff 4s -> 8s khi gặp lỗi 429/RESOURCE_EXHAUSTED.
         Tự động chuyển mạch tức thời sang Provider tiếp theo (Google -> Groq -> OpenRouter).
-        Ghi nhận đầy đủ Langfuse Generation, Token Usage (input/output/total) và metadata vai trò.
+        Ghi nhận Langfuse Generation & Token Usage (input/output/total).
         """
         deadline = time.monotonic() + 45
         routes = self.get_active_routes(task_type)
@@ -489,6 +488,8 @@ class LLMGateway:
                 "Không tìm thấy tuyến LLM khả dụng. Kiểm tra API key, quyền truy cập và danh sách model."
             )
 
+        if single_attempt:
+            routes = routes[:1]
         last_error = None
         start_time = time.time()
         gen_name = role_name or prompt_name or task_type
@@ -497,7 +498,7 @@ class LLMGateway:
             attempt_start = time.time()
 
             # Hỗ trợ tối đa 2 lần thử nội bộ trên từng route có kèm Exponential Backoff nếu chạm trần 429
-            max_route_attempts = 2 if route.provider_id == "google" else 1
+            max_route_attempts = 2 if route.provider_id == "google" and not single_attempt else 1
 
             for route_attempt in range(max_route_attempts):
                 remaining=deadline-time.monotonic()
@@ -521,7 +522,10 @@ class LLMGateway:
                         config = genai_types.GenerateContentConfig(
                             system_instruction=system_prompt,
                             response_mime_type="application/json",
-                            http_options={"timeout":int(min(20,remaining)*1000)},
+                            http_options={
+                                "timeout": int(min(20, remaining) * 1000),
+                                **({"retry_options": {"attempts": 1}} if single_attempt else {}),
+                            },
                             response_schema=to_gemini_response_schema(response_schema),
                             temperature=temperature,
                             automatic_function_calling=genai_types.AutomaticFunctionCallingConfig.model_validate({"disable": True})
@@ -588,7 +592,9 @@ class LLMGateway:
                             raw_text = completion.choices[0].message.content or "{}"
                         except Exception as groq_err:
                             err_text = str(groq_err).lower()
-                            if "failed to generate json" in err_text or "failed_generation" in err_text or "json_validate_failed" in err_text:
+                            if not single_attempt and any(marker in err_text for marker in (
+                                "failed to generate json", "failed_generation", "json_validate_failed",
+                            )):
                                 print(f"[LLM Gateway] Groq json_object bị từ chối do thẻ suy luận/cú pháp, đang thử lại chế độ tự làm sạch JSON trên '{route.model_name}'...")
                                 completion = self.groq_client.with_options(timeout=min(20,remaining),max_retries=0).chat.completions.create(
                                     model=route.model_name,
@@ -838,7 +844,7 @@ class LLMGateway:
                         "provider": route.provider_id,
                         "model": route.model_name,
                         "status": "failed",
-                        "error": str(e)[:120],
+                        "error": type(e).__name__,
                         "latency_sec": latency
                     })
                     continue

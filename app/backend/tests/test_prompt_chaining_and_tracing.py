@@ -1,4 +1,9 @@
-"""Bộ kiểm thử toàn diện cho kiến trúc Role-Based Prompt Chaining & Langfuse v5 Observability."""
+"""Bộ kiểm thử toàn diện cho kiến trúc Role-Based Prompt Chaining & Langfuse v5 Observability.
+
+Viết cho `main` (fda9680), điều chỉnh khi gộp `feature/ban-lam-viec`: chuỗi bản 2 không còn nhận
+`outline_slides`, không bù nội dung mẫu khi một vai trò lỗi (ADR 0001), và Gate 3 của Slide là
+`gate.slide_contracts` (khối 3D `KINDS`, `block_errors`, trích dẫn) thay cho kiểm tra định lý SGK.
+"""
 
 from contextlib import contextmanager
 from types import SimpleNamespace
@@ -22,6 +27,7 @@ from lessonai.schemas.schemas import (
     ExecutionSteps,
     LessonActivity,
     LessonPlanSchema,
+    OutlineResponse,
     OutlineSlideItem,
 )
 from lessonai.schemas.slide_schema import (
@@ -134,14 +140,12 @@ def _make_sample_blueprint() -> LessonBlueprintSchema:
     )
 
 
-def test_lesson_plan_role_chain_happy_path_and_outline_forwarding(monkeypatch):
-    """Kiểm tra chuỗi Giáo án chạy tuần tự Vai trò 1 (Architect) -> Vai trò 2 (Activity Author) và nhận Dàn ý Trạm 2."""
+def test_lesson_plan_role_chain_happy_path(monkeypatch):
+    """Kiểm tra chuỗi Giáo án chạy tuần tự Vai trò 1 (Architect) -> Vai trò 2 (Activity Author)."""
     called_roles: List[str] = []
-    captured_prompts: List[str] = []
 
     def mock_generate_structured(prompt, system_prompt, response_schema, task_type="lesson_plan", **kwargs):
         called_roles.append(kwargs.get("role_name"))
-        captured_prompts.append(prompt)
         if response_schema is LessonBlueprintSchema:
             return _make_sample_blueprint()
         if response_schema is LessonActivitiesPayload:
@@ -150,28 +154,15 @@ def test_lesson_plan_role_chain_happy_path_and_outline_forwarding(monkeypatch):
 
     monkeypatch.setattr("lessonai.llm.gateway.llm_gateway.generate_structured", mock_generate_structured)
 
-    outline_slides = [
-        OutlineSlideItem(
-            id="outline-slide-1",
-            slide_index=1,
-            title="Khởi động: Tàu lượn siêu tốc và đạo hàm",
-            activity_type="Khởi động",
-            visual_type="2D Function Plot",
-            bullet_points=["Quan sát độ dốc đường ray theo đạo hàm f'(x)"],
-        )
-    ]
-
     plan, val_result = generate_lesson_plan(
         topic="Tính đơn điệu và cực trị của hàm số",
         subject="Toán học",
         grade=12,
         lesson_id="M12-C1-B1",
-        outline_slides=outline_slides,
         session_id="session-test-001",
     )
 
     assert called_roles == ["role.pedagogical_architect", "role.lesson_activity_author"]
-    assert all("Tàu lượn siêu tốc và đạo hàm" in p for p in captured_prompts)
     assert val_result.is_valid is True
     assert plan.lesson_title == "Bài 1: Tính đơn điệu và cực trị của hàm số (Role Architect)"
     assert len(plan.activities) == 4
@@ -212,8 +203,8 @@ def test_lesson_plan_conditional_role3_repair_triggered_on_gate2_failure(monkeyp
     assert sum(a.time_minutes for a in plan.activities) == 45
 
 
-def test_lesson_plan_partial_fallback_preserves_role1_blueprint(monkeypatch):
-    """Khi Vai trò 1 thành công nhưng Vai trò 2 hết quota, hệ thống phải giữ nguyên mục tiêu của Vai trò 1."""
+def test_lesson_plan_role2_failure_raises_without_sample_content(monkeypatch):
+    """ADR 0001: Vai trò 2 hết quota thì báo lỗi và giữ Bản soạn, không ghép nội dung mẫu vào giáo án."""
     def mock_generate_structured(prompt, system_prompt, response_schema, task_type="lesson_plan", **kwargs):
         if response_schema is LessonBlueprintSchema:
             bp = _make_sample_blueprint()
@@ -225,16 +216,13 @@ def test_lesson_plan_partial_fallback_preserves_role1_blueprint(monkeypatch):
 
     monkeypatch.setattr("lessonai.llm.gateway.llm_gateway.generate_structured", mock_generate_structured)
 
-    plan, val_result = generate_lesson_plan(
-        topic="Tính đơn điệu và cực trị của hàm số",
-        subject="Toán học",
-        grade=12,
-        lesson_id="M12-C1-B1",
-    )
-
-    assert plan.knowledge_goals == ["Mục tiêu độc quyền từ Kiến trúc sư Sư phạm Vai trò 1"]
-    assert len(plan.activities) == 4
-    assert any("Partial Fallback" in w for w in val_result.warnings)
+    with pytest.raises(RuntimeError, match="bản soạn được giữ nguyên"):
+        generate_lesson_plan(
+            topic="Tính đơn điệu và cực trị của hàm số",
+            subject="Toán học",
+            grade=12,
+            lesson_id="M12-C1-B1",
+        )
 
 
 def test_slide_deck_role_chain_and_targeted_repair(monkeypatch):
@@ -242,8 +230,8 @@ def test_slide_deck_role_chain_and_targeted_repair(monkeypatch):
     Kiểm tra chuỗi Slide chạy tuần tự:
       Vai trò 1 (`role.slide_narrative_designer`)
       -> Vai trò 2 (`role.visual_and_quiz_specialist`)
-      -> Gate 3 phát hiện công thức sai định lý SGK (\\Delta = b^2 + 4ac)
-      -> Vai trò 3 (`role.slide_repair_reviewer`) chỉ nhận đúng slide bị lỗi để vá!
+      -> Gate 3 (`gate.slide_contracts`) từ chối khối 3D ngoài tập `KINDS`
+      -> Vai trò 3 (`role.slide_repair_reviewer`) nhận lỗi hợp đồng và chỉ vá đúng slide đó.
     """
     called_roles: List[str] = []
     repair_prompt_captured: List[str] = []
@@ -263,10 +251,10 @@ def test_slide_deck_role_chain_and_targeted_repair(monkeypatch):
                         layout=SlideLayout.CONCEPT_HIGHLIGHT,
                         title="Slide 1: Công thức nghiệm bậc hai",
                         bullet_points=["Xét phương trình $ax^2 + bx + c = 0$ ($a \\neq 0$)."],
-                        # Cố tình cài lỗi sai dấu biệt thức Delta (\Delta = b^2 + 4ac) để Gate 3 bắt lỗi!
-                        main_definition_latex=r"\Delta = b^2 + 4ac",
+                        main_definition_latex=r"\Delta = b^2 - 4ac",
                         teacher_note="GV nhấn mạnh dấu của biệt thức Delta.",
                         needs_chart=False,
+                        needs_3d=True,
                         needs_quiz=False,
                     ),
                     SlideNarrativeItem(
@@ -292,6 +280,8 @@ def test_slide_deck_role_chain_and_targeted_repair(monkeypatch):
         if response_schema is SlideVisualQuizBatchSchema:
             return SlideVisualQuizBatchSchema(
                 items=[
+                    # Cố tình đề xuất khối trụ, ngoài tập `KINDS`, để Gate 3 kích hoạt Vai trò 3.
+                    SlideVisualQuizItem(slide_index=1, has_3d=True, polyhedron_type="hinh_tru"),
                     SlideVisualQuizItem(
                         slide_index=2,
                         chart_spec=ChartSpec(
@@ -338,10 +328,12 @@ def test_slide_deck_role_chain_and_targeted_repair(monkeypatch):
                         slide_index=1,
                         type=SlideType.CONCEPT_SLIDE,
                         layout=SlideLayout.CONCEPT_HIGHLIGHT,
-                        title="Slide 1: Công thức nghiệm bậc hai (Đã hiệu đính SGK)",
+                        title="Slide 1: Công thức nghiệm bậc hai",
                         bullet_points=["Xét phương trình $ax^2 + bx + c = 0$ ($a \\neq 0$)."],
                         main_definition_latex=r"\Delta = b^2 - 4ac",
-                        teacher_note="GV nhấn mạnh dấu trừ trong biệt thức Delta chuẩn SGK.",
+                        teacher_note="GV nhấn mạnh dấu của biệt thức Delta.",
+                        has_3d=True,
+                        polyhedron_type="cube",
                     )
                 ]
             )
@@ -364,15 +356,15 @@ def test_slide_deck_role_chain_and_targeted_repair(monkeypatch):
         "role.slide_repair_reviewer",
     ]
     assert len(repair_prompt_captured) == 1
-    assert "b^2 + 4ac" in repair_prompt_captured[0]
-    assert deck.slides[0].main_definition_latex == r"\Delta = b^2 - 4ac"
+    assert "Loại khối 3D không thuộc tập chuẩn" in repair_prompt_captured[0]
+    assert deck.slides[0].polyhedron_type == "cube"
     assert deck.slides[1].chart_spec is not None
     assert deck.slides[1].chart_spec.expression == "x**2 - 4"
     assert len(deck.slides[2].quiz_options) == 4
 
 
-def test_slide_deck_partial_fallback_preserves_role1_narrative(monkeypatch):
-    """Khi Vai trò 1 của Slide thành công nhưng Vai trò 2 hết quota, phải bảo toàn kịch bản của Vai trò 1."""
+def test_slide_deck_role2_failure_raises_without_sample_content(monkeypatch):
+    """ADR 0001: Vai trò 2 của Slide hết quota thì lỗi được báo ra, không bù câu hỏi mẫu cho slide trắc nghiệm."""
     def mock_generate_structured(prompt, system_prompt, response_schema, task_type="slide", **kwargs):
         if response_schema is SlideNarrativeDeckSchema:
             return SlideNarrativeDeckSchema(
@@ -392,7 +384,7 @@ def test_slide_deck_partial_fallback_preserves_role1_narrative(monkeypatch):
                         slide_index=2,
                         type=SlideType.EXERCISE_SLIDE,
                         layout=SlideLayout.QUIZ_OPTION,
-                        title="Slide 2: Trắc nghiệm cần bù từ Partial Fallback",
+                        title="Slide 2: Câu hỏi trắc nghiệm",
                         bullet_points=["Câu hỏi trắc nghiệm từ Role 1"],
                         needs_quiz=True,
                     ),
@@ -404,17 +396,13 @@ def test_slide_deck_partial_fallback_preserves_role1_narrative(monkeypatch):
 
     monkeypatch.setattr("lessonai.llm.gateway.llm_gateway.generate_structured", mock_generate_structured)
 
-    deck = generate_slide_deck(
-        topic="Tính đơn điệu và cực trị của hàm số",
-        subject="Toán học",
-        grade=12,
-        lesson_id="M12-C1-B1",
-    )
-
-    assert deck.presentation_title == "Bộ Slide Độc Quyền Từ Vai Trò 1"
-    assert deck.slides[0].title == "Slide 1: Tình huống khởi động độc quyền từ Role 1"
-    assert deck.slides[1].layout == SlideLayout.QUIZ_OPTION
-    assert len(deck.slides[1].quiz_options) == 4
+    with pytest.raises(RuntimeError, match="429"):
+        generate_slide_deck(
+            topic="Tính đơn điệu và cực trị của hàm số",
+            subject="Toán học",
+            grade=12,
+            lesson_id="M12-C1-B1",
+        )
 
 
 
@@ -422,10 +410,9 @@ def test_langfuse_full_observability_tree_and_token_usage(monkeypatch):
     """
     Kiểm tra cây quan sát Langfuse v5 ghi nhận đầy đủ:
       - `chain` (kèm session_id)
-      - `retriever`
       - `agent` (kèm prompt_name & prompt_version)
       - `evaluator`
-      - `scores` (blueprint_5512_valid, cv5512_valid, fallback_used...)
+      - `scores` (outline_valid, blueprint_5512_valid, cv5512_valid, repair_triggered), không có `fallback_used`
     và hàm `extract_usage_details` đọc đúng token usage từ Google GenAI & Groq/OpenRouter.
     """
     fake_client = FakeLangfuseClient()
@@ -455,6 +442,15 @@ def test_langfuse_full_observability_tree_and_token_usage(monkeypatch):
                 output="{\"ok\": true}",
                 usage_details=tracing.extract_usage_details(fake_google_res, "google"),
             )
+            if response_schema is OutlineResponse:
+                return OutlineResponse(
+                    title="Dàn ý: Tính đơn điệu và cực trị của hàm số",
+                    num_slides=4,
+                    subject="Toán học",
+                    grade=12,
+                    class_proficiency="standard",
+                    outline_slides=[OutlineSlideItem(title=f"Mục {i}") for i in range(1, 5)],
+                )
             if response_schema is LessonBlueprintSchema:
                 return _make_sample_blueprint()
             if response_schema is LessonActivitiesPayload:
@@ -465,6 +461,7 @@ def test_langfuse_full_observability_tree_and_token_usage(monkeypatch):
 
         outline_res = generate_presentation_outline(
             topic="Tính đơn điệu và cực trị của hàm số",
+            num_slides=4,
             lesson_id="M12-C1-B1",
             session_id="session-langfuse-999",
         )
@@ -481,17 +478,15 @@ def test_langfuse_full_observability_tree_and_token_usage(monkeypatch):
         obs_names = [o.get("name") for o in fake_client.observations]
 
         assert "chain" in obs_types
-        assert "retriever" in obs_types
         assert "agent" in obs_types
         assert "generation" in obs_types
         assert "evaluator" in obs_types
 
         assert "chain.lesson_plan_generation" in obs_names
-        assert "rag.lesson_plan_context" in obs_names
         assert "role.pedagogical_architect" in obs_names
         assert "gate.blueprint_5512" in obs_names
         assert "role.lesson_activity_author" in obs_names
-        assert "gate.validate_5512" in obs_names
+        assert "gate.validate_5512_and_outline" in obs_names
 
         generations = [o for o in fake_client.observations if o.get("as_type") == "generation"]
         assert len(generations) >= 2
@@ -499,7 +494,8 @@ def test_langfuse_full_observability_tree_and_token_usage(monkeypatch):
         assert generations[-1].get("version") == "v1.0"
 
         score_names = {s["name"] for s in fake_client.scores}
-        assert {"blueprint_5512_valid", "cv5512_valid", "repair_triggered", "fallback_used"}.issubset(score_names)
+        assert {"outline_valid", "blueprint_5512_valid", "cv5512_valid", "repair_triggered"}.issubset(score_names)
+        assert "fallback_used" not in score_names  # ADR 0001: không còn nhánh dự phòng
 
         # Kiểm tra thêm extract_usage_details cho chuẩn OpenAI/Groq/OpenRouter
         fake_openai_res = SimpleNamespace(

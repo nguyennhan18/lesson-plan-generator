@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from lessonai.api.routes import (
     web, system, curriculum, presentation, lesson_plan, exports,
-    slides, chat, ingest, validation, geometry, visuals, quality,
+    slides, chat, ingest, validation, geometry, visuals, quality, math_spec,
 )
 
 
@@ -58,6 +58,12 @@ def create_app() -> FastAPI:
         detail = {**detail, "request_id": getattr(request.state, "request_id", None)}
         return JSONResponse({"detail": detail}, status_code=error.status_code, headers=error.headers)
 
+    from lessonai.core.signing import SigningKeyUnavailable
+
+    @app.exception_handler(SigningKeyUnavailable)
+    async def signing_key_unavailable(request, error):
+        return JSONResponse({"detail": {"code": error.code, "message": str(error), "request_id": getattr(request.state, "request_id", None)}}, status_code=503)
+
     @app.exception_handler(RequestValidationError)
     async def validation_error(request, error):
         return JSONResponse({"detail": {"code":"validation_error", "message":"Dữ liệu không đúng cấu trúc", "request_id":getattr(request.state,"request_id",None),
@@ -75,7 +81,7 @@ def create_app() -> FastAPI:
     if assets.exists():
         app.mount("/assets", StaticFiles(directory=str(assets)), name="assets")
     for routes in (web, system, curriculum, presentation, lesson_plan, exports,
-                   slides, chat, ingest, validation, geometry, visuals, quality):
+                   slides, chat, ingest, validation, geometry, visuals, quality, math_spec):
         app.include_router(routes.router)
     return app
 

@@ -1,0 +1,215 @@
+{
+  "suite_id": "math12-gdpt2018-canonical-benchmark-v1",
+  "total_cases": 15,
+  "passed_cases": 15,
+  "technical_pass": true,
+  "categories": {
+    "valid": 5,
+    "faulty": 3,
+    "under_specified": 3,
+    "contradictory": 2,
+    "out_of_scope": 2
+  },
+  "teacher_signoff": {
+    "status": "pending_teacher_signoff",
+    "reviewer": null,
+    "reviewed_at": null,
+    "notes": "Khung bộ đề chuẩn và kỳ vọng kỹ thuật đã được thiết lập đầy đủ cho 5 nhóm (valid, faulty, under_specified, contradictory, out_of_scope). Bắt buộc phải có chữ ký nghiệm thu của giáo viên chuyên môn Toán 12 trước khi đóng cổng bàn giao."
+  },
+  "teacher_signoff_complete": false,
+  "handover_eligible": false,
+  "results": [
+    {
+      "case_id": "BM-VALID-01",
+      "category": "valid",
+      "lesson_id": "M12-C1-B1",
+      "passed": true,
+      "details": {
+        "plot_status": "computed",
+        "plot_segments_count": 1,
+        "quality_status": "needs_review",
+        "blocking_error_count": 0,
+        "approve_http_status": 200
+      }
+    },
+    {
+      "case_id": "BM-VALID-02",
+      "category": "valid",
+      "lesson_id": "M12-C1-B3",
+      "passed": true,
+      "details": {
+        "plot_status": "computed",
+        "plot_segments_count": 2,
+        "crosses_discontinuity": false,
+        "quality_status": "needs_review",
+        "blocking_error_count": 0,
+        "approve_http_status": 200
+      }
+    },
+    {
+      "case_id": "BM-VALID-03",
+      "category": "valid",
+      "lesson_id": "M12-C2-B1",
+      "passed": true,
+      "details": {
+        "scene_status": "constraints_checked",
+        "volume": 64.0,
+        "altitude_foot": [
+          0,
+          0,
+          0
+        ],
+        "quality_status": "needs_review",
+        "blocking_error_count": 0,
+        "approve_http_status": 200
+      }
+    },
+    {
+      "case_id": "BM-VALID-04",
+      "category": "valid",
+      "lesson_id": "M12-CD-B1",
+      "passed": true,
+      "details": {
+        "scene_status": "constraints_checked",
+        "volume": 16.0,
+        "altitude_foot": [
+          2.0,
+          2.0,
+          0
+        ],
+        "equal_lateral_edges": true,
+        "quality_status": "needs_review",
+        "blocking_error_count": 0,
+        "approve_http_status": 200
+      }
+    },
+    {
+      "case_id": "BM-VALID-05",
+      "category": "valid",
+      "lesson_id": "M12-CD-B1",
+      "passed": true,
+      "details": {
+        "scene_status": "constraints_checked",
+        "volume": 16.0,
+        "altitude_foot": [
+          0,
+          0,
+          0
+        ],
+        "equal_lateral_edges": false,
+        "quality_status": "needs_review",
+        "blocking_error_count": 0,
+        "approve_http_status": 200
+      }
+    },
+    {
+      "case_id": "BM-FAULTY-01",
+      "category": "faulty",
+      "lesson_id": "M12-C1-B1",
+      "passed": true,
+      "details": {
+        "quality_status": "blocked",
+        "blocking_error_count": 1,
+        "approve_http_status": 409
+      }
+    },
+    {
+      "case_id": "BM-FAULTY-02",
+      "category": "faulty",
+      "lesson_id": "M12-C4-B1",
+      "passed": true,
+      "details": {
+        "quality_status": "blocked",
+        "blocking_error_count": 1,
+        "approve_http_status": 409
+      }
+    },
+    {
+      "case_id": "BM-FAULTY-03",
+      "category": "faulty",
+      "lesson_id": "M12-C3-B1",
+      "passed": true,
+      "details": {
+        "quality_status": "blocked",
+        "blocking_error_count": 2,
+        "approve_http_status": 409
+      }
+    },
+    {
+      "case_id": "BM-UNDER-01",
+      "category": "under_specified",
+      "lesson_id": "M12-C1-B3",
+      "passed": true,
+      "details": {
+        "equality_result": {
+          "status": "unverified",
+          "reason": "Hai biểu thức khác miền xác định"
+        }
+      }
+    },
+    {
+      "case_id": "BM-UNDER-02",
+      "category": "under_specified",
+      "lesson_id": "M12-C1-B2",
+      "passed": true,
+      "details": {
+        "equality_result": {
+          "status": "unverified",
+          "reason": "Ngoài phạm vi kiểm chứng hiện tại"
+        }
+      }
+    },
+    {
+      "case_id": "BM-UNDER-03",
+      "category": "under_specified",
+      "lesson_id": "M12-CD-B1",
+      "passed": true,
+      "details": {
+        "visual_confirm_http_status": 422
+      }
+    },
+    {
+      "case_id": "BM-CONTRA-01",
+      "category": "contradictory",
+      "lesson_id": "M12-C2-B1",
+      "passed": true,
+      "details": {
+        "visual_confirm_http_status": 422,
+        "error_message": "Chiều cao hình lập phương phải bằng cạnh"
+      }
+    },
+    {
+      "case_id": "BM-CONTRA-02",
+      "category": "contradictory",
+      "lesson_id": "M12-C1-B1",
+      "passed": true,
+      "details": {
+        "quality_status": "blocked",
+        "blocking_error_count": 1,
+        "approve_http_status": 409
+      }
+    },
+    {
+      "case_id": "BM-OOS-01",
+      "category": "out_of_scope",
+      "lesson_id": "M12-CD-B2",
+      "passed": true,
+      "details": {
+        "visual_confirm_http_status": 422
+      }
+    },
+    {
+      "case_id": "BM-OOS-02",
+      "category": "out_of_scope",
+      "lesson_id": "M12-C4-B2",
+      "passed": true,
+      "details": {
+        "equality_result": {
+          "status": "unverified",
+          "reason": "Bậc đa thức ngoài phạm vi"
+        },
+        "unsafe_plot_http_status": 422
+      }
+    }
+  ]
+}

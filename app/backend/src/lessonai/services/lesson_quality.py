@@ -1,16 +1,12 @@
 """Independent lesson-plan acceptance and signed, content-bound teacher review."""
-import base64
-import hashlib
-import hmac
-import json
-import secrets
 import time
 from lessonai.schemas.schemas import LessonPlanSchema
 from lessonai.services.content_quality import _walk, check_formula
+from lessonai.services.expert_confirmation import apply_review, review_state, sign_review
 from lessonai.services.validation import validate_5512_lesson_plan
-from lessonai.services.visual_requirements import canonical, fingerprint
+from lessonai.services.visual_requirements import fingerprint
 
-_KEY = secrets.token_bytes(32)
+_PURPOSE = "lesson_plan_review"
 
 
 def plan_snapshot(plan):
@@ -71,36 +67,20 @@ def evaluate_plan(plan):
 
 def reviewed_plan(plan):
     try:
-        token = plan.get('review_token') or ''
-        if len(token) > 4000:
-            return False
-        payload, signature = token.split('.')
-        if not hmac.compare_digest(signature, hmac.new(_KEY, payload.encode(), hashlib.sha256).hexdigest()):
-            return False
-        record = json.loads(base64.urlsafe_b64decode(payload))
-        return (record['kind'] == 'lesson_plan' and record['expires'] > time.time()
-                and record['hash'] == fingerprint(plan_snapshot(plan)))
+        return review_state(_PURPOSE, plan.get('review_token'), plan_snapshot(plan)) == 'valid'
     except (ValueError, TypeError, KeyError):
         return False
 
 
 def check_plan(plan):
-    report = evaluate_plan(plan)
-    if report['status'] != 'blocked' and reviewed_plan(plan):
-        report['status'] = 'ready'
-        report['review_method'] = 'teacher_confirmation_for_this_plan'
-    return report
+    return apply_review(evaluate_plan(plan), _PURPOSE, plan.get('review_token'), plan_snapshot(plan),
+                        'teacher_confirmation_for_this_plan')
 
 
 def sign_plan_review(plan, report, owner):
     ids = sorted(i['issue_id'] for i in report['issues'] if i['severity'] == 'warning')
-    record = {'kind': 'lesson_plan', 'method': 'issue_review_v1',
-              'hash': fingerprint(plan_snapshot(plan)), 'issues_hash': fingerprint(ids),
-              'expires': int(time.time()) + 86400, 'confirmed_at': int(time.time()),
-              'reviewer': hashlib.sha256(owner.encode()).hexdigest()[:16]}
-    payload = base64.urlsafe_b64encode(canonical(record).encode()).decode()
-    token = payload + '.' + hmac.new(_KEY, payload.encode(), hashlib.sha256).hexdigest()
-    review = {'reviewed_issue_ids': ids, 'content_fingerprint': record['hash'],
+    token, record = sign_review(_PURPOSE, plan_snapshot(plan), ids, owner)
+    review ={'reviewed_issue_ids': ids, 'content_fingerprint': record['hash'],
               'confirmed_at': record['confirmed_at'], 'reviewer': record['reviewer']}
     return {'review_token': token, 'report': {**report, 'status': 'ready',
             'review_method': 'teacher_confirmation_for_this_plan', 'review_record': review}}
