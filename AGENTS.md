@@ -80,15 +80,14 @@ Single-context layout with root `GLOSSARY.md` and `docs/adr/`. Before exploring 
 │       ├── src/shared/             # api/client.js, storage/projectStore.js (v2 + IndexedDB), storage/lessonProject.js (Bài giảng bản 3), math/, validation/, components/
 │       ├── tests/                  # Node unit/contract tests (`*.test.js`)
 │       └── e2e/                    # Playwright real-backend tests (`workflows.spec.js`, `ban-lam-viec.spec.js`)
-├── docs/                           # Multi-role decisions under architecture/ and math gate ADR under adr/
+├── docs/                           # adr/ (decisions), agents/, architecture/ (repository.md maps the repo), design/, rag/; requirements/ stays local (ADR 0012)
 ├── project-management/             # PROGRESS.md and archived update log
-├── quality/                        # audits/, issue-registries/, acceptance/, test-reports/
-├── reports/                        # Immutable audit logs and test evidence
+├── reports/                        # Immutable evidence; ignored except directories an ADR or issue cites (ADR 0012)
 ├── data/                           # Datasets, fixtures (`golden_set.json`), raw corpora
 ├── scripts/quality/                # Benchmark, source review, RAG triage and latency CLIs
 └── infra/                          # Deployment docs, `env.example`
 ```
-- The tree includes local runtime paths such as `app/backend/data/`, `app/backend/output/`, and `app/frontend/e2e/`. Use `git ls-files` to verify what a checkout contains. The baseline workflow runs `test_rag_question_triage.py` and `test_retrieval_fixture.py` on Python 3.13.
+- The tree includes local-only paths: `app/backend/data/`, `app/backend/output/`, `data/raw/` and `docs/requirements/` stay out of Git (ADR 0012). Use `git ls-files` to verify what a checkout contains. The baseline workflow runs `test_rag_question_triage.py` and `test_retrieval_fixture.py` on Python 3.13.
 - On `feat/multi-role-orchestrator`, see `docs/architecture/multi-role-generation-decisions.md` and `docs/adr/0001-verified-chi-do-may-chung-minh.md` before changing the multi-role contracts. Issue #19 records the approved API scope. At the baseline, issue #20 implements only `POST /api/v1/math-spec/verify` in `api/routes/math_spec.py`, backed by `services/math_spec.py`. The evaluate, approve, and orchestrator endpoints remain planned.
 
 ## 6. Common Commands

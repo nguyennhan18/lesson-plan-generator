@@ -1,5 +1,8 @@
 # =========================================================
 #  Git Ignore Configuration - LessonAI-5512
+#  Repo công khai: mặc định track mọi thứ. Chỉ chặn artifact sinh ra khi chạy,
+#  bí mật, cấu hình cá nhân, và nội dung riêng tư hoặc có bản quyền.
+#  Lý do và danh sách: docs/adr/0012-track-mac-dinh-chan-noi-dung-rieng-tu.md
 # =========================================================
 
 # OS metadata
@@ -17,6 +20,8 @@ build/
 # Node / Frontend
 node_modules/
 app/frontend/dist/
+app/frontend/test-results/
+app/frontend/playwright-report/
 
 # Virtual environments & legacy folder
 venv/
@@ -24,64 +29,37 @@ venv/
 env/
 project/
 
-# Secrets & Environment
+# Bí mật và cấu hình cục bộ
 .env
 *.env
 !.env.example
-!infra/env.example
+.claude/settings.local.json
 
-# Editor / IDE
+# Editor / IDE (cấu hình cá nhân)
 *.swp
 .idea/
 .vscode/
 *.code-workspace
 ~$*
 
-# Binary documents & presentation archives
+# Tài liệu Office/PDF: thường chứa nội dung SGK hoặc hồ sơ đồ án
 *.docx
 *.pptx
 *.pdf
 
-# Data directories (Root and Backend runtime corpus)
-data/
+# Học liệu SGK gốc và corpus runtime (bản quyền)
+data/raw/
+data/processed/
 app/backend/data/
 
-# Generated runtime output files
+# Hồ sơ đồ án (riêng tư)
+docs/requirements/
+
+# Output sinh ra khi chạy
 app/backend/output/
+app/backend/dist/
 *.log
 
-# Python packaging and build metadata
-app/backend/dist/
-
-# Browser evidence & test artifacts
-app/frontend/test-results/
-app/frontend/playwright-report/
-
-# Documents, Reports & Planning files (local-only, not pushed to Git)
-docs/*
-!docs/retrieval-fixture-validator.md
-reports/
-project-management/
-quality/
-PROGRESS.md
-DECISIONS.md
-SKILL.md
-AGENTS.md
-CONTRIBUTING.md
-Makefile
-.claude/
-.github/
-
-# Test suites & verification scripts (local-only, not pushed to Git)
-app/backend/tests/*
-!app/backend/tests/test_retrieval_fixture.py
-!/app/backend/tests/test_office_math.py
-!/app/backend/tests/test_day3_parsers.py
-app/frontend/tests/
-app/frontend/e2e/
-scripts/
-!/scripts/
-/scripts/*
-!/scripts/quality/
-/scripts/quality/*
-!/scripts/quality/prepare-source-review.py
+# Bằng chứng thực nghiệm: mặc định không công bố, chỉ giữ thư mục được ADR hoặc issue dẫn chiếu
+reports/*
+!reports/math12-benchmark-baseline-20261122-DDw4sJ/

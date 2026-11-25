@@ -1,0 +1,144 @@
+{
+  "version": "3.1",
+  "description": "Golden Set 10 bài học chia theo nguồn (6 pdf2xml CT 2018 + 4 PPTX CT 2006) và 5 deck mẫu giáo viên làm chuẩn tham chiếu sư phạm.",
+  "golden_lessons": [
+    {
+      "id": "GS-PDF-01",
+      "lesson_id": "M12-C1-B1",
+      "title": "Bài 1: Tính đơn điệu và cực trị của hàm số",
+      "topic_group": "Hàm số & Đạo hàm",
+      "source_kind": "pdf2xml",
+      "curriculum": "ct2018",
+      "source_path": "slides_kntt12/xml/01_1YtSNTm5ArdI9YVKpX-LcfcF1qlqz3Fpg.xml",
+      "original_filename": "Chương 1. Bài 1 Tính đơn điệu và cực trị của hàm số.pdf",
+      "notes": "Bài trọng tâm M3 (end-to-end), chứa đầy đủ 5 lỗi S2-S5 trên bản raw."
+    },
+    {
+      "id": "GS-PDF-02",
+      "lesson_id": "M12-C2-B1",
+      "title": "Bài 6: Vectơ trong không gian",
+      "topic_group": "Hình học không gian (nhiều hình vẽ)",
+      "source_kind": "pdf2xml",
+      "curriculum": "ct2018",
+      "source_path": "slides_kntt12/xml/07_1aYwpFHsBxNVVUQ_kBcvyD4yTP-clRvMk.xml",
+      "original_filename": "Chương 2. Bài 6 Vectơ trong không gian.pdf",
+      "notes": "Đại diện bài có mật độ hình vẽ minh họa 3D và ký hiệu vectơ cao."
+    },
+    {
+      "id": "GS-PDF-03",
+      "lesson_id": "M12-C3-B1",
+      "title": "Bài 9: Khoảng biến thiên và khoảng tứ phân vị của mẫu số liệu ghép nhóm",
+      "topic_group": "Thống kê ghép nhóm",
+      "source_kind": "pdf2xml",
+      "curriculum": "ct2018",
+      "source_path": "slides_kntt12/xml/11_1sTToB3Lckgu6jgvk5FYjjO3VgkexHjIv.xml",
+      "original_filename": "Chương 3. Bài 9 Khoảng biến thiên và khoảng tứ phân vị 12 kntt.pdf",
+      "notes": "Chủ đề mới của CT 2018 (không có PPTX CT 2006), nhiều bảng số liệu ghép nhóm."
+    },
+    {
+      "id": "GS-PDF-04",
+      "lesson_id": "M12-C4-B2",
+      "title": "Bài 12: Tích phân",
+      "topic_group": "Nguyên hàm – Tích phân",
+      "source_kind": "pdf2xml",
+      "curriculum": "ct2018",
+      "source_path": "slides_kntt12/xml/15_15k10AyhMH3n2RBpWO3XPAP_NHau7Q2vL.xml",
+      "original_filename": "Chương 4. Bài 12 Tích phân.pdf",
+      "notes": "Chứa nhiều ký hiệu tích phân xác định, cận trên/dưới và công thức diện tích."
+    },
+    {
+      "id": "GS-PDF-05",
+      "lesson_id": "M12-C5-B1",
+      "title": "Bài 14: Phương trình mặt phẳng",
+      "topic_group": "Phương pháp tọa độ trong không gian Oxyz",
+      "source_kind": "pdf2xml",
+      "curriculum": "ct2018",
+      "source_path": "slides_kntt12/xml/19_1eeAp5c_vl_5sWVcemddnHI0qi2gJaLx_.xml",
+      "original_filename": "Chương 5. Bài 14 Phương trình mặt phẳng.pdf",
+      "notes": "Đại diện chương Oxyz (chỉ có nguồn pdf2xml trong repo, dùng nghiệm thu DoD #6)."
+    },
+    {
+      "id": "GS-PDF-06",
+      "lesson_id": "M12-C6-B1",
+      "title": "Bài 18: Xác suất có điều kiện",
+      "topic_group": "Xác suất có điều kiện & Bayes",
+      "source_kind": "pdf2xml",
+      "curriculum": "ct2018",
+      "source_path": "slides_kntt12/xml/24_1p7n2VJl9M_KlsFH0HgmxcAvd4rEeVHTI.xml",
+      "original_filename": "Chương 6. Bài 18 Xác suất có điều kiện.pdf",
+      "notes": "Chủ đề mới của CT 2018 (không có PPTX CT 2006), dùng nghiệm thu DoD #6."
+    },
+    {
+      "id": "GS-PPTX-01",
+      "lesson_id": "M12-C1-B1",
+      "title": "Sự đồng biến, nghịch biến của hàm số (Chương I GT12)",
+      "topic_group": "Chương I Giải tích CT 2006",
+      "source_kind": "pptx",
+      "curriculum": "ct2006",
+      "source_path": "Giáo án PPT-GT12 HKI/Tiết-1-Bài-1-Bùi-Ngọc-Diệp.pptx",
+      "notes": "16 slide, 13 slide có OMML, 0 OLE, 10 slide có hình/bảng biến thiên."
+    },
+    {
+      "id": "GS-PPTX-02",
+      "lesson_id": "M12-C1-B2",
+      "title": "Giá trị lớn nhất và giá trị nhỏ nhất của hàm số (Chương I GT12)",
+      "topic_group": "Chương I Giải tích CT 2006",
+      "source_kind": "pptx",
+      "curriculum": "ct2006",
+      "source_path": "Giáo án PPT-GT12 HKI/Tiết-7-8-Bài-3-Chương-1-GT12-đã sửa.pptx",
+      "notes": "16 slide, 15 slide OMML, 3 slide OLE MathType (kiểm thử cả nhánh giữ ảnh math_image)."
+    },
+    {
+      "id": "GS-PPTX-03",
+      "lesson_id": "M12-C1-B4",
+      "title": "Khảo sát sự biến thiên và vẽ đồ thị của hàm số (Chương I GT12)",
+      "topic_group": "Chương I Giải tích CT 2006",
+      "source_kind": "pptx",
+      "curriculum": "ct2006",
+      "source_path": "Giáo án PPT-GT12 HKI/Tiết-16-ChuongI-Giai-Tich-12_chinh.pptx",
+      "notes": "17 slide, 15 slide OMML, 0 OLE, 13 slide có đồ thị/bảng biến thiên."
+    },
+    {
+      "id": "GS-PPTX-04",
+      "lesson_id": "M12-HH-C1",
+      "title": "Khái niệm về thể tích của khối đa diện (Chương I HH12)",
+      "topic_group": "Hình học không gian HKI CT 2006",
+      "source_kind": "pptx",
+      "curriculum": "ct2006",
+      "source_path": "Dự án PPT-HH12 kì I/Tiết-4-Chương-1-HH12-Liên -Dũng -Tiển.pptx",
+      "notes": "17 slide, 13 slide OMML, 0 OLE, 15 slide có hình vẽ không gian."
+    }
+  ],
+  "teacher_reference_decks": [
+    {
+      "ref_id": "REF-01",
+      "title": "Tiết 1 - Bài 1: Sự đồng biến, nghịch biến của hàm số",
+      "source_path": "Giáo án PPT-GT12 HKI/Tiết-1-Bài-1-Bùi-Ngọc-Diệp.pptx",
+      "pedagogical_strengths": "Bố cục Khởi động -> Hoạt động khám phá -> Hộp Định lí bo góc có nhãn đè viền trên -> Ví dụ có bảng biến thiên -> Trắc nghiệm củng cố."
+    },
+    {
+      "ref_id": "REF-02",
+      "title": "Tiết 9 - Bài 3: Giá trị lớn nhất và giá trị nhỏ nhất của hàm số",
+      "source_path": "Giáo án PPT-GT12 HKI/Tiết-9-bài-3-Chương-1-GT12_Nguyễn Thanh Thảo pb.pptx",
+      "pedagogical_strengths": "31 slide chi tiết, trình bày rõ các bước tìm GTLN/GTNN trên đoạn và trên khoảng, có bài toán thực tế."
+    },
+    {
+      "ref_id": "REF-03",
+      "title": "Tiết 16 - Bài 5: Khảo sát sự biến thiên và vẽ đồ thị của hàm số",
+      "source_path": "Giáo án PPT-GT12 HKI/Tiết-16-ChuongI-Giai-Tich-12_chinh.pptx",
+      "pedagogical_strengths": "Chuẩn mực về kết hợp các bước khảo sát với bảng biến thiên và đồ thị."
+    },
+    {
+      "ref_id": "REF-04",
+      "title": "Tiết 4 - Chương I HH12: Thể tích khối đa diện",
+      "source_path": "Dự án PPT-HH12 kì I/Tiết-4-Chương-1-HH12-Liên -Dũng -Tiển.pptx",
+      "pedagogical_strengths": "Bố cục 2 cột (Hình vẽ không gian bên trái + Các bước suy luận bên phải)."
+    },
+    {
+      "ref_id": "REF-05",
+      "title": "Tiết 18 - Chương II HH12: Mặt cầu",
+      "source_path": "Dự án PPT-HH12 kì I/Tiết-18 bài Mặt cầu-Ngô Chi.pptx",
+      "pedagogical_strengths": "Slide trực quan, phân tách rõ Định nghĩa, Vị trí tương đối và Công thức diện tích/thể tích."
+    }
+  ]
+}
