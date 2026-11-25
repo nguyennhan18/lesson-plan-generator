@@ -35,21 +35,18 @@ markers = ["critical_regressions: release-blocking containment and behavior chec
 root_package = "lessonai"
 
 [[tool.importlinter.contracts]]
-name = "Thu tu tang: api > exporters > services > llm|rag|parsers|prompts > schemas > core|utils"
+name = "Thu tu tang: api|tooling > exporters > services > llm|rag|parsers|prompts > schemas > core|utils"
 type = "layers"
 layers = [
-    "lessonai.api",
+    "lessonai.api | lessonai.tooling",
     "lessonai.exporters",
     "lessonai.services",
     "lessonai.llm | lessonai.rag | lessonai.parsers | lessonai.prompts",
     "lessonai.schemas",
     "lessonai.core | lessonai.utils",
 ]
-# 12 vi phạm đang có. Mỗi dòng nêu cách xử lý đã chốt; đợt gom services/ sẽ bỏ dần các dòng này.
+# 10 vi phạm còn lại. Mỗi dòng nêu cách xử lý đã chốt; đợt gom services/ sẽ bỏ dần các dòng này.
 ignore_imports = [
-    # Chuyển office_math.py xuống parsers/ (nó chỉ trích xuất văn bản DOCX/PPTX).
-    "lessonai.parsers.docx_parser -> lessonai.services.office_math",
-    "lessonai.parsers.pptx_parser -> lessonai.services.office_math",
     # Chuyển graph_generator.py và render_latex_to_bytes sang services/visuals/ (ADR 0006).
     "lessonai.services.rendering -> lessonai.exporters.graph_generator",
     "lessonai.services.rendering -> lessonai.exporters.slide_exporter",

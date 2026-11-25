@@ -9,7 +9,7 @@ import copy
 import re
 from typing import Any, Dict, List
 
-from lessonai.services.deck_lint import (
+from lessonai.tooling.deck_lint import (
     DIVIDER_TOKEN_RE,
     WARMUP_FORBIDDEN_TITLE_RE,
     is_divider_slide,

@@ -59,7 +59,7 @@ def office_assets(content, extension):
                 for index, equation in enumerate(xml.findall(".//m:oMath", ns)):
                     block = {"type": "equation_source", "source_part": name, "source_index": index,
                              "format": "omml", "xml": etree.tostring(equation, encoding="unicode"), "status": "needs_review"}
-                    from lessonai.services.office_math import omml_to_latex
+                    from lessonai.parsers.office_math import omml_to_latex
                     try:
                         block["latex_candidate"] = omml_to_latex(equation)
                         block["conversion_status"] = "converted_needs_review"

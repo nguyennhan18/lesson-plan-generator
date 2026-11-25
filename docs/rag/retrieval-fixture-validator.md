@@ -28,7 +28,7 @@ Chạy bằng Python đã cài package backend:
 app/backend/venv/bin/python -m lessonai.services.retrieval_fixture fixture.json manifest.json
 ```
 
-Schema thực thi: `Fixture` và `Manifest` trong `lessonai.services.retrieval_fixture`. Có thể xuất JSON Schema bằng `Fixture.model_json_schema()` và `Manifest.model_json_schema()`. Đây là schema công cụ offline, không đổi OpenAPI.
+Schema thực thi: `Fixture` và `Manifest` trong `lessonai.tooling.retrieval_fixture`. Có thể xuất JSON Schema bằng `Fixture.model_json_schema()` và `Manifest.model_json_schema()`. Đây là schema công cụ offline, không đổi OpenAPI.
 
 Manifest gồm `units`, mỗi mục có `unit_id`, `content_hash`. Fixture có `schema_version: "1"`, `config`, và `cases` không rỗng. Mỗi case có `case_id`, `query`, `required_ids`; `optional_relevant_ids` và `forbidden_ids` mặc định rỗng. Các danh sách chứa object với `unit_id`, `content_hash`, `rationale`. Nguồn cấm có thêm `reason` trong `not_approved`, `revoked`, `hash_changed`, `irrelevant_distractor`, cùng `approval_hash` nếu cần. `hash_changed` bắt buộc approval_hash khác content_hash hiện tại.
 
@@ -36,7 +36,7 @@ Config bắt buộc khai báo algorithm, algorithm_version, embedding, embedding
 
 ## Runner đã nối cấu hình
 
-`python -m lessonai.services.retrieval_fixture_runner FIXTURE MANIFEST --test-root TEMP_PARENT --mutate` chạy với LESSONAI_DATA_DIR được đặt trước import và phải nằm dưới TEMP_PARENT, khác kho mặc định. CLI trả JSON trên stdout, log loader trên stderr.
+`python -m lessonai.tooling.retrieval_fixture_runner FIXTURE MANIFEST --test-root TEMP_PARENT --mutate` chạy với LESSONAI_DATA_DIR được đặt trước import và phải nằm dưới TEMP_PARENT, khác kho mặc định. CLI trả JSON trên stdout, log loader trên stderr.
 
 Algorithm bắt buộc lessonai-question-bm25-quality, version lấy từ QUESTION_RETRIEVAL_VERSION hiện là 2; embedding và embedding_version đều none. Index hash là SHA-256 của JSON compact chứa danh sách source_hash của câu hỏi theo thứ tự nạp. Runner kiểm tra hash này trước truy hồi; top_k/min_bm25 truyền trực tiếp vào retrieve_questions. Các khóa lạ hoặc thuật toán không hỗ trợ trả exit 2. Manifest vẫn cần bước đối chiếu riêng từng đơn vị corpus trước khi đưa giáo viên.
 

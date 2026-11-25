@@ -1,6 +1,6 @@
 """Offline fixture validation. Never loads runtime approvals or runs retrieval.
 
-Usage: python -m lessonai.services.retrieval_fixture FIXTURE MANIFEST
+Usage: python -m lessonai.tooling.retrieval_fixture FIXTURE MANIFEST
 Manifest units contain unit_id and the current content_hash. Approval hashes
 are deliberately separate, so a stale approval remains a valid test input.
 """

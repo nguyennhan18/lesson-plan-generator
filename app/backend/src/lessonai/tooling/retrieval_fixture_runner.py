@@ -5,7 +5,7 @@ import json
 
 from lessonai.rag.content_units import source_hash
 from lessonai.rag.retriever import QUESTION_RETRIEVAL_VERSION
-from lessonai.services.retrieval_fixture import Fixture, validate_fixture
+from lessonai.tooling.retrieval_fixture import Fixture, validate_fixture
 
 ALGORITHM = "lessonai-question-bm25-quality"
 VERSION = QUESTION_RETRIEVAL_VERSION
@@ -109,7 +109,7 @@ def main():
     from pathlib import Path
     from lessonai.core.config import DATA_DIR, BACKEND_DIR
     from lessonai.rag.retriever import Math12HybridRetriever
-    from lessonai.services.retrieval_fixture import run
+    from lessonai.tooling.retrieval_fixture import run
     parser = argparse.ArgumentParser()
     parser.add_argument("fixture", type=Path)
     parser.add_argument("manifest", type=Path)

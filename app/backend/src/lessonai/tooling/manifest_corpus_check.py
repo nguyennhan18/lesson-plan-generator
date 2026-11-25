@@ -8,7 +8,7 @@ from pathlib import Path
 
 from pydantic import ValidationError
 from lessonai.rag import content_units
-from lessonai.services.retrieval_fixture import Manifest
+from lessonai.tooling.retrieval_fixture import Manifest
 
 
 def unit_id(row):

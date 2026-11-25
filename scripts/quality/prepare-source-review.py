@@ -9,8 +9,8 @@ from typing import Any, Dict, List
 
 from lessonai.rag.content_units import asset_manifest, source_hash, source_snapshot, unit
 from lessonai.rag.retriever import Math12HybridRetriever
-from lessonai.services.deck_lint import check_latex_syntax, lint_slide
-from lessonai.services.slide_remediation import remediate_pdf2xml_slide
+from lessonai.tooling.deck_lint import check_latex_syntax, lint_slide
+from lessonai.tooling.slide_remediation import remediate_pdf2xml_slide
 
 
 def _question_structural_issues(item: Dict[str, Any]) -> List[str]:

@@ -8,7 +8,7 @@ from pptx.enum.shapes import MSO_SHAPE_TYPE
 Source: TypeAlias = Union[str, Path, bytes, BinaryIO, BytesIO]
 
 from .common import read_source, clean_text
-from lessonai.services.office_math import extract_pptx_paragraph_text
+from lessonai.parsers.office_math import extract_pptx_paragraph_text
 
 
 def _get_pptx_paragraph_text(para: Any) -> str:

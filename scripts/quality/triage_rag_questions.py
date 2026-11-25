@@ -6,7 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
-from lessonai.services.rag_question_triage import TRIAGE_SCHEMA_VERSION, summarize, triage_question
+from lessonai.tooling.rag_question_triage import TRIAGE_SCHEMA_VERSION, summarize, triage_question
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]

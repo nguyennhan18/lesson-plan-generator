@@ -1,4 +1,4 @@
-from lessonai.services.rag_question_triage import EXCLUDE_FROM_BATCH, triage_question
+from lessonai.tooling.rag_question_triage import EXCLUDE_FROM_BATCH, triage_question
 import copy
 import pytest
 

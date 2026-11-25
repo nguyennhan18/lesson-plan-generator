@@ -1,6 +1,6 @@
 from lxml import etree
 import pytest
-from lessonai.services.office_math import omml_to_latex
+from lessonai.parsers.office_math import omml_to_latex
 
 NS = 'http://schemas.openxmlformats.org/officeDocument/2006/math'
 

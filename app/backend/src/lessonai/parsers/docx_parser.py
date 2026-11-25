@@ -12,7 +12,7 @@ from docx.text.paragraph import Paragraph
 Source: TypeAlias = Union[str, Path, bytes, BinaryIO, BytesIO]
 
 from .common import read_source, clean_text
-from lessonai.services.office_math import extract_docx_paragraph_text
+from lessonai.parsers.office_math import extract_docx_paragraph_text
 
 
 def _get_docx_paragraph_text(para: Any) -> str:

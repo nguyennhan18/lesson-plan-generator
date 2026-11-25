@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from lessonai.services.retrieval_fixture import validate_fixture, run, aggregate_exit
+from lessonai.tooling.retrieval_fixture import validate_fixture, run, aggregate_exit
 
 
 def sample():
@@ -37,7 +37,7 @@ def test_content_hash_v2_normalizes_text_without_changing_source():
 
 def test_stale_manifest_even_when_fixture_still_matches(tmp_path):
     from lessonai.rag.content_units import source_hash
-    from lessonai.services.manifest_corpus_check import verify, check_files
+    from lessonai.tooling.manifest_corpus_check import verify, check_files
     fixture, manifest = sample()
     original = {"id": "test-u1", "question": "x khác 3"}
     digest = source_hash(original)
@@ -113,7 +113,7 @@ def test_cli_good_bad_and_environment(tmp_path):
         if invalid:
             fixture["cases"][0]["required_ids"][0]["unit_id"] = "missing"
         fp.write_text(json.dumps(fixture))
-        proc = subprocess.run([sys.executable, "-m", "lessonai.services.retrieval_fixture", str(fp), str(mp)], capture_output=True, text=True)
+        proc = subprocess.run([sys.executable, "-m", "lessonai.tooling.retrieval_fixture", str(fp), str(mp)], capture_output=True, text=True)
         assert proc.returncode == expected, proc.stderr
         assert json.loads(proc.stdout)["exit_code"] == expected
     fp.write_text("{")
@@ -197,8 +197,8 @@ for order in [[target, distractor], [distractor, target]]:
 
 from lessonai.rag.content_units import load_approval_registry, save_approval_registry, approved_units
 from lessonai.rag.content_units import source_hash
-from lessonai.services.retrieval_fixture_runner import execute, index_hash, mutations, ALGORITHM, VERSION
-from lessonai.services.retrieval_fixture import Case
+from lessonai.tooling.retrieval_fixture_runner import execute, index_hash, mutations, ALGORITHM, VERSION
+from lessonai.tooling.retrieval_fixture import Case
 ref = lambda row: {"unit_id": row["id"], "content_hash": source_hash(row), "rationale": "same function domain"}
 fixture = {"schema_version": "1", "config": {"algorithm": ALGORITHM, "algorithm_version": VERSION, "embedding": "none", "embedding_version": "none", "index_data_sha256": index_hash(r._questions), "top_k": 1, "min_bm25": 0.0, "tie_break": "unit_id_ascending"}, "cases": [{"case_id": "ranking", "lesson_id": "test-domain", "query": "miền xác định phân thức mẫu x trừ ba", "required_ids": [ref(target)], "forbidden_ids": [{**ref(distractor), "reason": "irrelevant_distractor"}]}]}
 manifest = {"hash_version": 2, "units": [{"unit_id": row["id"], "content_hash": source_hash(row)} for row in [target, distractor]]}
@@ -209,10 +209,10 @@ import subprocess
 fixture_path, manifest_path = root / "fixture.json", root / "manifest.json"
 fixture_path.write_text(json.dumps(fixture))
 manifest_path.write_text(json.dumps(manifest))
-cli = subprocess.run([sys.executable, "-m", "lessonai.services.retrieval_fixture_runner", str(fixture_path), str(manifest_path), "--test-root", str(root), "--mutate"], capture_output=True, text=True, timeout=15)
+cli = subprocess.run([sys.executable, "-m", "lessonai.tooling.retrieval_fixture_runner", str(fixture_path), str(manifest_path), "--test-root", str(root), "--mutate"], capture_output=True, text=True, timeout=15)
 assert cli.returncode == 0, cli.stdout + cli.stderr
 assert json.loads(cli.stdout)["exit_code"] == 0
-bad_root = subprocess.run([sys.executable, "-m", "lessonai.services.retrieval_fixture_runner", str(fixture_path), str(manifest_path), "--test-root", str(root / "elsewhere")], capture_output=True, text=True, timeout=15)
+bad_root = subprocess.run([sys.executable, "-m", "lessonai.tooling.retrieval_fixture_runner", str(fixture_path), str(manifest_path), "--test-root", str(root / "elsewhere")], capture_output=True, text=True, timeout=15)
 assert bad_root.returncode == 3
 fixture["config"]["top_k"] = 2
 assert execute(fixture, manifest, r)[0] == 1  # actual runtime top_k admits distractor
