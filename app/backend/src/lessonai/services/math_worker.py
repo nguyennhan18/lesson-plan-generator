@@ -131,25 +131,39 @@ def _verify(payload):
 
 
 def _derivative(payload):
-    """Prove a derivative label by exact polynomial identity; sampling is never proof."""
+    """Prove a derivative label by exact polynomial or rational identity; sampling is never proof."""
     import sympy as s
     variable = payload["variable"]
-    symbols = tuple([variable, *payload.get("parameters", [])])
+    parameters = payload.get("parameters", [])
+    symbols = tuple([variable, *parameters])
     if len(symbols) > 3:
         return {"status": "unverified", "reason": "Tối đa ba ký hiệu"}
-    function, label = (_symbolic(_tree(payload[key], symbols)) for key in ("function", "label"))
+    fn_root = _tree(payload["function"], symbols)
+    lbl_root = _tree(payload["label"], symbols)
+    function, label = _symbolic(fn_root), _symbolic(lbl_root)
     if any(expr.doit().has(s.zoo, s.nan, s.oo, -s.oo) for expr in (function, label)):
         return {"status": "unverified", "reason": "Biểu thức không xác định trên số thực"}
     variables = sorted(function.free_symbols | label.free_symbols, key=str)
-    if not all(expr.is_polynomial(*variables) for expr in (function, label)):
-        return {"status": "unverified", "reason": "Ngoài phạm vi: chỉ kiểm đạo hàm của đa thức"}
-    if any(variables and s.Poly(s.expand(expr.doit()), *variables).total_degree() > 8
-           for expr in (function, label)):
-        return {"status": "unverified", "reason": "Tổng bậc đa thức ngoài phạm vi (tối đa 8, tính cả tham số)"}
-    derivative = s.diff(function.doit(), s.Symbol(variable, real=True))
-    if s.expand(derivative - label.doit()) == 0:
-        return {"status": "verified", "reason": "Đạo hàm ký hiệu trùng nhãn trên mọi giá trị thực"}
-    return {"status": "failed", "reason": f"Đạo hàm đúng là {s.expand(derivative)}"}
+    x_sym = s.Symbol(variable, real=True)
+    if all(expr.is_polynomial(*variables) for expr in (function, label)):
+        if any(variables and s.Poly(s.expand(expr.doit()), *variables).total_degree() > 8
+               for expr in (function, label)):
+            return {"status": "unverified", "reason": "Tổng bậc đa thức ngoài phạm vi (tối đa 8, tính cả tham số)"}
+        derivative = s.diff(function.doit(), x_sym)
+        if s.expand(derivative - label.doit()) == 0:
+            return {"status": "verified", "reason": "Đạo hàm ký hiệu trùng nhãn trên mọi giá trị thực"}
+        return {"status": "failed", "reason": f"Đạo hàm đúng là {s.expand(derivative)}"}
+    if not parameters and not _has_unsafe_ast_nodes(fn_root, allow_division=True) and not _has_unsafe_ast_nodes(lbl_root, allow_division=True):
+        fn_doit, lbl_doit = function.doit(), label.doit()
+        if fn_doit.is_rational_function(x_sym) and lbl_doit.is_rational_function(x_sym):
+            num, den = s.fraction(s.together(fn_doit))
+            if den.is_polynomial(x_sym) and num.is_polynomial(x_sym) and s.expand(den) != 0:
+                if s.Poly(num, x_sym).total_degree() <= 4 and s.Poly(den, x_sym).total_degree() <= 2:
+                    derivative = s.diff(fn_doit, x_sym)
+                    if s.cancel(derivative - lbl_doit) == 0:
+                        return {"status": "verified", "reason": "Đạo hàm phân thức hữu tỉ trùng nhãn trên miền xác định"}
+                    return {"status": "failed", "reason": f"Đạo hàm đúng là {s.together(derivative)}"}
+    return {"status": "unverified", "reason": "Ngoài phạm vi: chỉ kiểm đạo hàm của đa thức hoặc phân thức hữu tỉ bậc thấp"}
 
 
 _EMPTY_TOKENS = {"none", "empty", "[]", "∅", "khong co", "không có"}
@@ -215,7 +229,7 @@ def _parse_regime_and_body(label, parameters):
     return ("none", None), raw
 
 
-def _prepare_polynomial_on_regime(payload, regime_info):
+def _prepare_polynomial_on_regime(payload, regime_info, *, allow_rational=False):
     import sympy as s
     variable = payload["variable"]
     parameters = payload.get("parameters", [])
@@ -223,12 +237,21 @@ def _prepare_polynomial_on_regime(payload, regime_info):
         return None, {"status": "unverified", "reason": "Ngoài phạm vi: tối đa một tham số thực؛ cần giáo viên duyệt"}
     symbols = tuple([variable, *parameters])
     root = _tree(payload["function"], symbols)
+    x = s.Symbol(variable, real=True)
     if _has_unsafe_ast_nodes(root):
+        if allow_rational and not parameters and not _has_unsafe_ast_nodes(root, allow_division=True):
+            expr = _symbolic(root).doit()
+            if expr.has(s.zoo, s.nan, s.oo, -s.oo) or not expr.is_rational_function(x):
+                return None, {"status": "unverified", "reason": "Biểu thức không xác định trên số thực"}
+            num, den = s.fraction(s.together(expr))
+            if not (num.is_polynomial(x) and den.is_polynomial(x) and s.expand(den) != 0):
+                return None, {"status": "unverified", "reason": "Ngoài phạm vi: chỉ hỗ trợ đa thức hoặc phân thức hữu tỉ bậc thấp"}
+            if s.Poly(num, x).total_degree() <= 4 and 1 <= s.Poly(den, x).total_degree() <= 2:
+                return (expr, x, None, None, symbols), None
         return None, {"status": "unverified", "reason": "Ngoài phạm vi: chỉ hỗ trợ đa thức؛ cần giáo viên duyệt"}
     expr = _symbolic(root).doit()
     if expr.has(s.zoo, s.nan, s.oo, -s.oo):
         return None, {"status": "unverified", "reason": "Biểu thức không xác định trên số thực"}
-    x = s.Symbol(variable, real=True)
     vars_all = [x, *(s.Symbol(p, real=True) for p in parameters)]
     if not expr.is_polynomial(*vars_all) or s.Poly(s.expand(expr), *vars_all).total_degree() > 8:
         return None, {"status": "unverified", "reason": "Ngoài phạm vi công bố: chỉ hỗ trợ đa thức tổng bậc tối đa 8"}
@@ -365,14 +388,21 @@ def _real_roots(payload):
         return {"status": "unverified", "reason": "Nghiệm xấp xỉ không được nâng lên verified; cần giáo viên duyệt"}
     parameters = payload.get("parameters", [])
     regime_info, body = _parse_regime_and_body(label, parameters)
-    prepared, err = _prepare_polynomial_on_regime(payload, regime_info)
+    prepared, err = _prepare_polynomial_on_regime(payload, regime_info, allow_rational=True)
     if err:
         return err
     expr, x, param, param_sym, symbols = prepared
-    proven_with_mult, solve_err = _solve_factorized_poly_roots(expr, x)
+    num, den = s.fraction(s.together(expr))
+    poles = []
+    if not expr.is_polynomial(x):
+        pole_pairs, pole_err = _solve_factorized_poly_roots(den, x)
+        if pole_err:
+            return {"status": "unverified", "reason": pole_err}
+        poles = [r for r, _ in pole_pairs]
+    proven_with_mult, solve_err = _solve_factorized_poly_roots(num, x)
     if solve_err:
         return {"status": "unverified", "reason": solve_err}
-    proven_roots = [r for r, _ in proven_with_mult]
+    proven_roots = [r for r, _ in proven_with_mult if not any(s.simplify(r - p) == 0 for p in poles)]
     if body.lower() in _EMPTY_TOKENS:
         claimed_roots = []
     else:
@@ -388,12 +418,12 @@ def _real_roots(payload):
             if not any(s.simplify(c_expr - r) == 0 for r in claimed_roots):
                 claimed_roots.append(c_expr)
     for c in claimed_roots:
-        if s.simplify(expr.subs(x, c)) != 0:
+        if any(s.simplify(c - p) == 0 for p in poles) or s.simplify(num.subs(x, c)) != 0:
             return {"status": "failed", "reason": f"Giá trị {c} không phải nghiệm của phương trình"}
     if _same_root_set(proven_roots, claimed_roots):
         return {
             "status": "verified",
-            "reason": f"Đã chứng minh đồng nhất thức phân tích nhân tử {s.factor(expr)} và tính đầy đủ của {len(proven_roots)} nghiệm thực",
+            "reason": f"Đã chứng minh đồng nhất thức phân tích nhân tử {s.factor(num)} và tính đầy đủ của {len(proven_roots)} nghiệm thực",
         }
     return {"status": "failed", "reason": "Tập nghiệm chưa đầy đủ hoặc không khớp trên miền đã chọn"}
 
@@ -401,6 +431,67 @@ def _real_roots(payload):
 def _derivative_analysis(expr, x):
     """Return derivative, ordered stationary points with multiplicities, interval signs, and classified extrema."""
     import sympy as s
+    if not expr.is_polynomial(x):
+        df = s.together(s.diff(expr, x))
+        df_num, df_den = s.fraction(df)
+        df_num = s.expand(df_num)
+        df_den = s.expand(df_den)
+        if df_num == 0:
+            return None, "Đạo hàm đồng nhất bằng 0"
+        _, den_orig = s.fraction(s.together(expr))
+        poles_mult, p_err = _solve_factorized_poly_roots(den_orig, x)
+        if p_err:
+            return None, p_err
+        poles = [r for r, _ in poles_mult]
+        stat_raw, s_err = _solve_factorized_poly_roots(df_num, x)
+        if s_err:
+            return None, s_err
+        stationary = [(r, m) for r, m in stat_raw if not any(s.simplify(r - p) == 0 for p in poles)]
+        den_roots, d_err = _solve_factorized_poly_roots(df_den, x)
+        if d_err:
+            return None, d_err
+        events = []
+        for r, m in stationary:
+            events.append((r, m, "stationary"))
+        for r, m in den_roots:
+            events.append((r, m, "pole"))
+        events.sort(key=lambda item: float(s.N(item[0])))
+        lc_num = s.Poly(df_num, x).LC() if s.Poly(df_num, x).total_degree() > 0 else df_num
+        lc_den = s.Poly(df_den, x).LC() if s.Poly(df_den, x).total_degree() > 0 else df_den
+        ratio_lc = s.simplify(lc_num / lc_den)
+        if ratio_lc.is_positive is True:
+            rightmost_sign = "+"
+        elif ratio_lc.is_negative is True:
+            rightmost_sign = "-"
+        else:
+            return None, "Chưa chứng minh được dấu hệ số cao nhất của đạo hàm phân thức"
+        n = len(events)
+        interval_signs = [None] * (n + 1)
+        current = rightmost_sign
+        interval_signs[n] = current
+        for idx in range(n - 1, -1, -1):
+            _, mult, _ = events[idx]
+            if mult % 2 == 1:
+                current = "-" if current == "+" else "+"
+            interval_signs[idx] = current
+        extrema = []
+        for idx, (root, _, kind_ev) in enumerate(events):
+            if kind_ev != "stationary":
+                continue
+            left_s, right_s = interval_signs[idx], interval_signs[idx + 1]
+            if left_s == "+" and right_s == "-":
+                extrema.append(("max", root, s.simplify(expr.subs(x, root))))
+            elif left_s == "-" and right_s == "+":
+                extrema.append(("min", root, s.simplify(expr.subs(x, root))))
+        return {
+            "df": df,
+            "stationary": stationary,
+            "poles": poles,
+            "events": events,
+            "interval_signs": interval_signs,
+            "extrema": extrema,
+        }, None
+
     df = s.expand(s.diff(expr, x))
     if df == 0:
         return None, "Đạo hàm đồng nhất bằng 0"
@@ -431,14 +522,14 @@ def _derivative_analysis(expr, x):
             extrema.append(("max", root, s.simplify(expr.subs(x, root))))
         elif left_s == "-" and right_s == "+":
             extrema.append(("min", root, s.simplify(expr.subs(x, root))))
-    return {"df": df, "stationary": stationary, "interval_signs": interval_signs, "extrema": extrema}, None
+    return {"df": df, "stationary": stationary, "poles": [], "events": [(r, m, "stationary") for r, m in stationary], "interval_signs": interval_signs, "extrema": extrema}, None
 
 
 def _stationary_points(payload):
     import sympy as s
     parameters = payload.get("parameters", [])
     regime_info, body = _parse_regime_and_body(payload["label"], parameters)
-    prepared, err = _prepare_polynomial_on_regime(payload, regime_info)
+    prepared, err = _prepare_polynomial_on_regime(payload, regime_info, allow_rational=True)
     if err:
         return err
     expr, x, param, param_sym, symbols = prepared
@@ -459,14 +550,14 @@ def _stationary_points(payload):
             if not any(s.simplify(c_expr - r) == 0 for r in claimed):
                 claimed.append(c_expr)
     if _same_root_set(proven, claimed):
-        return {"status": "verified", "reason": f"Đã chứng minh đầy đủ {len(proven)} điểm dừng từ đạo hàm {s.factor(analysis['df'])}"}
+        return {"status": "verified", "reason": f"Đã chứng minh đầy đủ {len(proven)} điểm dừng từ đạo hàm"}
     return {"status": "failed", "reason": "Danh sách điểm dừng không khớp hoặc thiếu điểm dừng"}
 
 
 def _derivative_sign(payload):
     parameters = payload.get("parameters", [])
     regime_info, body = _parse_regime_and_body(payload["label"], parameters)
-    prepared, err = _prepare_polynomial_on_regime(payload, regime_info)
+    prepared, err = _prepare_polynomial_on_regime(payload, regime_info, allow_rational=True)
     if err:
         return err
     expr, x, _, _, _ = prepared
@@ -474,16 +565,18 @@ def _derivative_sign(payload):
     if a_err:
         return {"status": "unverified", "reason": a_err}
     interval_signs = analysis["interval_signs"]
+    events = analysis.get("events", [])
     full_pattern = []
     for i, sgn in enumerate(interval_signs):
         if i > 0:
-            full_pattern.append("0")
+            ev_kind = events[i - 1][2] if i - 1 < len(events) else "stationary"
+            full_pattern.append("||" if ev_kind == "pole" else "0")
         full_pattern.append(sgn)
     normalized_body = body.replace("−", "-").strip()
     tokens = [t.strip() for t in normalized_body.split(",") if t.strip()]
     if tokens == interval_signs or tokens == full_pattern:
         return {"status": "verified", "reason": f"Đã chứng minh dấu đạo hàm {', '.join(full_pattern)} trên toàn miền"}
-    if not all(t in {"+", "-", "0"} for t in tokens):
+    if not all(t in {"+", "-", "0", "||"} for t in tokens):
         return {"status": "unverified", "reason": "Định dạng mệnh đề dấu đạo hàm chưa hỗ trợ; cần giáo viên duyệt"}
     return {"status": "failed", "reason": f"Dấu đạo hàm đúng là {', '.join(interval_signs)}"}
 
@@ -493,7 +586,7 @@ def _extrema(payload):
     import sympy as s
     parameters = payload.get("parameters", [])
     regime_info, body = _parse_regime_and_body(payload["label"], parameters)
-    prepared, err = _prepare_polynomial_on_regime(payload, regime_info)
+    prepared, err = _prepare_polynomial_on_regime(payload, regime_info, allow_rational=True)
     if err:
         return err
     expr, x, param, param_sym, symbols = prepared
@@ -656,7 +749,71 @@ def _solution_step(payload):
         return _extrema(sub_payload)
     if step_kind == "exclusions":
         return _exclusions(sub_payload)
+    if step_kind == "asymptotes":
+        return _asymptotes(sub_payload)
     return {"status": "unverified", "reason": "Bước diễn giải bằng lời hoặc ngoài phạm vi phép kiểm; cần giáo viên duyệt"}
+
+
+def _asymptotes(payload):
+    """Prove vertical and horizontal/slant asymptotes of polynomials (none) and low-degree rational functions."""
+    import sympy as s
+    variable = payload["variable"]
+    parameters = payload.get("parameters", [])
+    if parameters:
+        return {"status": "unverified", "reason": "Phép kiểm tiệm cận có tham số cần giáo viên duyệt"}
+    symbols = (variable,)
+    root = _tree(payload["function"], symbols)
+    if _has_unsafe_ast_nodes(root, allow_division=True):
+        return {"status": "unverified", "reason": "Biểu thức chứa căn, log hoặc hàm lượng giác ngoài phạm vi phép kiểm tiệm cận"}
+    x = s.Symbol(variable, real=True)
+    expr = _symbolic(root).doit()
+    if expr.has(s.zoo, s.nan, s.oo, -s.oo):
+        return {"status": "unverified", "reason": "Biểu thức không xác định trên số thực"}
+    body = payload["label"].strip()
+    if expr.is_polynomial(x):
+        if s.Poly(s.expand(expr), x).total_degree() > 8:
+            return {"status": "unverified", "reason": "Bậc đa thức ngoài phạm vi"}
+        if body.lower() in _EMPTY_TOKENS:
+            return {"status": "verified", "reason": "Chứng minh bằng cấu trúc đa thức: đồ thị không có đường tiệm cận"}
+        return {"status": "failed", "reason": "Hàm đa thức không có đường tiệm cận"}
+    if not expr.is_rational_function(x):
+        return {"status": "unverified", "reason": "Ngoài phạm vi công bố của phép kiểm tiệm cận"}
+    num, den = s.fraction(s.together(expr))
+    num, den = s.expand(num), s.expand(den)
+    if not (num.is_polynomial(x) and den.is_polynomial(x) and den != 0):
+        return {"status": "unverified", "reason": "Ngoài phạm vi công bố của phép kiểm tiệm cận"}
+    deg_num = s.Poly(num, x).total_degree()
+    deg_den = s.Poly(den, x).total_degree()
+    if deg_den != 1 or deg_num > 2:
+        return {"status": "unverified", "reason": "Chỉ chứng minh tiệm cận cho phân thức bậc tử tối đa 2 trên bậc mẫu bằng 1"}
+    x0 = s.solve(den, x)[0]
+    if s.simplify(num.subs(x, x0)) == 0:
+        return {"status": "unverified", "reason": "Phân thức suy biến (tử số và mẫu số có nghiệm chung)"}
+    quo, rem = s.div(num, den, domain="QQ")
+    if s.simplify(rem) == 0:
+        return {"status": "unverified", "reason": "Phân thức rút gọn thành đa thức"}
+    proven_x = s.simplify(x0)
+    proven_y = s.simplify(quo)
+    if body.lower() in _EMPTY_TOKENS:
+        return {"status": "failed", "reason": "Phân thức hữu tỉ này có hai đường tiệm cận"}
+    parts = _split_top_level(body, ",")
+    claimed_x, claimed_y = [], []
+    for part in parts:
+        if "=" not in part:
+            return {"status": "unverified", "reason": "Mỗi đường tiệm cận cần viết dạng x = x0 hoặc y = ax + b"}
+        lhs, rhs = (p.strip() for p in part.split("=", 1))
+        if lhs == variable:
+            claimed_x.append(s.simplify(_symbolic(_tree(rhs, symbols)).doit()))
+        elif lhs == "y":
+            claimed_y.append(s.simplify(_symbolic(_tree(rhs, symbols)).doit()))
+        else:
+            return {"status": "unverified", "reason": f"Phương trình tiệm cận không hợp lệ: {part}"}
+    if len(claimed_x) == 1 and len(claimed_y) == 1 and s.simplify(claimed_x[0] - proven_x) == 0 and s.simplify(claimed_y[0] - proven_y) == 0:
+        return {
+            "status": "verified",
+            "reason": f"Đã chứng minh tiệm cận đứng x = {proven_x} và tiệm cận {'ngang' if deg_num <= 1 else 'xiên'} y = {proven_y}",
+        }
+    return {"status": "failed", "reason": f"Tiệm cận đúng là x = {proven_x}, y = {proven_y}"}
 
 
 def execute(operation, payload):
@@ -678,6 +835,8 @@ def execute(operation, payload):
         return _parameter_safety(payload)
     if operation == "math.exclusions":
         return _exclusions(payload)
+    if operation == "math.asymptotes":
+        return _asymptotes(payload)
     if operation == "math.solution_step":
         return _solution_step(payload)
     raise ExpressionError("expression_unsupported", "Tác vụ toán chưa hỗ trợ")

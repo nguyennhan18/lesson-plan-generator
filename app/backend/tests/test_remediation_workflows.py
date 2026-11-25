@@ -104,18 +104,44 @@ def test_copilot_provider_failure_does_not_create_patch(api,deck):
     assert api.get('/api/v1/chat/history/'+sid).json()['history']==[]
 
 
-@pytest.mark.parametrize('path',['/api/v1/lesson-plan/generate','/api/v1/slide/generate','/api/v1/presentation/outline'])
-def test_generation_failure_returns_no_sample(path,api):
+_WB_OUTLINE_PAYLOAD = {
+    'title': 'Khảo sát hàm số',
+    'level': 'standard',
+    'outline': {
+        'items': [
+            {'item_id': 'm1', 'activity': 'Khởi động', 'kind': 'Mở đầu', 'title': 'Mở đầu', 'points': ['Ý 1'], 'slide_count': 1, 'minutes': 5},
+            {'item_id': 'm2', 'activity': 'Hình thành kiến thức', 'kind': 'Kiến thức trọng tâm', 'title': 'Kiến thức', 'points': ['Ý 2'], 'slide_count': 1, 'minutes': 15},
+            {'item_id': 'm3', 'activity': 'Luyện tập', 'kind': 'Bài luyện tập', 'title': 'Luyện tập', 'points': ['Ý 3'], 'slide_count': 1, 'minutes': 15},
+            {'item_id': 'm4', 'activity': 'Vận dụng', 'kind': 'Tổng kết', 'title': 'Tổng kết', 'points': ['Ý 4'], 'slide_count': 1, 'minutes': 10},
+        ]
+    },
+}
+
+
+@pytest.mark.parametrize('path,payload,empty_payload',[
+    ('/api/v1/workbench/outline', {'request': 'Bài chưa có nguồn', 'level': 'standard'}, {'request': '  ', 'level': 'standard'}),
+    ('/api/v1/workbench/slides', _WB_OUTLINE_PAYLOAD, {**_WB_OUTLINE_PAYLOAD, 'title': '  '}),
+    ('/api/v1/workbench/lesson-plan', _WB_OUTLINE_PAYLOAD, {**_WB_OUTLINE_PAYLOAD, 'title': '  '}),
+])
+def test_generation_failure_returns_no_sample(path,payload,empty_payload,api):
     with patch('lessonai.llm.gateway.llm_gateway.generate_structured',side_effect=TimeoutError('offline')):
-        response=api.post(path,json={'topic':'Bài chưa có nguồn','use_rag':False})
+        response=api.post(path,json=payload)
     assert response.status_code==503,response.text
     assert response.json()['detail']['code']=='generation_unavailable'
-    assert not any(key in response.json() for key in ['slides','plan','outline_slides'])
-    assert api.post(path,json={'topic':'  '}).status_code==422
+    assert not any(key in response.json() for key in ['slides','plan','outline'])
+    assert api.post(path,json=empty_payload).status_code==422
+    # Các endpoint sinh cũ trả 410 Gone (#59)
+    assert api.post('/api/v1/presentation/outline',json={'topic':'Bài'}).status_code==410
+    assert api.post('/api/presentation/outline',json={'topic':'Bài'}).status_code==410
+    assert api.post('/api/v1/slide/generate',json={'topic':'Bài'}).status_code==410
 
 
-@pytest.mark.parametrize('path',['/api/v1/lesson-plan/generate','/api/v1/slide/generate','/api/v1/presentation/outline'])
-def test_generation_error_classification_across_exception_chain(path,api):
+@pytest.mark.parametrize('path,payload',[
+    ('/api/v1/workbench/outline', {'request': 'Khảo sát hàm số', 'level': 'standard'}),
+    ('/api/v1/workbench/slides', _WB_OUTLINE_PAYLOAD),
+    ('/api/v1/workbench/lesson-plan', _WB_OUTLINE_PAYLOAD),
+])
+def test_generation_error_classification_across_exception_chain(path,payload,api):
     import json
     from lessonai.schemas.schemas import LessonPlanSchema
 
@@ -128,18 +154,18 @@ def test_generation_error_classification_across_exception_chain(path,api):
     wrapped_val = RuntimeError('Toàn bộ 3 tuyến LLM đều không phản hồi')
     wrapped_val.__cause__ = validation_err
     with patch('lessonai.llm.gateway.llm_gateway.generate_structured',side_effect=wrapped_val):
-        res_val = api.post(path,json={'topic':'Khảo sát hàm số','use_rag':False})
+        res_val = api.post(path,json=payload)
     assert res_val.status_code==503
     detail_val = res_val.json()['detail']
     assert detail_val['code']=='invalid_ai_output'
     assert 'Bản soạn được giữ nguyên' in detail_val['message']
     assert detail_val.get('request_id') and res_val.headers.get('X-Request-ID') == detail_val['request_id']
-    assert not any(key in res_val.json() for key in ['slides','plan','outline_slides'])
+    assert not any(key in res_val.json() for key in ['slides','plan','outline'])
 
     wrapped_json = RuntimeError('Toàn bộ 3 tuyến LLM đều không phản hồi')
     wrapped_json.__context__ = json.JSONDecodeError('Expecting value', '{bad json', 1)
     with patch('lessonai.llm.gateway.llm_gateway.generate_structured',side_effect=wrapped_json):
-        res_json = api.post(path,json={'topic':'Khảo sát hàm số','use_rag':False})
+        res_json = api.post(path,json=payload)
     assert res_json.status_code==503
     assert res_json.json()['detail']['code']=='invalid_ai_output'
 
@@ -152,7 +178,7 @@ def test_generation_error_classification_across_exception_chain(path,api):
         wrapped_cfg = RuntimeError('Toàn bộ 3 tuyến LLM đều không phản hồi')
         wrapped_cfg.__cause__ = cfg_exc
         with patch('lessonai.llm.gateway.llm_gateway.generate_structured',side_effect=wrapped_cfg):
-            res_cfg = api.post(path,json={'topic':'Khảo sát hàm số','use_rag':False})
+            res_cfg = api.post(path,json=payload)
         assert res_cfg.status_code==503
         detail_cfg = res_cfg.json()['detail']
         assert detail_cfg['code']=='llm_configuration_error'
@@ -161,7 +187,7 @@ def test_generation_error_classification_across_exception_chain(path,api):
 
     # 3. ValueError do lệch hợp đồng dàn ý / định dạng đầu ra
     with patch('lessonai.llm.gateway.llm_gateway.generate_structured',side_effect=ValueError('Slide không giữ định danh/thứ tự/tiêu đề dàn ý đã duyệt')):
-        res_contract = api.post(path,json={'topic':'Khảo sát hàm số','use_rag':False})
+        res_contract = api.post(path,json=payload)
     assert res_contract.status_code==503
     detail_contract = res_contract.json()['detail']
     assert detail_contract['code']=='invalid_ai_output'
@@ -250,7 +276,28 @@ def test_outline_contract_3d_draft_and_polyhedron_kinds(api):
         }],
     })
     with patch('lessonai.llm.gateway.llm_gateway.generate_structured', return_value=invalid_poly_draft):
-        resp = api.post('/api/v1/slide/generate', json={'topic': 'Hình chóp', 'approved_outline': outline_3d, 'use_rag': False})
+        with pytest.raises(ValueError, match='tập chuẩn được hỗ trợ'):
+            generate_slide_deck('Hình chóp', approved_outline=outline_3d, use_rag=False)
+    wb_bad_visual = {
+        **_WB_OUTLINE_PAYLOAD,
+        'outline': {
+            'items': [
+                *_WB_OUTLINE_PAYLOAD['outline']['items'][:1],
+                {
+                    **_WB_OUTLINE_PAYLOAD['outline']['items'][1],
+                    'visuals': [{'visual_id': 'v-3d', 'kind': 'solid', 'origin': 'ai', 'status': 'confirmed', 'data': {'polyhedron_type': 'cube', 'base_edge': 2, 'height': 2}}],
+                },
+                *_WB_OUTLINE_PAYLOAD['outline']['items'][2:],
+            ]
+        },
+    }
+    with patch('lessonai.services.generation.workbench_slides.llm_gateway.generate_structured', return_value={'slides': [
+        {'item_id': 'm1', 'layout': 'Mở đầu', 'title': 'Mở đầu'},
+        {'item_id': 'm2', 'layout': 'Chữ trái, hình phải', 'title': 'Kiến thức'},  # thiếu visual_id v-3d
+        {'item_id': 'm3', 'layout': 'Nội dung', 'title': 'Luyện tập'},
+        {'item_id': 'm4', 'layout': 'Tổng kết', 'title': 'Tổng kết'},
+    ]}):
+        resp = api.post('/api/v1/workbench/slides', json=wb_bad_visual)
     assert resp.status_code == 503
     assert resp.json()['detail']['code'] == 'invalid_ai_output'
 
@@ -321,7 +368,12 @@ def test_outline_contract_string_normalization_warns_without_dropping_checks(api
         }],
     })
     with patch('lessonai.llm.gateway.llm_gateway.generate_structured', return_value=dropped_slide):
-        resp_drop = api.post('/api/v1/slide/generate', json={'topic': 'Tính đơn điệu', 'approved_outline': outline, 'use_rag': False})
+        with pytest.raises(ValueError, match='bỏ nội dung đã duyệt'):
+            generate_slide_deck('Tính đơn điệu', approved_outline=outline, use_rag=False)
+    with patch('lessonai.services.generation.workbench_slides.llm_gateway.generate_structured', return_value={'slides': [
+        {'item_id': 'm1', 'layout': 'Mở đầu', 'title': 'Chỉ trả 1 slide thay vì đủ 4 Mục'},
+    ]}):
+        resp_drop = api.post('/api/v1/workbench/slides', json=_WB_OUTLINE_PAYLOAD)
     assert resp_drop.status_code == 503
     assert resp_drop.json()['detail']['code'] == 'invalid_ai_output'
 

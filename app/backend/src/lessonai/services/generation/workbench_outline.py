@@ -1,6 +1,6 @@
 """Create one validated outline from one structured LLM response with Langfuse v5 role tracing."""
 import json
-from uuid import uuid4
+from lessonai.services.workbench_visuals import filter_grounded_outline_visuals
 
 from lessonai.llm import tracing
 from lessonai.llm.gateway import llm_gateway
@@ -82,13 +82,20 @@ def generate_outline(request: WorkbenchOutlineRequest, lesson_id: str | None, ti
             warnings = [] if minutes == LESSON_MINUTES else [
                 f"Dàn ý dự kiến {minutes} phút, chuẩn một tiết là {LESSON_MINUTES} phút."
             ]
+            from uuid import uuid4
+            assembled_items = []
+            for item in generated.items:
+                dumped = item.model_dump()
+                kept_visuals, v_warnings = filter_grounded_outline_visuals(dumped)
+                warnings.extend(v_warnings)
+                assembled_items.append({**dumped, "item_id": str(uuid4()), "visuals": kept_visuals})
             gate_obs.set_output({"minutes": minutes, "warnings": warnings})
 
         tracing.record_trace_score("workbench_outline_valid", 1.0)
         tracing.record_trace_score("minutes_match_45", 1.0 if minutes == LESSON_MINUTES else 0.0)
         response = WorkbenchOutlineResponse(
             title=generated.title, lesson_id=lesson_id, sgk=title,
-            outline={"items": [{**item.model_dump(), "item_id": str(uuid4())} for item in generated.items]},
+            outline={"items": assembled_items},
             source_refs=[],
             warnings=warnings,
         )

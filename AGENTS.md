@@ -1,6 +1,6 @@
 # AGENTS.md — AI Agent Working Handbook (`LessonAI-5512`)
 
-> **Baseline:** branch `feat/multi-role-orchestrator`, code baseline `46e4ed2`, updated 2026-11-23.
+> **Baseline:** branch `feature/ban-lam-viec`, updated 2026-11-26 (sau khi hoàn tất toàn bộ loạt Bàn làm việc `#36–#59` và Cổng toán `#20–#24`).
 > Anything marked **[VERIFY]** was carried over without being re-checked against the repo. Verify it before relying on it, and fix this file in the same PR when it is wrong.
 > Run `git rev-parse --short HEAD` at the start of every session. The baseline identifies the code reviewed for this handbook. If HEAD differs, check the diff against the baseline, trust the current code, and report the drift.
 
@@ -67,17 +67,17 @@ Single-context layout with root `GLOSSARY.md` and `docs/adr/`. Before exploring 
 │   │   │   ├── main.py             # App factory, CORS, local origin & error middlewares
 │   │   │   ├── core/               # config, ingress (16 MiB limit), jobs (spawn workers), ownership, render_runtime, signing (confirmation key)
 │   │   │   ├── api/routes/         # chat, curriculum, exports, geometry, ingest, lesson_plan, math_spec, presentation, quality, slides, system, validation, visuals, web
-│   │   │   ├── services/           # business logic, generation/, math_expression, math_worker, geometry_scene, visual_requirements, content_quality, expert_confirmation, copilot, deck_lint
+│   │   │   ├── services/           # business logic, generation/, math_expression, math_worker, math_spec, geometry_scene, visual_requirements, workbench_visuals, workbench_quality, workbench_assistant, content_quality, expert_confirmation, copilot, deck_lint
 │   │   │   ├── llm/gateway.py      # Multi-provider LLM router (Gemini, Groq, OpenRouter) with fallback
 │   │   │   ├── rag/                # CurriculumRegistry, Math12HybridRetriever, content_units, context_builder
-│   │   │   ├── parsers/ exporters/ # DOCX/PPTX ingestion; DOCX/PPTX/Dual-ZIP export
-│   │   │   ├── schemas/ prompts/   # Pydantic v2 contracts, including math_spec_schema.py, and system prompts
+│   │   │   ├── parsers/ exporters/ # DOCX/PPTX ingestion; DOCX/PPTX/Dual-ZIP export (including canvas PPTX exporter)
+│   │   │   ├── schemas/ prompts/   # Pydantic v2 contracts, including math_spec_schema.py, workbench_outline.py, workbench_slides.py, and system prompts
 │   │   │   └── templates/          # PowerPoint templates (`template_5512.pptx`, `manifest.json`)
 │   │   └── tests/                  # Pytest suite + `fixtures/api_contract.json`
 │   └── frontend/
-│       ├── src/App.jsx             # Top-level studio state container and screen router
-│       ├── src/features/           # dashboard, generation, lesson-plan, slide-editor, presentation, geometry, chat, analytics, exports, workbench (Bàn làm việc, packaged fonts)
-│       ├── src/shared/             # api/client.js, storage/projectStore.js (v2 + IndexedDB), storage/lessonProject.js (Bài giảng bản 3), math/, validation/, components/
+│       ├── src/App.jsx             # Top-level Bàn làm việc session state container
+│       ├── src/features/           # workbench (Bàn làm việc 3 cột, Canvas 1600x900, Trình chiếu, Đồ thị/BBT/3D, Trợ giảng AI, KHBD 5512, packaged fonts), analytics, geometry, lesson-plan, exports
+│       ├── src/shared/             # api/client.js, storage/projectStore.js (IndexedDB + v2 preservation), storage/lessonProject.js (Bài giảng bản 3 + chuyển v2->v3), math/, validation/, components/
 │       ├── tests/                  # Node unit/contract tests (`*.test.js`)
 │       └── e2e/                    # Playwright real-backend tests (`workflows.spec.js`, `ban-lam-viec.spec.js`)
 ├── docs/                           # Multi-role decisions under architecture/ and math gate ADR under adr/
@@ -119,7 +119,7 @@ Run from the repository root. For PowerShell, use `app/backend/venv/Scripts/pyth
   Replace `UNIQUE` with a run identifier before using the command.
 - **Local Makefile** is ignored on this branch. Inspect the file in the active workspace before using targets. The copy inspected for this baseline defines `backend`, `frontend`, `test`, `test-backend`, `test-frontend`, `test-critical`, `test-critical-backend`, `test-critical-frontend`, `build`, `inventory`, `lint-data`, `audit-baseline`, and `audit-acceptance`. Run portable tests, E2E, and the benchmark with the commands above. For source review use `PYTHONPATH=app/backend/src app/backend/venv/bin/python scripts/quality/prepare-source-review.py --output /tmp/lessonai-source-review-UNIQUE.json` with a fresh path and the local corpus.
 - **Pre-PR verification** covers the available portable, critical, frontend, build, and E2E checks. Record unavailable suites and their missing inputs.
-- **Database migrations:** none server side. Client projects use `IndexedDB` (`schema_version: 2`) with a one-time migration from `sessionStorage` (`lessonai_slide_deck_json_v1`) in `app/frontend/src/shared/storage/projectStore.js`. Bài giảng bản 3 are validated by `normalizeLesson()` in `app/frontend/src/shared/storage/lessonProject.js`; converting v2 projects to v3 is not built yet (#58).
+- **Database migrations:** none server side. Client projects use `IndexedDB` (`lessonai-projects`). Bài giảng bản 3 (`schema_version: 3`) are validated by `normalizeLesson()` in `app/frontend/src/shared/storage/lessonProject.js`. Legacy `schema_version: 2` projects are automatically converted to a new `schema_version: 3` Bài giảng via `convertLegacyProjectToV3()` on open or JSON import while preserving the original v2 record in IndexedDB (#58).
 
 ## 7. Code Conventions
 - **Imports:** import backend modules as `lessonai.*`. Never mutate `sys.path` in application code or `scripts/`.
@@ -156,7 +156,7 @@ Run from the repository root. For PowerShell, use `app/backend/venv/Scripts/pyth
   - Bulk-set `"status": "approved"` in `reviewed_sources.json`, or write any reviewer/approval entry without a human decision file attached to the task.
   - Edit reviewer or sign-off fields in `math12_benchmark_suite.json` or acceptance records without a signed document attached.
   - Mark a human-gated acceptance item PASS (see section 2).
-  - Re-enable retired `410 Gone` endpoints (`/api/v1/rag/preview`, `/api/v1/geometry/*`, `/api/v1/test-cases`).
+  - Re-enable retired `410 Gone` endpoints (`/api/v1/rag/preview`, `/api/v1/geometry/*`, `/api/v1/test-cases`, `/api/v1/presentation/outline`, `/api/presentation/outline`, `/api/v1/slide/generate`).
   - Inject fallback sample lessons or transparent placeholder pixels when rendering fails.
   - Overwrite existing evidence files in `reports/`.
   - Delete, skip without reason, or loosen tests to make a run green.
@@ -175,9 +175,9 @@ When you resolve an item, update or remove it here.
 - **Unsaved slide edits lock navigation.** `SlideEditorScreen.jsx` blocks switching slides, changing screens, or exporting while edits are dirty.
 - **Manual keyword unpacking in routes.** `lesson_plan.py`, `presentation.py`, `slides.py` unpack request attributes by hand (`topic=req.topic, ...`). Adding a field to `LessonRequest` or `OutlineRequest` means passing it explicitly in the route, in `services/generation/*.py`, and in `app/frontend/src/features/generation/lessonGenerationActions.js`. Some routes still accept raw `dict`; `chat.py` does so even though `ChatInteractRequest` and `ApplyPatchRequest` exist.
 - **Slide field fingerprinting and math scanning.** When adding a field to `SlideSchema` or `SlideDeckSchema`: (a) if it is a derived/ephemeral render field, add it to the ignore list in both `content_snapshot()` in `services/content_quality.py` and `mutateDeck()` in `app/frontend/src/shared/storage/projectStore.js`; (b) if it is authored math/problem text, add it to `math_fields()` in `content_quality.py` and `SOURCE_FIELDS` in `services/visual_requirements.py`.
-- **3D limits.** `geometry_scene.py` supports only `cube`, `square_pyramid_regular`, `square_pyramid_at_a`; other solids are rejected. PPTX 3D images are static Matplotlib renders at fixed `elev=30`, `azim=-60`, not synchronized with the WebGL view in `ThreeCanvas.jsx`.
+- **3D & Oxyz limits.** `geometry_scene.py` supports three polyhedra (`cube`, `square_pyramid_regular`, `square_pyramid_at_a` with net unfolding `#53`) and `oxyz` scenes (`point`, `vector`, `line`, `plane`, `sphere` with non-degeneracy checks `#54`). Legacy non-Grade-12 visuals (`arithmetic_sequence`, `inequality_system`) are retired (`#59`).
 - **Frontend storage and build.** `projectStore.js` checks storage revisions during writes. Record evidence for quota exhaustion, concurrent tabs, and migration with real legacy teacher projects before closing M2. Previous builds reported a large `mathlive` chunk.
-- **Bàn làm việc behind a switch.** The old studio stays the default until #59. The `Bàn làm việc` switch (per browser, `localStorage` key `lessonai-workbench`) shows `src/features/workbench/`, which opens only Bài giảng bản 3. The old studio refuses v3 with "Phiên bản chưa hỗ trợ" (`assertLegacyProject()`), and `saveProject()` refuses to overwrite a record that has a newer `schema_version`. While the Bàn làm việc is shown, the old keyboard shortcuts are off (`usePresentationControls({ enabled })`). The tag "Đã xác nhận chuyên môn" reflects the stored `deck.review_token`; the browser cannot check the signature, so the server verifies it when it is used.
+- **Bàn làm việc là giao diện duy nhất (#58, #59).** `src/features/workbench/` là giao diện mặc định và duy nhất của ứng dụng (bỏ công tắc chuyển giao diện cũ và các màn hình Studio bản 2 cũ). Khi mở hoặc nhập tệp JSON dự án bản 2 (`schema_version: 2`), `convertLegacyProjectToV3()` chuyển đổi sang Bài giảng bản 3 (`schema_version: 3`) với mọi hình ở trạng thái chờ xác nhận lại và giữ nguyên bản ghi bản 2 gốc trong IndexedDB. Nhãn "Đã xác nhận chuyên môn" phản ánh `deck.review_token` đã lưu; máy chủ kiểm tra lại chữ ký `signing.key` mỗi khi dùng tới.
 - **Packaged fonts.** `src/features/workbench/fonts/` holds unmodified WOFF wrappers of the upstream Google Fonts TTFs (provenance and licence in `OFL.txt`). Do not subset or otherwise modify Source Serif 4: its copyright record reserves the font name "Source", so a modified copy could not keep that name.
 - **RAG runtime is empty until a human approves sources.** `reviewed_sources.json` has `"sources": []`; `approved_units()` quarantines unapproved units, so `/api/v1/curriculum/math12` and RAG return empty context. This is expected until the reviewer finishes a batch with `hash_version: 2`.
 

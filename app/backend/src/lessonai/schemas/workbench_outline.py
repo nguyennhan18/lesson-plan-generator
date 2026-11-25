@@ -1,5 +1,5 @@
 """Contracts for creating a Dàn ý in the Bàn làm việc."""
-from typing import Annotated, Literal, get_args
+from typing import Annotated, Any, Literal, get_args
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 from pydantic.json_schema import SkipJsonSchema
@@ -11,9 +11,23 @@ Kind = Literal[
     "Mở đầu", "Tình huống khởi động", "Kiến thức trọng tâm", "Ví dụ",
     "Bài luyện tập", "Câu hỏi trắc nghiệm", "Tổng kết",
 ]
+VisualKind = Literal["graph", "bbt", "oxyz", "solid"]
 ACTIVITIES = get_args(Activity)
 LESSON_MINUTES = 45
 Text = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+
+
+class GeneratedOutlineVisual(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    visual_id: str | None = None
+    kind: VisualKind
+    origin: Literal["ai", "teacher"] = "ai"
+    status: Literal["proposed", "confirmed"] = "proposed"
+    label: str | None = None
+    data: dict[str, Any] = Field(default_factory=dict)
+    requirement_token: str | None = None
+    source_fingerprint: str | None = None
 
 
 class WorkbenchRequestText(BaseModel):
@@ -49,6 +63,7 @@ class GeneratedOutlineItem(BaseModel):
     points: list[Text]
     slide_count: int = Field(strict=True, ge=1, le=4)
     minutes: int = Field(strict=True, ge=1, le=LESSON_MINUTES)
+    visuals: list[GeneratedOutlineVisual] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def check_placement(self):

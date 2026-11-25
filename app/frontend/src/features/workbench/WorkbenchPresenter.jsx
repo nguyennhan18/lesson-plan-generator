@@ -10,7 +10,7 @@ import SlideCanvas, { totalSlideSteps } from './SlideCanvas.jsx';
 
 const pointsToSvgPath = pts => pts.map((pt, i) => `${i ? 'L' : 'M'}${pt[0]},${pt[1]}`).join('');
 
-export default function WorkbenchPresenter({ lesson, initialSlideId, onExit }) {
+export default function WorkbenchPresenter({ lesson, initialSlideId, onUpdatePoll, onExit }) {
   const slides = lesson?.deck?.slides || [];
   const startIndex = Math.max(0, slides.findIndex(slide => slide.slide_id === initialSlideId));
   const [index, setIndex] = useState(startIndex);
@@ -146,6 +146,7 @@ export default function WorkbenchPresenter({ lesson, initialSlideId, onExit }) {
           mode="present"
           fit="contain"
           step={step}
+          onUpdatePoll={onUpdatePoll}
         />
       </div>
 

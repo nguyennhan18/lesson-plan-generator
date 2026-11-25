@@ -228,36 +228,14 @@
     "/api/presentation/outline": {
       "post": {
         "summary": "Generate Outline Endpoint",
-        "description": "Trạm 2 Outline API theo FRONTEND_ARCHITECTURE.md (Mục 3.2 & Mục 7):\nNhận chủ đề và cấu hình, sinh Dàn ý các slide (tiêu đề, hoạt động, visual_type, gạch đầu dòng)\nđể giáo viên duyệt và chỉnh sửa trước khi sinh slide chi tiết.",
+        "description": "Đã nghỉ hưu ở #59: thay bằng /api/v1/workbench/outline.",
         "operationId": "generate_outline_endpoint_api_presentation_outline_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OutlineRequest"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OutlineResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": {}
               }
             }
           }
@@ -267,36 +245,14 @@
     "/api/v1/presentation/outline": {
       "post": {
         "summary": "Generate Outline Endpoint",
-        "description": "Trạm 2 Outline API theo FRONTEND_ARCHITECTURE.md (Mục 3.2 & Mục 7):\nNhận chủ đề và cấu hình, sinh Dàn ý các slide (tiêu đề, hoạt động, visual_type, gạch đầu dòng)\nđể giáo viên duyệt và chỉnh sửa trước khi sinh slide chi tiết.",
+        "description": "Đã nghỉ hưu ở #59: thay bằng /api/v1/workbench/outline.",
         "operationId": "generate_outline_endpoint_api_v1_presentation_outline_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OutlineRequest"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OutlineResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": {}
               }
             }
           }
@@ -455,6 +411,44 @@
         }
       }
     },
+    "/api/v1/workbench/lesson-plan": {
+      "post": {
+        "summary": "Build Workbench Lesson Plan",
+        "operationId": "build_workbench_lesson_plan_api_v1_workbench_lesson_plan_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkbenchSlidesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkbenchLessonPlanResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/lesson-plan/generate": {
       "post": {
         "summary": "Generate Lesson Plan Endpoint",
@@ -513,6 +507,43 @@
                   }
                 ],
                 "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/workbench/export-pptx": {
+      "post": {
+        "summary": "Export Workbench Pptx Endpoint",
+        "description": "Xuất tệp PowerPoint (.pptx) 16:9 trực tiếp từ Bộ slide canvas bản 3 (#44).",
+        "operationId": "export_workbench_pptx_endpoint_api_v1_workbench_export_pptx_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkbenchQualityCheckRequest"
               }
             }
           },
@@ -619,36 +650,14 @@
     "/api/v1/slide/generate": {
       "post": {
         "summary": "Generate Slide Endpoint",
-        "description": "API 4: Nhận yêu cầu từ người dùng, gọi Gemini AI sinh cấu trúc JSON Slide bài giảng (SlideDeckSchema).\nNếu req.plan có dữ liệu, Slide sẽ được đồng bộ chính xác theo Kế hoạch bài dạy 5512.\nTự động kết xuất ảnh đồ thị Matplotlib để Front-end hiển thị đồng bộ 100% với file PowerPoint.",
+        "description": "Đã nghỉ hưu ở #59: thay bằng /api/v1/workbench/slides.",
         "operationId": "generate_slide_endpoint_api_v1_slide_generate_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LessonRequest"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SlideDeckSchema"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": {}
               }
             }
           }
@@ -717,6 +726,47 @@
             "content": {
               "application/json": {
                 "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/chat/workbench/assistant": {
+      "post": {
+        "tags": [
+          "Chat Co-pilot"
+        ],
+        "summary": "Workbench Assistant",
+        "operationId": "workbench_assistant_api_v1_chat_workbench_assistant_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkbenchAssistantRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkbenchAssistantResponse"
+                }
               }
             }
           },
@@ -1254,6 +1304,88 @@
         }
       }
     },
+    "/api/v1/visuals/graph/sample": {
+      "post": {
+        "tags": [
+          "Visual requirements"
+        ],
+        "summary": "Graph Sample",
+        "operationId": "graph_sample_api_v1_visuals_graph_sample_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Spec"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/visuals/bbt": {
+      "post": {
+        "tags": [
+          "Visual requirements"
+        ],
+        "summary": "Bbt Table",
+        "operationId": "bbt_table_api_v1_visuals_bbt_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Spec"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/quality/check": {
       "post": {
         "tags": [
@@ -1307,6 +1439,84 @@
                 "additionalProperties": true,
                 "type": "object",
                 "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/quality/workbench/check": {
+      "post": {
+        "tags": [
+          "Content acceptance"
+        ],
+        "summary": "Check Workbench",
+        "operationId": "check_workbench_api_v1_quality_workbench_check_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkbenchQualityCheckRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/quality/workbench/approve": {
+      "post": {
+        "tags": [
+          "Content acceptance"
+        ],
+        "summary": "Approve Workbench",
+        "operationId": "approve_workbench_api_v1_quality_workbench_approve_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WorkbenchQualityApproveRequest"
               }
             }
           },
@@ -1531,7 +1741,7 @@
           },
           "kind": {
             "$ref": "#/components/schemas/ChartType",
-            "description": "Chỉ chọn 'function_plot' hoặc 'inequality_system' đối với những slide thực sự cần minh họa trực quan (thường là 1-2 slide có layout 'IMAGE_TEXT' trong bài). BẮT BUỘC chọn 'none' đối với các slide Định nghĩa, Công thức (CONCEPT_HIGHLIGHT), Phương pháp giải & Ví dụ giải mẫu từng bước (TWO_COLUMN, SINGLE_COLUMN).",
+            "description": "Chỉ chọn 'function_plot' đối với những slide thực sự cần minh họa trực quan (thường là 1-2 slide có layout 'IMAGE_TEXT' trong bài). BẮT BUỘC chọn 'none' đối với các slide Định nghĩa, Công thức (CONCEPT_HIGHLIGHT), Phương pháp giải & Ví dụ giải mẫu từng bước (TWO_COLUMN, SINGLE_COLUMN).",
             "default": "none"
           },
           "pedagogical_purpose": {
@@ -1636,9 +1846,7 @@
       "ChartType": {
         "type": "string",
         "enum": [
-          "arithmetic_sequence",
           "function_plot",
-          "inequality_system",
           "none"
         ],
         "title": "ChartType"
@@ -1809,6 +2017,93 @@
           "latex"
         ],
         "title": "FormulaBlock"
+      },
+      "GeneratedOutlineVisual": {
+        "properties": {
+          "visual_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Visual Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "graph",
+              "bbt",
+              "oxyz",
+              "solid"
+            ],
+            "title": "Kind"
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "ai",
+              "teacher"
+            ],
+            "title": "Origin",
+            "default": "ai"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "proposed",
+              "confirmed"
+            ],
+            "title": "Status",
+            "default": "proposed"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Data"
+          },
+          "requirement_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requirement Token"
+          },
+          "source_fingerprint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Fingerprint"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "kind"
+        ],
+        "title": "GeneratedOutlineVisual"
       },
       "GeneratedQuizOption": {
         "properties": {
@@ -2440,280 +2735,6 @@
           "claims"
         ],
         "title": "MathSpecVerifyResponse"
-      },
-      "OutlineRequest": {
-        "properties": {
-          "topic": {
-            "type": "string",
-            "title": "Topic",
-            "description": "Tên bài dạy / Đề tài thuyết trình"
-          },
-          "subject": {
-            "type": "string",
-            "title": "Subject",
-            "default": "Toán học"
-          },
-          "grade": {
-            "type": "integer",
-            "title": "Grade",
-            "default": 12
-          },
-          "lesson_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Lesson Id"
-          },
-          "num_slides": {
-            "type": "integer",
-            "maximum": 16.0,
-            "minimum": 4.0,
-            "title": "Num Slides",
-            "default": 8
-          },
-          "class_proficiency": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Class Proficiency",
-            "default": "standard"
-          },
-          "use_rag": {
-            "type": "boolean",
-            "title": "Use Rag",
-            "default": true
-          },
-          "model_provider": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Model Provider",
-            "default": "gemini"
-          },
-          "model_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Model Id"
-          },
-          "tone": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Tone",
-            "default": "academic"
-          },
-          "language": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Language",
-            "default": "vi"
-          }
-        },
-        "type": "object",
-        "required": [
-          "topic"
-        ],
-        "title": "OutlineRequest"
-      },
-      "OutlineResponse": {
-        "properties": {
-          "title": {
-            "type": "string",
-            "title": "Title"
-          },
-          "topic": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Topic"
-          },
-          "theme": {
-            "type": "string",
-            "title": "Theme",
-            "default": "gallery_monochrome"
-          },
-          "num_slides": {
-            "type": "integer",
-            "title": "Num Slides"
-          },
-          "subject": {
-            "type": "string",
-            "title": "Subject"
-          },
-          "grade": {
-            "type": "integer",
-            "title": "Grade"
-          },
-          "class_proficiency": {
-            "type": "string",
-            "title": "Class Proficiency"
-          },
-          "lesson_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Lesson Id"
-          },
-          "outline_slides": {
-            "items": {
-              "$ref": "#/components/schemas/OutlineSlideItem"
-            },
-            "type": "array",
-            "title": "Outline Slides"
-          }
-        },
-        "type": "object",
-        "required": [
-          "title",
-          "num_slides",
-          "subject",
-          "grade",
-          "class_proficiency",
-          "outline_slides"
-        ],
-        "title": "OutlineResponse"
-      },
-      "OutlineSlideItem": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "title": "Id",
-            "description": "ID duy nhất của slide trong dàn ý"
-          },
-          "slide_index": {
-            "type": "integer",
-            "title": "Slide Index",
-            "description": "STT slide",
-            "default": 1
-          },
-          "slide_number": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Slide Number",
-            "description": "Alias cho STT slide"
-          },
-          "title": {
-            "type": "string",
-            "title": "Title",
-            "description": "Tiêu đề slide"
-          },
-          "activity_type": {
-            "type": "string",
-            "title": "Activity Type",
-            "description": "Khởi động, Hình thành kiến thức, Luyện tập, Vận dụng, Tổng kết",
-            "default": "Hình thành kiến thức"
-          },
-          "visual_type": {
-            "type": "string",
-            "title": "Visual Type",
-            "description": "3D Geometry, 2D Function Plot, Interactive Quiz, Concept Highlight, Text & Formula",
-            "default": "Concept Highlight"
-          },
-          "bullet_points": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Bullet Points",
-            "description": "Các gạch đầu dòng ý chính"
-          },
-          "key_points": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Key Points",
-            "description": "Alias cho bullet_points"
-          },
-          "math_focus": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Math Focus",
-            "description": "Công thức hoặc trọng tâm toán học"
-          },
-          "has_3d": {
-            "type": "boolean",
-            "title": "Has 3D",
-            "default": false
-          },
-          "polyhedron_type": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Polyhedron Type"
-          }
-        },
-        "type": "object",
-        "required": [
-          "title"
-        ],
-        "title": "OutlineSlideItem"
       },
       "QuizOptionDetail": {
         "properties": {
@@ -3710,6 +3731,150 @@
         ],
         "title": "WorkbenchApprovedOutlineItem"
       },
+      "WorkbenchAssistantRequest": {
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Project Id"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Title"
+          },
+          "slide": {
+            "$ref": "#/components/schemas/WorkbenchSlide"
+          },
+          "user_message": {
+            "type": "string",
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "User Message"
+          },
+          "model_provider": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Provider"
+          },
+          "model_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "project_id",
+          "title",
+          "slide",
+          "user_message"
+        ],
+        "title": "WorkbenchAssistantRequest"
+      },
+      "WorkbenchAssistantResponse": {
+        "properties": {
+          "ai_response": {
+            "type": "string",
+            "title": "Ai Response"
+          },
+          "slide_id": {
+            "type": "string",
+            "title": "Slide Id"
+          },
+          "diffs": {
+            "items": {
+              "$ref": "#/components/schemas/WorkbenchElementDiff"
+            },
+            "type": "array",
+            "title": "Diffs"
+          },
+          "patched_slide": {
+            "$ref": "#/components/schemas/WorkbenchSlide"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ai_response",
+          "slide_id",
+          "diffs",
+          "patched_slide"
+        ],
+        "title": "WorkbenchAssistantResponse"
+      },
+      "WorkbenchDeckPayload": {
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "title": "Revision",
+            "default": 0
+          },
+          "review_token": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Token"
+          },
+          "slides": {
+            "items": {
+              "$ref": "#/components/schemas/WorkbenchSlide"
+            },
+            "type": "array",
+            "title": "Slides"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "WorkbenchDeckPayload"
+      },
+      "WorkbenchElementDiff": {
+        "properties": {
+          "element_id": {
+            "type": "string",
+            "title": "Element Id"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "before": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Before"
+          },
+          "after": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "After"
+          }
+        },
+        "type": "object",
+        "required": [
+          "element_id",
+          "type",
+          "before",
+          "after"
+        ],
+        "title": "WorkbenchElementDiff"
+      },
       "WorkbenchItemSlidesRequest": {
         "properties": {
           "title": {
@@ -3829,6 +3994,26 @@
         ],
         "title": "WorkbenchLessonOption"
       },
+      "WorkbenchLessonPlanResponse": {
+        "properties": {
+          "plan": {
+            "$ref": "#/components/schemas/LessonPlanSchema"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "plan"
+        ],
+        "title": "WorkbenchLessonPlanResponse"
+      },
       "WorkbenchOutline": {
         "properties": {
           "items": {
@@ -3894,6 +4079,13 @@
             "maximum": 45.0,
             "minimum": 1.0,
             "title": "Minutes"
+          },
+          "visuals": {
+            "items": {
+              "$ref": "#/components/schemas/GeneratedOutlineVisual"
+            },
+            "type": "array",
+            "title": "Visuals"
           },
           "item_id": {
             "type": "string",
@@ -4028,6 +4220,84 @@
           "warnings"
         ],
         "title": "WorkbenchOutlineResponse"
+      },
+      "WorkbenchQualityApproveRequest": {
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "title": "Project Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "outline": {
+            "$ref": "#/components/schemas/WorkbenchApprovedOutline"
+          },
+          "deck": {
+            "$ref": "#/components/schemas/WorkbenchDeckPayload"
+          },
+          "acknowledged": {
+            "type": "boolean",
+            "title": "Acknowledged",
+            "default": false
+          },
+          "content_fingerprint": {
+            "type": "string",
+            "title": "Content Fingerprint"
+          },
+          "reviewed_issue_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reviewed Issue Ids"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "project_id",
+          "title",
+          "outline",
+          "deck",
+          "content_fingerprint"
+        ],
+        "title": "WorkbenchQualityApproveRequest"
+      },
+      "WorkbenchQualityCheckRequest": {
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "title": "Project Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "outline": {
+            "$ref": "#/components/schemas/WorkbenchApprovedOutline"
+          },
+          "deck": {
+            "$ref": "#/components/schemas/WorkbenchDeckPayload"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "project_id",
+          "title",
+          "outline",
+          "deck"
+        ],
+        "title": "WorkbenchQualityCheckRequest"
       },
       "WorkbenchRequestText": {
         "properties": {

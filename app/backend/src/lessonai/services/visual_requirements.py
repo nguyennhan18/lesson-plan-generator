@@ -1,4 +1,5 @@
 """Server-signed confirmation of explicit teacher data, never an LLM boolean."""
+import math
 import time
 from typing import NamedTuple
 from lessonai.core import signing
@@ -56,36 +57,71 @@ def requirement_scope(data):
     return scope_kind, scope
 
 
+def _validate_graph_spec(kind, payload):
+    expression = payload.get("expression")
+    parse_expression(expression)
+    operation = payload.get("operation", "function")
+    if operation not in {"function", "derivative"}:
+        raise VisualError("Chưa hỗ trợ yêu cầu này")
+    try:
+        xmin = float(payload["x_min"])
+        xmax = float(payload["x_max"])
+    except (KeyError, TypeError, ValueError):
+        raise VisualError("Thiếu khoảng vẽ trục x") from None
+    if not (math.isfinite(xmin) and math.isfinite(xmax) and -1e6 <= xmin < xmax <= 1e6):
+        raise VisualError("Cửa sổ vẽ không hợp lệ")
+    spec = {"kind": kind, "expression": expression, "operation": operation, "x_min": xmin, "x_max": xmax}
+    if payload.get("y_min") is not None or payload.get("y_max") is not None:
+        try:
+            lo, hi = float(payload["y_min"]), float(payload["y_max"])
+        except (KeyError, TypeError, ValueError):
+            raise VisualError("Cần cả hai giới hạn trục y") from None
+        if not (math.isfinite(lo) and math.isfinite(hi) and -1e6 <= lo < hi <= 1e6):
+            raise VisualError("Giới hạn trục y không hợp lệ")
+        spec.update(y_min=lo, y_max=hi)
+    area = payload.get("area")
+    if area is not None:
+        if not isinstance(area, dict):
+            raise VisualError("Cấu hình miền tô không hợp lệ")
+        target = str(area.get("target") or "ox").strip()
+        if target.lower() != "ox":
+            parse_expression(target)
+        else:
+            target = "ox"
+        try:
+            a_val = float(area["a"])
+            b_val = float(area["b"])
+        except (KeyError, TypeError, ValueError):
+            raise VisualError("Miền tô cần cận a và b hợp lệ") from None
+        if not (math.isfinite(a_val) and math.isfinite(b_val) and xmin <= a_val < b_val <= xmax):
+            raise VisualError("Cận miền tô [a; b] phải thỏa x_min <= a < b <= x_max")
+        spec["area"] = {"target": target, "a": a_val, "b": b_val}
+    return spec
+
+
 def confirm_requirement(data):
     """Called only by the explicit confirmation UI, not by generation/enrichment."""
+    import math as _math  # noqa: F401
     scope_kind, scope = requirement_scope(data)
-    if not isinstance(data.get("source",{}),dict):
+    if not isinstance(data.get("source", {}), dict):
         raise VisualError("Nguồn dữ kiện không đúng cấu trúc")
-    kind = data.get("kind")
-    if kind == "function_plot":
-        expression = data.get("expression")
+    nested = data.get("data") if isinstance(data.get("data"), dict) else {}
+    merged = {**nested, **{k: v for k, v in data.items() if k != "data"}}
+    kind = merged.get("kind")
+    if kind in {"function_plot", "graph"}:
+        spec = _validate_graph_spec(kind, merged)
+    elif kind == "bbt":
+        from lessonai.services.workbench_visuals import classify_bbt_family
+        expression = merged.get("expression")
         parse_expression(expression)
-        operation = data.get("operation", "function")
-        if operation not in {"function", "derivative"}:
-            raise VisualError("Chưa hỗ trợ yêu cầu này")
-        spec = {"kind": kind, "expression": expression, "operation": operation,
-                "x_min": float(data["x_min"]), "x_max": float(data["x_max"])}
-        if not -1e6 <= spec["x_min"] < spec["x_max"] <= 1e6:
-            raise VisualError("Cửa sổ vẽ không hợp lệ")
-        if data.get("y_min") is not None or data.get("y_max") is not None:
-            try:
-                lo, hi = float(data["y_min"]), float(data["y_max"])
-            except (KeyError, TypeError, ValueError):
-                raise VisualError("Cần cả hai giới hạn trục y") from None
-            if not -1e6 <= lo < hi <= 1e6:
-                raise VisualError("Giới hạn trục y không hợp lệ")
-            spec.update(y_min=lo, y_max=hi)
-    elif kind in {"arithmetic_sequence","inequality_system"}:
-        from lessonai.services.discrete_visuals import normalize
-        spec=normalize(data)
-    elif kind == "geometry":
+        family_info = classify_bbt_family(expression)
+        spec = {"kind": "bbt", "expression": expression, "family": family_info["family"], "family_label": family_info["family_label"]}
+    elif kind in {"geometry", "solid"}:
         from lessonai.services.geometry_scene import normalize_spec
-        spec = {"kind": kind, **normalize_spec(data)}
+        spec = {"kind": kind, **normalize_spec(merged)}
+    elif kind == "oxyz":
+        from lessonai.services.geometry_scene import normalize_oxyz_spec
+        spec = {"kind": "oxyz", **normalize_oxyz_spec(merged)}
     else:
         raise VisualError("Loại hình chưa được hỗ trợ")
     spec["source_fingerprint"] = fingerprint(visual_source(data.get("source") or {}, SCOPES[scope_kind].source_fields))
@@ -95,18 +131,32 @@ def confirm_requirement(data):
 
 
 def checked_requirement(spec):
+    nested = spec.get("data") if isinstance(spec.get("data"), dict) else {}
+    merged = {**nested, **{k: v for k, v in spec.items() if k != "data"}}
     try:
-        record = signing.verify(_PURPOSE, spec.get("requirement_token"), max_length=16000)
+        record = signing.verify(_PURPOSE, merged.get("requirement_token"), max_length=16000)
     except signing.KeyChanged:
         raise ConfirmationKeyChanged(KEY_CHANGED_MESSAGE) from None
     except signing.InvalidToken:
         raise VisualError(_NOT_CONFIRMED) from None
     try:
-        scope_kind, scope = requirement_scope(spec)
-        if record["scope"] != scope_kind or any(spec.get(name) != record[name] for name in scope):
+        scope_kind, scope = requirement_scope(merged)
+        if record["scope"] != scope_kind or any(merged.get(name) != record[name] for name in scope):
             raise ValueError()
         for name, value in record["spec"].items():
-            actual = spec.get(name, "function" if name == "operation" else None)
+            if name in {"family", "family_label"} and name not in merged:
+                continue
+            if name == "source_fingerprint" and merged.get("source_fingerprint") is None:
+                if isinstance(merged.get("source"), dict):
+                    actual = fingerprint(visual_source(merged["source"], SCOPES[scope_kind].source_fields))
+                    if actual != value:
+                        raise ValueError()
+                elif scope_kind == "outline_item":
+                    continue
+                else:
+                    raise ValueError()
+                continue
+            actual = merged.get(name, "function" if name == "operation" else None)
             if actual != value:
                 raise ValueError()
         return record

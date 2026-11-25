@@ -5,6 +5,7 @@
  */
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import MathText from '../../shared/math/MathText';
+import { BbtFigure, GraphFigure, SpaceFigure } from './WorkbenchVisuals.jsx';
 import {
   SNAP_GRID,
   STAGE_SIZE,
@@ -14,6 +15,7 @@ import {
 } from '../../shared/storage/lessonProject.js';
 
 const FIGURE_TYPES = new Set(Object.keys(VISUAL_KIND_NAMES));
+const INLINE_EDITABLE_TYPES = new Set(['title', 'paragraph', 'caption', 'text', 'steps']);
 
 export const ELEMENT_TYPE_LABELS = {
   title: 'Tiêu đề',
@@ -92,7 +94,7 @@ function useStageScale(containerRef, fit) {
   };
 }
 
-function FigureBody({ element, visual, mode }) {
+function FigureBody({ element, lesson, slide, visual, mode, visibleParts }) {
   const kindLabel = VISUAL_KIND_NAMES[element.type] || 'Hình';
   if (visual?.status !== 'confirmed') {
     if (mode === 'present') return null;
@@ -104,6 +106,15 @@ function FigureBody({ element, visual, mode }) {
       </div>
     );
   }
+  if (element.type === 'graph') {
+    return <GraphFigure lesson={lesson} slide={slide} visual={visual} mode={mode} />;
+  }
+  if (element.type === 'bbt') {
+    return <BbtFigure lesson={lesson} slide={slide} visual={visual} mode={mode} visibleParts={visibleParts} />;
+  }
+  if (element.type === 'solid' || element.type === 'oxyz') {
+    return <SpaceFigure lesson={lesson} slide={slide} visual={visual} mode={mode} />;
+  }
   return (
     <div className="wb-s-figure">
       <span className="wb-s-figure-kind">{kindLabel}</span>
@@ -113,7 +124,89 @@ function FigureBody({ element, visual, mode }) {
   );
 }
 
-function ElementContent({ element, lesson, slide, mode, step, fontSize }) {
+function QuizBody({ element, lesson, slide, mode, onUpdatePoll }) {
+  const [showAnswer, setShowAnswer] = useState(false);
+  const options = Array.isArray(element.options) ? element.options : [];
+  const poll = lesson?.polls?.[slide.slide_id] || { A: 0, B: 0, C: 0, D: 0 };
+  const totalVotes = ['A', 'B', 'C', 'D'].reduce((sum, k) => sum + Number(poll[k] || 0), 0);
+
+  const changeVote = (label, delta) => {
+    const nextCount = Math.max(0, Number(poll[label] || 0) + delta);
+    onUpdatePoll?.(slide.slide_id, { ...poll, [label]: nextCount });
+  };
+
+  return (
+    <div className="wb-s-quiz" onPointerDown={mode === 'present' ? e => e.stopPropagation() : undefined}>
+      <div className="wb-s-quiz-head">
+        <p className="wb-s-quiz-q"><MathText text={element.question || ''} /></p>
+        {mode === 'present' && (
+          <div className="wb-s-quiz-bar">
+            <span className="wb-s-quiz-total" data-testid="wb-quiz-total">{totalVotes} phiếu</span>
+            <button
+              type="button"
+              className="wb-btn"
+              aria-pressed={showAnswer}
+              onClick={() => setShowAnswer(v => !v)}
+            >
+              {showAnswer ? 'Ẩn đáp án' : 'Hiện đáp án'}
+            </button>
+          </div>
+        )}
+      </div>
+      <ul className="wb-s-quiz-opts">
+        {options.map((opt, idx) => {
+          const label = opt.label || ['A', 'B', 'C', 'D'][idx] || 'A';
+          const count = Number(poll[label] || 0);
+          const sharePct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
+          const isCorrect = Boolean(opt.correct ?? opt.is_correct);
+          const highlightCorrect = mode === 'present' && showAnswer && isCorrect;
+          const whyText = opt.why || opt.distractor_rationale || '';
+          return (
+            <li
+              key={label}
+              data-quiz-option={label}
+              className={`wb-s-quiz-opt${highlightCorrect ? ' is-correct' : ''}`}
+              style={mode === 'present' && showAnswer ? { '--share': `${sharePct}%` } : undefined}
+            >
+              <span className="wb-s-quiz-letter">{label}</span>
+              <div className="wb-s-quiz-main">
+                <span className="wb-s-quiz-text"><MathText text={opt.text || ''} /></span>
+                {mode === 'present' && showAnswer && whyText && (
+                  <p className="wb-s-quiz-why" data-testid={`wb-quiz-why-${label}`}>
+                    <MathText text={whyText} /> ({sharePct}%)
+                  </p>
+                )}
+              </div>
+              {mode === 'present' && (
+                <div className="wb-s-quiz-tally" aria-label={`Phiếu phương án ${label}`}>
+                  <button
+                    type="button"
+                    className="wb-btn"
+                    aria-label={`Giảm phiếu ${label}`}
+                    onClick={() => changeVote(label, -1)}
+                  >
+                    −
+                  </button>
+                  <span className="wb-s-quiz-count" data-testid={`wb-quiz-count-${label}`}>{count}</span>
+                  <button
+                    type="button"
+                    className="wb-btn"
+                    aria-label={`Tăng phiếu ${label}`}
+                    onClick={() => changeVote(label, 1)}
+                  >
+                    +
+                  </button>
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+function ElementContent({ element, lesson, slide, mode, step, fontSize, onUpdatePoll }) {
   const parts = element.parts ?? 1;
   const visible = mode === 'present' ? visibleElementParts(element, step) : parts;
   if (visible <= 0) return null;
@@ -188,28 +281,14 @@ function ElementContent({ element, lesson, slide, mode, step, fontSize }) {
     }
     case 'image':
       return <img className="wb-s-image" src={element.src} alt={element.alt || 'Hình ảnh trên slide'} />;
-    case 'quiz': {
-      const options = Array.isArray(element.options) ? element.options : [];
-      return (
-        <div className="wb-s-quiz">
-          <p className="wb-s-quiz-q"><MathText text={element.question || ''} /></p>
-          <ul className="wb-s-quiz-opts">
-            {options.map((opt, idx) => (
-              <li key={opt.label || idx} className="wb-s-quiz-opt">
-                <span className="wb-s-quiz-letter">{opt.label}</span>
-                <span className="wb-s-quiz-text"><MathText text={opt.text || ''} /></span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      );
-    }
+    case 'quiz':
+      return <QuizBody element={element} lesson={lesson} slide={slide} mode={mode} onUpdatePoll={onUpdatePoll} />;
     case 'graph':
     case 'bbt':
     case 'oxyz':
     case 'solid': {
       const visual = findSlideVisual(lesson, slide, element.visual_id);
-      return <FigureBody element={element} visual={visual} mode={mode} />;
+      return <FigureBody element={element} lesson={lesson} slide={slide} visual={visual} mode={mode} visibleParts={visible} />;
     }
     default:
       return null;
@@ -224,17 +303,51 @@ export default function SlideCanvas({
   selectedElementId = null,
   onSelectElement,
   onChangeElement,
+  onEditFormula,
+  onUpdatePoll,
   step = Infinity,
   className = '',
 }) {
   const outerRef = useRef(null);
   const { scale, left, top } = useStageScale(outerRef, fit);
   const [dragRects, setDragRects] = useState(null);
+  const [editingId, setEditingId] = useState(null);
+  const [editingText, setEditingText] = useState('');
 
   if (!slide) return null;
 
+  const commitInlineEdit = el => {
+    setEditingId(null);
+    if (!el) return;
+    if (el.type === 'text' || el.type === 'steps') {
+      const nextItems = editingText.split('\n').map(s => s.trim()).filter(Boolean);
+      if (nextItems.length > 0 && JSON.stringify(nextItems) !== JSON.stringify(el.items)) {
+        onChangeElement?.(slide.slide_id, el.element_id, { items: nextItems, parts: nextItems.length });
+      }
+    } else {
+      const trimmed = editingText.trim();
+      if (trimmed && trimmed !== el.text) {
+        onChangeElement?.(slide.slide_id, el.element_id, { text: trimmed });
+      }
+    }
+  };
+
+  const handleDoubleClick = (event, el) => {
+    if (mode !== 'edit') return;
+    event.stopPropagation();
+    if (el.type === 'formula') {
+      onEditFormula?.(el);
+      return;
+    }
+    if (INLINE_EDITABLE_TYPES.has(el.type)) {
+      const initVal = Array.isArray(el.items) ? el.items.join('\n') : (el.text || '');
+      setEditingId(el.element_id);
+      setEditingText(initVal);
+    }
+  };
+
   const startDrag = (event, element, kind) => {
-    if (mode !== 'edit' || event.button !== 0) return;
+    if (mode !== 'edit' || event.button !== 0 || editingId === element.element_id) return;
     event.stopPropagation();
     onSelectElement?.(element.element_id);
     const startX = event.clientX;
@@ -307,6 +420,7 @@ export default function SlideCanvas({
           const fitInfo = measureElementTextFit(el);
           const isOverflow = Boolean(el.overflow || fitInfo.overflow);
           const selected = mode === 'edit' && el.element_id === selectedElementId;
+          const isEditingThis = mode === 'edit' && editingId === el.element_id;
           return (
             <div
               key={el.element_id}
@@ -316,15 +430,38 @@ export default function SlideCanvas({
               className={`wb-el wb-el--${el.type}${selected ? ' is-selected' : ''}${isOverflow ? ' is-overflow' : ''}`}
               style={{ left: el.x, top: el.y, width: el.w, height: el.h }}
               onPointerDown={mode === 'edit' ? event => startDrag(event, el, 'move') : undefined}
+              onDoubleClick={mode === 'edit' ? event => handleDoubleClick(event, el) : undefined}
             >
-              <ElementContent
-                element={el}
-                lesson={lesson}
-                slide={slide}
-                mode={mode}
-                step={step}
-                fontSize={fitInfo.fontSize}
-              />
+              {isEditingThis ? (
+                <textarea
+                  autoFocus
+                  aria-label="Sửa nội dung phần tử trên canvas"
+                  className="wb-el-inline-input"
+                  value={editingText}
+                  onChange={e => setEditingText(e.target.value)}
+                  onPointerDown={e => e.stopPropagation()}
+                  onBlur={() => commitInlineEdit(el)}
+                  onKeyDown={e => {
+                    if (e.key === 'Escape') {
+                      e.stopPropagation();
+                      setEditingId(null);
+                    } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey || el.type === 'title' || el.type === 'caption')) {
+                      e.preventDefault();
+                      commitInlineEdit(el);
+                    }
+                  }}
+                />
+              ) : (
+                <ElementContent
+                  element={el}
+                  lesson={lesson}
+                  slide={slide}
+                  mode={mode}
+                  step={step}
+                  fontSize={fitInfo.fontSize}
+                  onUpdatePoll={onUpdatePoll}
+                />
+              )}
               {isOverflow && mode !== 'present' && (
                 <span className="wb-el-overflow-badge" title="Chữ tràn khung sau khi đã thu nhỏ tới cỡ tối thiểu">
                   Tràn chữ

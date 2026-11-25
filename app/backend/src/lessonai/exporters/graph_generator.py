@@ -26,13 +26,7 @@ def is_plottable(config):
     if not isinstance(config, dict):
         return False
     kind = _plain_value(config.get("kind") or config.get("plot_type"))
-    if kind in {"arithmetic_sequence","inequality_system"}:
-        try:
-            from lessonai.services.discrete_visuals import normalize
-            normalize(config);checked_requirement(config)
-            return True
-        except (ValueError,KeyError,TypeError):return False
-    if kind in {"function_plot", "function"}:
+    if kind in {"function_plot", "function", "graph"}:
         try:
             parse_expression(config.get("expression"))
             checked_requirement(config)
@@ -123,22 +117,17 @@ def _cached_render(signature):
     import json
     descriptor=json.loads(signature)
     config=descriptor["spec"];kind=config["kind"];points=None
-    if kind in {"function_plot","function"}:
+    if kind in {"function_plot","function","graph"}:
         points=get_runner().run("math.plot",config)
-    elif kind in {"arithmetic_sequence","inequality_system"}:
-        from lessonai.services.discrete_visuals import construct
-        points=construct(config)
     return _draw(config,points,descriptor["figsize"])
 
 
 def generate_math_plot(config,figsize=(6,4)):
     if not isinstance(config,dict):raise ValueError("chart_spec không hợp lệ")
     kind=_plain_value(config.get("kind") or config.get("plot_type"))
-    if kind in {"function_plot","function"}:
+    if kind in {"function_plot","function","graph"}:
         parse_expression(config.get("expression"));checked_requirement(config)
-    elif kind in {"arithmetic_sequence","inequality_system"}:
-        checked_requirement(config)
     elif kind!="chart":raise VisualError("Loại đồ thị chưa được hỗ trợ; không tạo hình thay thế")
-    fields=("expression","operation","x_min","x_max","y_min","y_max","first_term","common_difference","count","constraints","labels","values","chart_kind","chart_title","title","source_fingerprint","deck_id","slide_id")
+    fields=("expression","operation","x_min","x_max","y_min","y_max","area","labels","values","chart_kind","chart_title","title","source_fingerprint","deck_id","slide_id","project_id","item_id")
     spec={key:config[key] for key in fields if key in config};spec["kind"]=kind
     return _cached_render(canonical({"renderer":"confirmed-math-v2","spec":spec,"figsize":list(figsize)}))

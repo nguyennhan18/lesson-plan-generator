@@ -7,9 +7,7 @@ from lessonai.schemas.content_blocks import ContentBlock
 from lessonai.schemas.provenance import GenerationMetadata
 ##
 class ChartType(str, Enum):
-    ARITHMETIC_SEQUENCE = "arithmetic_sequence"   # giữ lại cho dãy số dạng u_n = a + d*n
     FUNCTION_PLOT = "function_plot"                # TỔNG QUÁT — áp dụng mọi hàm số 1 biến
-    INEQUALITY_SYSTEM = "inequality_system"        # Hệ bất phương trình bậc nhất 2 ẩn & Miền nghiệm Oxy
     NONE = "none"
 
 class ChartSpec(BaseModel):
@@ -21,7 +19,7 @@ class ChartSpec(BaseModel):
     kind: ChartType = Field(
         default=ChartType.NONE,
         description=(
-            "Chỉ chọn 'function_plot' hoặc 'inequality_system' đối với những slide thực sự cần minh họa trực quan "
+            "Chỉ chọn 'function_plot' đối với những slide thực sự cần minh họa trực quan "
             "(thường là 1-2 slide có layout 'IMAGE_TEXT' trong bài). "
             "BẮT BUỘC chọn 'none' đối với các slide Định nghĩa, Công thức (CONCEPT_HIGHLIGHT), "
             "Phương pháp giải & Ví dụ giải mẫu từng bước (TWO_COLUMN, SINGLE_COLUMN)."

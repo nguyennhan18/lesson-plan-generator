@@ -206,20 +206,41 @@ def export_dual_package(payload: Dict[str, Any], use_concurrency: bool = True) -
     # Tên tệp tin an toàn (bỏ dấu tiếng Việt, không khoảng trắng)
     safe_title = sanitize_filename(title)
 
-    # 1. Chuẩn bị đối tượng SlideDeckSchema nếu có
+    # 1. Chuẩn bị đối tượng SlideDeckSchema hoặc Bài giảng bản 3 (canvas deck) nếu có
     deck_obj: Optional[SlideDeckSchema] = None
+    workbench_payload: Optional[Dict[str, Any]] = None
     slide_count = 0
     has_3d = False
     quiz_count = 0
 
     if deck_raw:
-        deck_obj = normalize_slide_deck_payload(deck_raw)
-        slide_count = len(deck_obj.slides) if deck_obj.slides else 0
-        for s in (deck_obj.slides or []):
-            if s.has_3d or s.polyhedron_type:
-                has_3d = True
-            if s.quiz_options and len(s.quiz_options) > 0:
-                quiz_count += 1
+        if isinstance(deck_raw, dict) and (
+            deck_raw.get("schema_version") == 3
+            or ("outline" in deck_raw and "deck" in deck_raw)
+            or (deck_raw.get("slides") and isinstance(deck_raw["slides"][0], dict) and "elements" in deck_raw["slides"][0])
+        ):
+            workbench_payload = deck_raw if "deck" in deck_raw else {
+                "project_id": deck_raw.get("project_id") or payload.get("project_id") or "",
+                "title": deck_raw.get("title") or title,
+                "outline": deck_raw.get("outline") or payload.get("outline") or {"items": []},
+                "deck": deck_raw,
+            }
+            wb_slides = (workbench_payload.get("deck") or {}).get("slides") or []
+            slide_count = len(wb_slides)
+            for s in wb_slides:
+                for el in s.get("elements") or []:
+                    if el.get("type") in {"solid", "oxyz"}:
+                        has_3d = True
+                    elif el.get("type") == "quiz":
+                        quiz_count += 1
+        else:
+            deck_obj = normalize_slide_deck_payload(deck_raw)
+            slide_count = len(deck_obj.slides) if deck_obj.slides else 0
+            for s in (deck_obj.slides or []):
+                if s.has_3d or s.polyhedron_type:
+                    has_3d = True
+                if s.quiz_options and len(s.quiz_options) > 0:
+                    quiz_count += 1
 
     # 2. Chuẩn bị đối tượng LessonPlan nếu có
     activity_count = 0
@@ -236,16 +257,20 @@ def export_dual_package(payload: Dict[str, Any], use_concurrency: bool = True) -
     def _render_docx():
         if plan_raw is None:
             return b""
-        docx_stream = export_lesson_plan_to_docx(plan_raw, slide_deck=deck_raw)
+        docx_stream = export_lesson_plan_to_docx(plan_raw, slide_deck=deck_raw if deck_obj else None)
         return docx_stream.getvalue()
 
     def _render_pptx():
+        if workbench_payload is not None:
+            from lessonai.exporters.slide_exporter import export_workbench_pptx
+            return export_workbench_pptx(workbench_payload).getvalue()
         if deck_obj is None:
             return b""
         pptx_stream = export_slide_deck_to_pptx(deck_obj)
         return pptx_stream.getvalue()
 
-    if use_concurrency and plan_raw and deck_obj:
+    has_deck_target = deck_obj is not None or workbench_payload is not None
+    if use_concurrency and plan_raw and has_deck_target:
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
             future_docx = executor.submit(_render_docx)
             future_pptx = executor.submit(_render_pptx)
@@ -254,7 +279,7 @@ def export_dual_package(payload: Dict[str, Any], use_concurrency: bool = True) -
     else:
         if plan_raw:
             docx_bytes = _render_docx()
-        if deck_obj:
+        if has_deck_target:
             pptx_bytes = _render_pptx()
 
     # 4. Tính toán mã băm SHA-256
@@ -271,18 +296,25 @@ def export_dual_package(payload: Dict[str, Any], use_concurrency: bool = True) -
     from lessonai.api.routes.quality import check_deck
     from lessonai.services.visual_requirements import fingerprint
     from lessonai.services.content_quality import content_snapshot
-    deck_payload = deck_obj.model_dump(mode="json") if deck_obj else None
-    quality = check_deck(deck_payload) if deck_payload else {"status": "needs_review"}
+    if workbench_payload is not None:
+        from lessonai.services.workbench_quality import check_workbench_deck
+        quality = check_workbench_deck(workbench_payload)
+        deck_payload = workbench_payload.get("deck") or {}
+        deck_fp = quality.get("content_fingerprint")
+    else:
+        deck_payload = deck_obj.model_dump(mode="json") if deck_obj else None
+        quality = check_deck(deck_payload) if deck_payload else {"status": "needs_review"}
+        deck_fp = fingerprint(content_snapshot(deck_payload)) if deck_payload else None
     from lessonai.services.lesson_quality import check_plan
     from lessonai.services.artifact_provenance import plan_provenance
     plan_payload = LessonPlanSchema.model_validate(plan_raw).model_dump(mode="json") if plan_raw else None
     plan_quality = check_plan(plan_payload) if plan_payload else {"status": "absent"}
     manifest_text = json.dumps({
-        "schema_version": 2, "title": title, "subject": subject, "grade": grade,
-        "project_id": deck_payload.get("project_id") if deck_payload else None,
+        "schema_version": 3 if workbench_payload is not None else 2, "title": title, "subject": subject, "grade": grade,
+        "project_id": (workbench_payload.get("project_id") if workbench_payload else (deck_payload.get("project_id") if deck_payload else None)),
         "deck_id": deck_payload.get("deck_id") if deck_payload else None,
         "revision": deck_payload.get("revision") if deck_payload else None,
-        "content_fingerprint": fingerprint(content_snapshot(deck_payload)) if deck_payload else None,
+        "content_fingerprint": deck_fp,
         "deck_quality": quality["status"], "plan_quality": plan_quality["status"],
         "plan_provenance": plan_provenance(plan_payload) if plan_payload else None,
         "deck_generation_metadata": deck_payload.get("generation_metadata") if deck_payload else None,

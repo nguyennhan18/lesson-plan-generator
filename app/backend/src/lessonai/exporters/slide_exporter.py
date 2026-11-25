@@ -1262,12 +1262,300 @@ def _append_table_pages(prs, source, data, subject, grade):
         build_speaker_notes(page, source, subject=subject, grade=grade)
 
 
+def _append_pptx_text_with_omml(paragraph, text: str, font_name: str, font_pt: float, bold: bool = False, color: RGBColor = COLOR_TEXT_MAIN):
+    """Insert text into a PowerPoint paragraph, converting $...$ and $$...$$ LaTeX segments into native DrawingML OMML (<a14:m>) (#44)."""
+    from lxml import etree
+    from lessonai.exporters.docx_exporter import repair_latex_code
+    import latex2mathml.converter
+    import mathml2omml
+
+    cleaned = clean_xml_string(text)
+    if not cleaned:
+        return
+    pattern = r'(\\\(.*?\\\)|\\\[.*?\\\]|(?:\$\$[^$]+\$\$)|(?:\$[^$]+\$))'
+    parts = re.split(pattern, cleaned)
+    for part in parts:
+        if not part:
+            continue
+        is_latex = False
+        latex_code = ""
+        if (part.startswith(r"\(") and part.endswith(r"\)")) or (part.startswith(r"\[") and part.endswith(r"\]")):
+            is_latex = True
+            latex_code = part[2:-2].strip()
+        elif part.startswith("$$") and part.endswith("$$"):
+            is_latex = True
+            latex_code = part[2:-2].strip()
+        elif part.startswith("$") and part.endswith("$"):
+            is_latex = True
+            latex_code = part[1:-1].strip()
+        if is_latex and latex_code:
+            inserted_omml = False
+            try:
+                repaired = repair_latex_code(latex_code)
+                mathml_code = latex2mathml.converter.convert(repaired)
+                omml_str = mathml2omml.convert(mathml_code)
+                m_ns = 'xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"'
+                if '<m:oMath>' in omml_str and 'xmlns:m=' not in omml_str:
+                    omml_str = omml_str.replace('<m:oMath>', f'<m:oMath {m_ns}>', 1)
+                elif '<m:oMathPara>' in omml_str and 'xmlns:m=' not in omml_str:
+                    omml_str = omml_str.replace('<m:oMathPara>', f'<m:oMathPara {m_ns}>', 1)
+                wrapped = (
+                    '<a14:m xmlns:a14="http://schemas.microsoft.com/office/drawing/2010/main">'
+                    f'<m:oMathPara {m_ns}>{omml_str}</m:oMathPara>'
+                    '</a14:m>'
+                )
+                paragraph._p.append(etree.fromstring(wrapped))
+                inserted_omml = True
+            except Exception:
+                inserted_omml = False
+            if not inserted_omml:
+                r = paragraph.add_run()
+                r.text = latex_to_unicode_math(latex_code)
+                r.font.name = "Cambria Math"
+                r.font.size = Pt(font_pt)
+                r.font.bold = bold
+                r.font.color.rgb = color
+        else:
+            r = paragraph.add_run()
+            r.text = part
+            r.font.name = font_name
+            r.font.size = Pt(font_pt)
+            r.font.bold = bold
+            r.font.color.rgb = color
+
+
+def export_workbench_pptx(payload: Dict[str, Any]) -> io.BytesIO:
+    """Export a Bàn làm việc v3 canvas deck to a 16:9 PowerPoint (.pptx) file (#44)."""
+    from lessonai.services.workbench_quality import check_workbench_deck
+    from lessonai.services.visual_requirements import (
+        ITEM_SOURCE_FIELDS,
+        ConfirmationKeyChanged,
+        VisualError,
+        checked_requirement,
+        fingerprint,
+        visual_source,
+    )
+    from lessonai.services.geometry_scene import _draw_scene, build_scene
+    from lessonai.services.workbench_visuals import (
+        render_bbt_png,
+        render_oxyz_png,
+        render_workbench_graph_png,
+    )
+
+    deck_dict = payload.get("deck") or {}
+    slides_data = deck_dict.get("slides") or []
+    if not slides_data:
+        raise ValueError("Không có slide để xuất PowerPoint")
+
+    report = check_workbench_deck(payload)
+    is_draft = report["status"] != "ready"
+
+    project_id = str(payload.get("project_id") or "")
+    outline_items = (payload.get("outline") or {}).get("items") or []
+    items_by_id = {item["item_id"]: item for item in outline_items if isinstance(item, dict) and item.get("item_id")}
+
+    SLIDE_W_IN = 13.333
+    SLIDE_H_IN = 7.5
+    prs = Presentation()
+    prs.slide_width = Inches(SLIDE_W_IN)
+    prs.slide_height = Inches(SLIDE_H_IN)
+
+    def scale_box(el):
+        x = max(0.0, float(el.get("x", 0))) / 1600.0 * SLIDE_W_IN
+        y = max(0.0, float(el.get("y", 0))) / 900.0 * SLIDE_H_IN
+        w = max(0.5, float(el.get("w", 200))) / 1600.0 * SLIDE_W_IN
+        h = max(0.3, float(el.get("h", 80))) / 900.0 * SLIDE_H_IN
+        return Inches(x), Inches(y), Inches(w), Inches(h)
+
+    INK = RGBColor(0, 0, 0)
+    MUTED = RGBColor(110, 110, 110)
+
+    for s_idx, slide_data in enumerate(slides_data, 1):
+        slide = prs.slides.add_slide(prs.slide_layouts[6])
+        for sh in list(slide.placeholders):
+            slide.shapes._spTree.remove(sh._element)
+
+        item = items_by_id.get(slide_data.get("item_id")) or {}
+        visuals_by_id = {v["visual_id"]: v for v in (item.get("visuals") or []) if isinstance(v, dict) and v.get("visual_id")}
+        item_fp = fingerprint(visual_source(item, ITEM_SOURCE_FIELDS)) if item else ""
+
+        for el in slide_data.get("elements") or []:
+            etype = el.get("type")
+            left, top, width, height = scale_box(el)
+
+            if etype == "title":
+                box = slide.shapes.add_textbox(left, top, width, height)
+                tf = box.text_frame
+                tf.word_wrap = True
+                p = tf.paragraphs[0]
+                pt_size = 36.0 if el.get("hero") else 26.0
+                _append_pptx_text_with_omml(p, str(el.get("text") or ""), "Source Serif 4", pt_size, bold=True, color=INK)
+
+            elif etype in {"paragraph", "caption"}:
+                box = slide.shapes.add_textbox(left, top, width, height)
+                tf = box.text_frame
+                tf.word_wrap = True
+                p = tf.paragraphs[0]
+                pt_size = 14.0 if etype == "caption" else 18.0
+                col = MUTED if etype == "caption" else INK
+                _append_pptx_text_with_omml(p, str(el.get("text") or ""), "Source Serif 4", pt_size, bold=False, color=col)
+
+            elif etype in {"text", "steps"}:
+                box = slide.shapes.add_textbox(left, top, width, height)
+                tf = box.text_frame
+                tf.word_wrap = True
+                items_list = el.get("items") or []
+                for idx_line, line in enumerate(items_list, 1):
+                    p = tf.paragraphs[0] if idx_line == 1 else tf.add_paragraph()
+                    p.space_after = Pt(6)
+                    prefix = f"{idx_line}. " if etype == "steps" else "• "
+                    r_pre = p.add_run()
+                    r_pre.text = prefix
+                    r_pre.font.name = "Source Serif 4"
+                    r_pre.font.size = Pt(18)
+                    r_pre.font.bold = True
+                    r_pre.font.color.rgb = INK
+                    _append_pptx_text_with_omml(p, str(line), "Source Serif 4", 18.0, bold=False, color=INK)
+
+            elif etype == "formula":
+                box = slide.shapes.add_textbox(left, top, width, height)
+                tf = box.text_frame
+                tf.word_wrap = True
+                p = tf.paragraphs[0]
+                raw_latex = str(el.get("latex") or el.get("text") or "").strip().strip("$")
+                if raw_latex:
+                    _append_pptx_text_with_omml(p, f"$${raw_latex}$$", "Cambria Math", 22.0, bold=False, color=INK)
+
+            elif etype == "table":
+                headers = list(el.get("headers") or [])
+                rows = [list(r) for r in (el.get("rows") or [])]
+                all_rows = ([headers] if headers else []) + rows
+                if all_rows and all_rows[0]:
+                    n_rows = len(all_rows)
+                    n_cols = max(len(r) for r in all_rows)
+                    tbl_shape = slide.shapes.add_table(n_rows, n_cols, left, top, width, height)
+                    tbl = tbl_shape.table
+                    for r_i, row_vals in enumerate(all_rows):
+                        for c_i in range(n_cols):
+                            cell = tbl.cell(r_i, c_i)
+                            val = str(row_vals[c_i]) if c_i < len(row_vals) else ""
+                            p = cell.text_frame.paragraphs[0]
+                            p.text = ""
+                            _append_pptx_text_with_omml(
+                                p,
+                                val,
+                                "Source Serif 4",
+                                15.0,
+                                bold=(r_i == 0 and bool(headers)),
+                                color=INK,
+                            )
+
+            elif etype == "image":
+                stream = decode_base64_data_url(el.get("src"))
+                if not stream:
+                    raise ValueError("Không đọc được hình ảnh nhúng trên slide")
+                with Image.open(stream) as im:
+                    px_w, px_h = im.size
+                stream.seek(0)
+                fl, ft, fw, fh = compute_aspect_preserving_fit(px_w, px_h, float(left), float(top), float(width), float(height))
+                slide.shapes.add_picture(stream, int(fl), int(ft), width=int(fw), height=int(fh))
+
+            elif etype == "quiz":
+                box = slide.shapes.add_textbox(left, top, width, height)
+                tf = box.text_frame
+                tf.word_wrap = True
+                p_q = tf.paragraphs[0]
+                _append_pptx_text_with_omml(p_q, str(el.get("question") or ""), "Source Serif 4", 20.0, bold=True, color=INK)
+                for opt in el.get("options") or []:
+                    p_opt = tf.add_paragraph()
+                    p_opt.space_before = Pt(6)
+                    lbl = opt.get("label") if isinstance(opt, dict) else "A"
+                    txt = opt.get("text") if isinstance(opt, dict) else str(opt)
+                    r_lbl = p_opt.add_run()
+                    r_lbl.text = f"{lbl}. "
+                    r_lbl.font.name = "Source Serif 4"
+                    r_lbl.font.size = Pt(17)
+                    r_lbl.font.bold = True
+                    r_lbl.font.color.rgb = INK
+                    _append_pptx_text_with_omml(p_opt, str(txt or ""), "Source Serif 4", 17.0, bold=False, color=INK)
+
+            elif etype in {"graph", "bbt", "solid", "oxyz"}:
+                visual = visuals_by_id.get(el.get("visual_id"))
+                if not visual or visual.get("status") != "confirmed" or not visual.get("requirement_token"):
+                    is_draft = True
+                    continue
+                v_spec = {
+                    **(visual.get("data") or {}),
+                    "kind": etype,
+                    "project_id": project_id,
+                    "item_id": item.get("item_id"),
+                    "source_fingerprint": item_fp,
+                    "requirement_token": visual.get("requirement_token"),
+                }
+                try:
+                    rec = checked_requirement(v_spec)
+                    if rec["spec"].get("source_fingerprint") != item_fp:
+                        is_draft = True
+                        continue
+                    if etype == "graph":
+                        png_bytes = render_workbench_graph_png(v_spec)
+                    elif etype == "bbt":
+                        png_bytes = render_bbt_png(v_spec)
+                    elif etype == "solid":
+                        png_bytes = _draw_scene(build_scene(v_spec))
+                    else:
+                        png_bytes = render_oxyz_png(v_spec)
+                    img_stream = io.BytesIO(png_bytes)
+                    with Image.open(img_stream) as im:
+                        px_w, px_h = im.size
+                    img_stream.seek(0)
+                    fl, ft, fw, fh = compute_aspect_preserving_fit(px_w, px_h, float(left), float(top), float(width), float(height))
+                    slide.shapes.add_picture(img_stream, int(fl), int(ft), width=int(fw), height=int(fh))
+                except (VisualError, ConfirmationKeyChanged, ValueError):
+                    is_draft = True
+                    continue
+
+        notes_text = str(slide_data.get("notes") or "").strip()
+        if notes_text:
+            notes_slide = getattr(slide, "notes_slide", None)
+            if notes_slide and getattr(notes_slide, "notes_text_frame", None):
+                notes_slide.notes_text_frame.text = clean_xml_string(notes_text)
+
+    if is_draft:
+        for page in prs.slides:
+            stamp = page.shapes.add_textbox(Inches(0.6), Inches(7.05), Inches(12.0), Inches(0.35))
+            p_st = stamp.text_frame.paragraphs[0]
+            r_st = p_st.add_run()
+            r_st.text = "Bản nháp — Bộ slide chưa có Xác nhận chuyên môn cho phiên bản hiện tại."
+            r_st.font.name = "Arial"
+            r_st.font.size = Pt(10)
+            r_st.font.bold = True
+            r_st.font.color.rgb = RGBColor(0x9A, 0x34, 0x12)
+
+    out = io.BytesIO()
+    prs.save(out)
+    out.seek(0)
+    return out
+
+
 def export_slide_deck_to_pptx(data: Union[Dict[str, Any], SlideDeckSchema]) -> io.BytesIO:
     """
     Chuyển đổi dữ liệu SlideDeck thành file PowerPoint (.pptx) chuẩn 16:9 Widescreen.
     Giữ nội dung được cung cấp; hình dùng dữ kiện đã xác nhận.
     Công thức và đồ thị được chèn dưới dạng ảnh; bố cục cần nghiệm thu trực quan.
     """
+    if isinstance(data, dict) and (
+        data.get("schema_version") == 3
+        or ("outline" in data and "deck" in data)
+        or (data.get("slides") and isinstance(data["slides"][0], dict) and "elements" in data["slides"][0])
+    ):
+        wb_payload = data if "deck" in data else {
+            "project_id": data.get("project_id", ""),
+            "title": data.get("title") or data.get("presentation_title") or "Bài giảng",
+            "outline": data.get("outline") or {"items": []},
+            "deck": data,
+        }
+        return export_workbench_pptx(wb_payload)
     if isinstance(data, (SlideDeckSchema, dict)):
         deck_dict = _plain(data)
     else:

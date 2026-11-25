@@ -14,34 +14,23 @@ from lessonai.services.generation.workbench_outline import generate_outline, ide
 from lessonai.services.generation.workbench_slides import (
     generate_workbench_slides, regenerate_workbench_item_slides,
 )
+from lessonai.services.generation.workbench_lesson_plan import (
+    WorkbenchLessonPlanResponse, generate_workbench_lesson_plan,
+)
 
 router = APIRouter()
 
-@router.post("/api/v1/presentation/outline", response_model=OutlineResponse)
-@router.post("/api/presentation/outline", response_model=OutlineResponse)
-def generate_outline_endpoint(req: OutlineRequest):
-    """
-    Trạm 2 Outline API theo FRONTEND_ARCHITECTURE.md (Mục 3.2 & Mục 7):
-    Nhận chủ đề và cấu hình, sinh Dàn ý các slide (tiêu đề, hoạt động, visual_type, gạch đầu dòng)
-    để giáo viên duyệt và chỉnh sửa trước khi sinh slide chi tiết.
-    """
-    try:
-        return generate_presentation_outline(
-            topic=req.topic,
-            subject=req.subject,
-            grade=req.grade,
-            num_slides=req.num_slides,
-            lesson_id=req.lesson_id,
-            class_proficiency=req.class_proficiency,
-            use_rag=req.use_rag,
-            model_provider=req.model_provider,
-            model_id=req.model_id,
-            tone=req.tone,
-            language=req.language,
-            session_id=req.session_id
-        )
-    except Exception as e:
-        raise HTTPException(status_code=503, detail=classify_generation_error(e, "dàn ý")) from e
+@router.post("/api/v1/presentation/outline")
+@router.post("/api/presentation/outline")
+def generate_outline_endpoint():
+    """Đã nghỉ hưu ở #59: thay bằng /api/v1/workbench/outline."""
+    raise HTTPException(
+        status_code=410,
+        detail={
+            "code": "legacy_outline_retired",
+            "message": "Endpoint sinh dàn ý theo num_slides đã dừng; hãy dùng /api/v1/workbench/outline của Bàn làm việc.",
+        },
+    )
 
 
 @router.post("/api/v1/workbench/outline/identify", response_model=WorkbenchLessonMatch)
@@ -76,3 +65,11 @@ def regenerate_workbench_item(req: WorkbenchItemSlidesRequest):
         raise HTTPException(422, detail={"code": "unknown_outline_item", "message": str(error)}) from error
     except Exception as error:
         raise HTTPException(503, detail=classify_generation_error(error, "slide của Mục")) from error
+
+
+@router.post("/api/v1/workbench/lesson-plan", response_model=WorkbenchLessonPlanResponse)
+def build_workbench_lesson_plan(req: WorkbenchSlidesRequest):
+    try:
+        return generate_workbench_lesson_plan(req)
+    except Exception as error:
+        raise HTTPException(503, detail=classify_generation_error(error, "Kế hoạch bài dạy")) from error

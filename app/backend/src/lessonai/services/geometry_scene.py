@@ -1,8 +1,101 @@
-"""Canonical coordinates shared by measurement, web and export."""
+"""Canonical coordinates shared by measurement, web and export (#53, #54)."""
 import math
 from lessonai.services.visual_requirements import VisualError, fingerprint
 
 KINDS = {"cube", "square_pyramid_regular", "square_pyramid_at_a"}
+OXYZ_OBJECT_TYPES = {"point", "vector", "line", "plane", "sphere"}
+
+
+def _finite_number(val, label="Toạ độ"):
+    if isinstance(val, bool):
+        raise VisualError(f"{label} phải là số thực hữu hạn")
+    try:
+        num = float(val)
+    except (TypeError, ValueError):
+        raise VisualError(f"{label} phải là số thực hữu hạn") from None
+    if not math.isfinite(num) or abs(num) > 1e6:
+        raise VisualError(f"{label} phải hữu hạn và trong giới hạn [-1000000, 1000000]")
+    return num
+
+
+def _coord3(vec, label="Toạ độ"):
+    if not isinstance(vec, (list, tuple)) or len(vec) != 3:
+        raise VisualError(f"{label} cần đúng 3 thành phần (x, y, z)")
+    return [_finite_number(c, label) for c in vec]
+
+
+def _norm3(vec):
+    return math.sqrt(vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2])
+
+
+def normalize_oxyz_spec(data):
+    """Validate Oxyz objects (#54): point, vector, line, plane, sphere with non-degeneracy checks."""
+    raw_objects = data.get("objects")
+    if not isinstance(raw_objects, list) or not 1 <= len(raw_objects) <= 16:
+        raise VisualError("Hình Oxyz cần từ 1 đến 16 đối tượng")
+    normalized = []
+    seen_points = {}
+    for idx, obj in enumerate(raw_objects, 1):
+        if not isinstance(obj, dict):
+            raise VisualError(f"Đối tượng Oxyz thứ {idx} không đúng cấu trúc")
+        otype = str(obj.get("type") or "").strip().lower()
+        if otype not in OXYZ_OBJECT_TYPES:
+            raise VisualError(f"Loại đối tượng Oxyz «{otype}» chưa được hỗ trợ (chỉ nhận point, vector, line, plane, sphere)")
+        oid = str(obj.get("id") or obj.get("label") or f"{otype}_{idx}").strip()
+        label = str(obj.get("label") or oid).strip()
+        if not label:
+            raise VisualError(f"Đối tượng Oxyz thứ {idx} thiếu nhãn")
+        if otype == "point":
+            coords = _coord3(obj.get("coords"), f"Điểm {label}")
+            for other_label, other_coords in seen_points.items():
+                if math.dist(coords, other_coords) <= 1e-9:
+                    raise VisualError(f"Hai điểm {label} và {other_label} trùng nhau")
+            seen_points[label] = coords
+            normalized.append({"id": oid, "type": "point", "label": label, "coords": coords})
+        elif otype == "vector":
+            if obj.get("from") is not None and obj.get("to") is not None:
+                p_from = _coord3(obj.get("from"), f"Điểm đầu vectơ {label}")
+                p_to = _coord3(obj.get("to"), f"Điểm cuối vectơ {label}")
+                coords = [p_to[i] - p_from[i] for i in range(3)]
+                origin = p_from
+            else:
+                coords = _coord3(obj.get("coords"), f"Vectơ {label}")
+                origin = _coord3(obj.get("origin", [0, 0, 0]), f"Gốc vectơ {label}")
+            if _norm3(coords) <= 1e-9:
+                raise VisualError(f"Vectơ {label} không được là vectơ-không")
+            normalized.append({"id": oid, "type": "vector", "label": label, "coords": coords, "origin": origin})
+        elif otype == "line":
+            point = _coord3(obj.get("point"), f"Điểm đi qua của đường thẳng {label}")
+            direction = _coord3(obj.get("direction"), f"Vectơ chỉ phương của đường thẳng {label}")
+            if _norm3(direction) <= 1e-9:
+                raise VisualError(f"Vectơ chỉ phương của đường thẳng {label} phải khác vectơ-không")
+            normalized.append({"id": oid, "type": "line", "label": label, "point": point, "direction": direction})
+        elif otype == "plane":
+            coeffs = obj.get("coeffs")
+            if not isinstance(coeffs, (list, tuple)) or len(coeffs) != 4:
+                raise VisualError(f"Mặt phẳng {label} cần 4 hệ số [A, B, C, D] của phương trình Ax + By + Cz + D = 0")
+            a, b, c, d = [_finite_number(v, f"Hệ số mặt phẳng {label}") for v in coeffs]
+            if _norm3([a, b, c]) <= 1e-9:
+                raise VisualError(f"Vectơ pháp tuyến của mặt phẳng {label} phải khác vectơ-không")
+            normalized.append({"id": oid, "type": "plane", "label": label, "coeffs": [a, b, c, d]})
+        elif otype == "sphere":
+            center = _coord3(obj.get("center"), f"Tâm mặt cầu {label}")
+            radius = _finite_number(obj.get("radius"), f"Bán kính mặt cầu {label}")
+            if radius <= 0:
+                raise VisualError(f"Bán kính mặt cầu {label} phải dương")
+            normalized.append({"id": oid, "type": "sphere", "label": label, "center": center, "radius": radius})
+    return {"objects": normalized}
+
+
+def build_oxyz_scene(data):
+    spec = normalize_oxyz_spec(data)
+    return {
+        "kind": "oxyz",
+        "spec": spec,
+        "objects": spec["objects"],
+        "scene_fingerprint": fingerprint(spec),
+        "status": "constraints_checked",
+    }
 
 
 def normalize_spec(data):
@@ -23,6 +116,8 @@ def normalize_spec(data):
 
 
 def build_scene(data):
+    if data.get("kind") == "oxyz" or ("objects" in data and "polyhedron_type" not in data):
+        return build_oxyz_scene(data)
     spec = normalize_spec(data)
     a, h, kind = spec["base_edge"], spec["height"], spec["polyhedron_type"]
     vertices = {"A": [0, 0, 0], "B": [a, 0, 0], "C": [a, a, 0], "D": [0, a, 0]}

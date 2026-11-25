@@ -1,16 +1,24 @@
 import { postJson } from '../../shared/api/client.js';
 import {
   ACTIVITIES,
+  addItemVisual,
+  addSlideElement,
+  convertLegacyProjectToV3,
+  measureElementTextFit,
   normalizeLesson,
   listLessons,
   loadLesson,
+  placeVisualOnItemSlide,
   readLessonFile,
+  removeSlideElement,
   saveLesson,
   storedCopy,
+  updateItemVisual,
   updateSlideElement,
+  updateSlidePoll,
   replaceItemSlides,
 } from '../../shared/storage/lessonProject.js';
-import { LESSON_SCHEMA_VERSION, UNSUPPORTED_VERSION } from '../../shared/storage/projectStore.js';
+import { LEGACY_SCHEMA_VERSION, LESSON_SCHEMA_VERSION, UNSUPPORTED_VERSION, loadProject } from '../../shared/storage/projectStore.js';
 
 /**
  * Bàn làm việc: open, import, save and export a Bài giảng bản 3.
@@ -40,7 +48,8 @@ function readStoredSettings() {
 export const emptyWorkbench = () => ({
   lesson: null,        // Bản soạn đang mở (Bài giảng bản 3 đã chuẩn hóa)
   lessons: null,       // Bài giảng đã lưu trên máy; null khi chưa đọc xong
-  legacyCount: 0,      // dự án bản 2, chỉ giao diện cũ mở được
+  legacyCount: 0,      // số dự án bản 2 trên máy
+  legacyProjects: [],  // danh sách dự án bản 2 có thể chuyển sang bản 3 (#58)
   saveState: 'saved',  // 'saved' | 'saving' | 'unsaved' (lần lưu gần nhất thất bại)
   notice: null,        // { kind: 'error' | 'save-failed', message } | { kind: 'conflict', message, lesson }
   settings: readStoredSettings(),
@@ -113,6 +122,13 @@ export function createWorkbenchActions({ getSession, setSession, download = down
   async function openLesson(projectId) {
     if (holdUnsaved()) return;
     try {
+      const record = await loadProject(projectId);
+      if (record && record.schema_version === LEGACY_SCHEMA_VERSION) {
+        const converted = convertLegacyProjectToV3(record);
+        await persist(converted.lesson);
+        report('info', converted.noticeMessage);
+        return;
+      }
       patch({ lesson: await loadLesson(projectId), introducedId: null, notice: null });
     } catch (error) {
       report('error', storageProblem(error));
@@ -128,7 +144,7 @@ export function createWorkbenchActions({ getSession, setSession, download = down
   /** `source` is the File the teacher picked, or its text. */
   async function importFile(source) {
     if (holdUnsaved()) return;
-    let text, incoming, stored;
+    let text, incoming, stored, migrationNotice = null;
     try {
       text = typeof source === 'string' ? source : await source.text();
     } catch (error) {
@@ -136,9 +152,16 @@ export function createWorkbenchActions({ getSession, setSession, download = down
       return;
     }
     try {
-      incoming = readLessonFile(text);
+      const rawParsed = JSON.parse(text);
+      if (rawParsed && typeof rawParsed === 'object' && !Array.isArray(rawParsed) && rawParsed.schema_version === LEGACY_SCHEMA_VERSION) {
+        const converted = convertLegacyProjectToV3(rawParsed);
+        incoming = converted.lesson;
+        migrationNotice = converted.noticeMessage;
+      } else {
+        incoming = readLessonFile(text);
+      }
     } catch (error) {
-      report('error', storageProblem(error));
+      report('error', error instanceof SyntaxError ? 'Tệp không phải JSON hợp lệ.' : storageProblem(error));
       return;
     }
     try {
@@ -148,12 +171,11 @@ export function createWorkbenchActions({ getSession, setSession, download = down
       stored = { state: 'none' };
     }
     if (stored.state === 'same') {
-      patch({ lesson: incoming, introducedId: null, saveState: 'saved', notice: null });
+      patch({ lesson: incoming, introducedId: null, saveState: 'saved', notice: migrationNotice ? { kind: 'info', message: migrationNotice } : null });
       return;
     }
     if (stored.state === 'different' && stored.version !== LESSON_SCHEMA_VERSION) {
-      // An older project keeps its data: moving it to bản 3, with the original kept, belongs to #58.
-      report('error', `${UNSUPPORTED_VERSION}: trên máy có dự án bản ${stored.version ?? 'cũ'} «${stored.title}» cùng mã với tệp này. Bàn làm việc không ghi đè dự án đó; hãy mở nó bằng giao diện cũ.`);
+      report('error', `${UNSUPPORTED_VERSION}: trên máy có dự án bản ${stored.version ?? 'cũ'} «${stored.title}» cùng mã với tệp này. Bàn làm việc không ghi đè dự án đó.`);
       return;
     }
     if (stored.state === 'different') {
@@ -162,6 +184,9 @@ export function createWorkbenchActions({ getSession, setSession, download = down
       return;
     }
     await persist(incoming);
+    if (migrationNotice) {
+      report('info', migrationNotice);
+    }
   }
 
   const pendingImport = () => {
@@ -292,6 +317,251 @@ export function createWorkbenchActions({ getSession, setSession, download = down
     return true;
   }
 
+  async function addElement(slideId, elementInput) {
+    if (holdUnsaved()) return false;
+    const { lesson } = getSession();
+    if (!lesson?.deck) return false;
+    const updated = addSlideElement(lesson, slideId, elementInput);
+    await persist(updated);
+    return true;
+  }
+
+  async function removeElement(slideId, elementId) {
+    if (holdUnsaved()) return false;
+    const { lesson } = getSession();
+    if (!lesson?.deck) return false;
+    const updated = removeSlideElement(lesson, slideId, elementId);
+    if (updated === lesson) return false;
+    await persist(updated);
+    return true;
+  }
+
+  async function updatePoll(slideId, counts) {
+    const { lesson } = getSession();
+    if (!lesson) return false;
+    const updated = updateSlidePoll(lesson, slideId, counts);
+    await persist(updated);
+    return true;
+  }
+
+  async function addVisualToItem(itemId, visualInput, targetSlideId = null) {
+    if (holdUnsaved()) return false;
+    const { lesson } = getSession();
+    if (!lesson) return false;
+    const updated = addItemVisual(lesson, itemId, visualInput, targetSlideId);
+    await persist(updated);
+    return true;
+  }
+
+  async function confirmVisual(itemId, visualId, nextData) {
+    if (holdUnsaved()) return false;
+    const { lesson } = getSession();
+    if (!lesson) return false;
+    const item = lesson.outline.items.find(it => it.item_id === itemId);
+    const visual = item?.visuals.find(v => v.visual_id === visualId);
+    if (!item || !visual) throw new Error('Không tìm thấy Yêu cầu trực quan cần xác nhận.');
+    const response = await outlineRequest('/api/v1/visuals/confirm', {
+      project_id: lesson.project_id,
+      item_id: itemId,
+      kind: visual.kind,
+      data: nextData,
+      source: { title: item.title, points: item.points },
+    });
+    const updated = updateItemVisual(lesson, itemId, visualId, {
+      status: 'confirmed',
+      requirement_token: response.requirement_token,
+      source_fingerprint: response.requirement?.spec?.source_fingerprint,
+      data: { ...nextData, ...(response.requirement?.spec || {}) },
+    });
+    await persist(updated);
+    return true;
+  }
+
+  async function placeVisualOnSlide(visualId, targetSlideId) {
+    if (holdUnsaved()) return false;
+    const { lesson } = getSession();
+    if (!lesson?.deck) return false;
+    const updated = placeVisualOnItemSlide(lesson, visualId, targetSlideId);
+    await persist(updated);
+    return true;
+  }
+
+  function deckWithOverflowCheck(deck) {
+    if (!deck || !Array.isArray(deck.slides)) return deck;
+    return {
+      ...deck,
+      slides: deck.slides.map(slide => ({
+        ...slide,
+        elements: (slide.elements || []).map(el => {
+          const fit = measureElementTextFit(el);
+          return (el.overflow || fit.overflow) ? { ...el, overflow: true } : el;
+        }),
+      })),
+    };
+  }
+
+  async function checkDeckQuality() {
+    const { lesson } = getSession();
+    if (!lesson?.deck) throw new Error('Bài giảng chưa có Bộ slide để kiểm tra.');
+    return outlineRequest('/api/v1/quality/workbench/check', {
+      project_id: lesson.project_id,
+      title: lesson.title || 'Bài giảng Toán 12',
+      outline: lesson.outline,
+      deck: deckWithOverflowCheck(lesson.deck),
+    });
+  }
+
+  async function approveDeckQuality(contentFingerprint, reviewedIssueIds) {
+    if (holdUnsaved()) return false;
+    const { lesson } = getSession();
+    if (!lesson?.deck) return false;
+    const result = await outlineRequest('/api/v1/quality/workbench/approve', {
+      project_id: lesson.project_id,
+      title: lesson.title || 'Bài giảng Toán 12',
+      outline: lesson.outline,
+      deck: deckWithOverflowCheck(lesson.deck),
+      acknowledged: true,
+      content_fingerprint: contentFingerprint,
+      reviewed_issue_ids: reviewedIssueIds,
+    });
+    const updated = normalizeLesson({
+      ...lesson,
+      deck: {
+        ...lesson.deck,
+        review_token: result.review_token,
+      },
+    });
+    await persist(updated);
+    return result;
+  }
+
+  async function askAssistant(slideId, userMessage) {
+    const { lesson } = getSession();
+    if (!lesson?.deck) throw new Error('Bài giảng chưa có Bộ slide.');
+    const slide = lesson.deck.slides.find(s => s.slide_id === slideId);
+    if (!slide) throw new Error('Không tìm thấy slide đang chọn.');
+    return outlineRequest('/api/v1/chat/workbench/assistant', withModelSettings({
+      project_id: lesson.project_id,
+      title: lesson.title || 'Bài giảng Toán 12',
+      slide,
+      user_message: userMessage,
+    }));
+  }
+
+  async function applyAssistantPatch(patchedSlide) {
+    if (holdUnsaved()) return false;
+    const { lesson } = getSession();
+    if (!lesson?.deck || !patchedSlide?.slide_id) return false;
+    const slides = lesson.deck.slides.map(s => (s.slide_id === patchedSlide.slide_id ? { ...patchedSlide, edited: true } : s));
+    const { review_token, ...restDeck } = lesson.deck;
+    const updated = normalizeLesson({
+      ...lesson,
+      deck: {
+        ...restDeck,
+        revision: (lesson.deck.revision ?? 0) + 1,
+        slides,
+      },
+    });
+    await persist(updated);
+    return true;
+  }
+
+  async function generateLessonPlan() {
+    if (holdUnsaved()) return false;
+    const { lesson } = getSession();
+    if (!lesson) return false;
+    const levelCode = LEVEL_CODE_BY_LABEL[lesson.level] || 'standard';
+    const response = await outlineRequest('/api/v1/workbench/lesson-plan', withModelSettings({
+      title: lesson.title || 'Bài giảng Toán 12',
+      sgk: lesson.sgk ?? null,
+      lesson_id: lesson.lesson_id ?? null,
+      level: levelCode,
+      outline: lesson.outline,
+    }));
+    const updated = normalizeLesson({
+      ...lesson,
+      plan: {
+        ...response.plan,
+        needs_review: false,
+      },
+    });
+    await persist(updated);
+    return true;
+  }
+
+  async function updateLessonPlan(nextPlan) {
+    if (holdUnsaved()) return false;
+    const { lesson } = getSession();
+    if (!lesson || !nextPlan) return false;
+    const { review_token, ...restPlan } = nextPlan;
+    const updated = normalizeLesson({
+      ...lesson,
+      plan: restPlan,
+    });
+    await persist(updated);
+    return true;
+  }
+
+  async function downloadBinaryExport(url, payload, fallbackName) {
+    const response = await postJson(url, payload);
+    if (!response.ok) {
+      let detailMsg = 'Không thể xuất tệp.';
+      try {
+        const err = await response.json();
+        detailMsg = err.detail?.message || err.detail || detailMsg;
+      } catch {
+        // ignore
+      }
+      throw new Error(detailMsg);
+    }
+    const blob = await response.blob();
+    if (typeof window !== 'undefined' && window.URL?.createObjectURL) {
+      const objUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objUrl;
+      a.download = fallbackName;
+      a.click();
+      window.URL.revokeObjectURL(objUrl);
+    }
+    return blob;
+  }
+
+  async function exportPptx() {
+    const { lesson } = getSession();
+    if (!lesson?.deck?.slides?.length) throw new Error('Bài giảng chưa có Bộ slide để xuất PowerPoint.');
+    return downloadBinaryExport('/api/v1/workbench/export-pptx', {
+      project_id: lesson.project_id,
+      title: lesson.title || 'Bài giảng Toán 12',
+      outline: lesson.outline,
+      deck: lesson.deck,
+    }, `Slide_${(lesson.title || 'Bai_Giang').replace(/\s+/g, '_')}.pptx`);
+  }
+
+  async function exportDocx() {
+    const { lesson } = getSession();
+    if (!lesson?.plan) throw new Error('Bài giảng chưa có Kế hoạch bài dạy để xuất Word.');
+    return downloadBinaryExport('/api/v1/lesson-plan/export-docx', {
+      plan: lesson.plan,
+    }, `Giao_An_5512_${(lesson.title || 'Bai_Giang').replace(/\s+/g, '_')}.docx`);
+  }
+
+  async function exportZip() {
+    const { lesson } = getSession();
+    if (!lesson?.plan && !lesson?.deck?.slides?.length) {
+      throw new Error('Cần có Bộ slide hoặc Kế hoạch bài dạy để xuất gói ZIP.');
+    }
+    return downloadBinaryExport('/api/v1/lesson-plan/export-dual-package', {
+      plan: lesson.plan,
+      slide_deck: lesson.deck ? {
+        schema_version: 3,
+        project_id: lesson.project_id,
+        title: lesson.title || 'Bài giảng Toán 12',
+        outline: lesson.outline,
+        deck: lesson.deck,
+      } : null,
+    }, `Tron_Bo_${(lesson.title || 'Bai_Giang').replace(/\s+/g, '_')}.zip`);
+  }
+
   async function changeItems(change) {
     if (holdUnsaved()) return false;
     const { lesson } = getSession();
@@ -363,10 +633,16 @@ export function createWorkbenchActions({ getSession, setSession, download = down
 
   return {
     refreshLessons, exportLesson, dismissNotice, updateSettings, setAnalyticsResult, applyClassLevel,
+    checkDeckQuality, askAssistant, exportPptx, exportDocx, exportZip, updatePoll,
     openLesson: exclusive(openLesson), closeLesson: exclusive(closeLesson), importFile: exclusive(importFile),
     replaceStored: exclusive(replaceStored), keepStored: exclusive(keepStored), retrySave: exclusive(retrySave),
     generateLesson: exclusive(generateLesson), buildSlides: exclusive(buildSlides),
     regenerateItemSlides: exclusive(regenerateItemSlides), changeElement: exclusive(changeElement),
+    addElement: exclusive(addElement), removeElement: exclusive(removeElement),
+    addVisualToItem: exclusive(addVisualToItem), confirmVisual: exclusive(confirmVisual),
+    placeVisualOnSlide: exclusive(placeVisualOnSlide), approveDeckQuality: exclusive(approveDeckQuality),
+    applyAssistantPatch: exclusive(applyAssistantPatch), generateLessonPlan: exclusive(generateLessonPlan),
+    updateLessonPlan: exclusive(updateLessonPlan),
     editItem: exclusive(editItem), addItem: exclusive(addItem),
     moveItem: exclusive(moveItem), removeItem: exclusive(removeItem)
   };
