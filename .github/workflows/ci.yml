@@ -1,0 +1,31 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -r app/backend/requirements-lock.txt
+      - run: python -m pip install --no-deps -e app/backend
+      # Bỏ các ca cần corpus cục bộ không có trong Git (marker corpus_integration, ADR 0012).
+      - run: make test-backend PYTHON=python PYTEST_ARGS="-m 'not corpus_integration' --junitxml=backend-tests.xml"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-test-results
+          path: backend-tests.xml
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '26'
+          cache: npm
+          cache-dependency-path: app/frontend/package-lock.json
+      - run: npm --prefix app/frontend ci
+      - run: make test-frontend
+      - run: make build

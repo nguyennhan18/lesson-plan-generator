@@ -56,7 +56,8 @@ Single-context layout with root `GLOSSARY.md` and `docs/adr/`. Before exploring 
 ```text
 .
 ├── GLOSSARY.md                     # Domain terms for multi-role generation
-├── .github/workflows/rag-fixture-tests.yml  # RAG triage and fixture CI on Ubuntu
+├── .github/workflows/ci.yml        # CI on Ubuntu: backend tests (portable filter), frontend tests, build
+├── Makefile                        # backend, frontend, test-backend, test-frontend, test, build
 ├── app/
 │   ├── backend/                    # FastAPI backend (`lessonai-backend`)
 │   │   ├── pyproject.toml          # Package metadata + pytest config
@@ -87,7 +88,7 @@ Single-context layout with root `GLOSSARY.md` and `docs/adr/`. Before exploring 
 ├── scripts/quality/                # Benchmark, source review, RAG triage and latency CLIs
 └── infra/                          # Deployment docs, `env.example`
 ```
-- The tree includes local-only paths: `app/backend/data/`, `app/backend/output/`, `data/raw/` and `docs/requirements/` stay out of Git (ADR 0012). Use `git ls-files` to verify what a checkout contains. The baseline workflow runs `test_rag_question_triage.py` and `test_retrieval_fixture.py` on Python 3.13.
+- The tree includes local-only paths: `app/backend/data/`, `app/backend/output/`, `data/raw/` and `docs/requirements/` stay out of Git (ADR 0012). Use `git ls-files` to verify what a checkout contains. CI (`.github/workflows/ci.yml`) runs `make test-backend` with `-m 'not corpus_integration'` on Python 3.13, then `make test-frontend` and `make build` on Node 26.
 - On `feat/multi-role-orchestrator`, see `docs/architecture/multi-role-generation-decisions.md` and `docs/adr/0001-verified-chi-do-may-chung-minh.md` before changing the multi-role contracts. Issue #19 records the approved API scope. At the baseline, issue #20 implements only `POST /api/v1/math-spec/verify` in `api/routes/math_spec.py`, backed by `services/math_spec.py`. The evaluate, approve, and orchestrator endpoints remain planned.
 
 ## 6. Common Commands
@@ -116,7 +117,7 @@ Run from the repository root. For PowerShell, use `app/backend/venv/Scripts/pyth
   GEMINI_API_KEY= GROQ_API_KEY= OPENROUTER_API_KEY= LESSONAI_CONFIG_DIR="$(mktemp -d)" PYTHONPATH=app/backend/src app/backend/venv/bin/python scripts/quality/run_benchmark_suite.py --output /tmp/lessonai-math12-UNIQUE.json
   ```
   Replace `UNIQUE` with a run identifier before using the command.
-- **Local Makefile** is ignored on this branch. Inspect the file in the active workspace before using targets. The copy inspected for this baseline defines `backend`, `frontend`, `test`, `test-backend`, `test-frontend`, `test-critical`, `test-critical-backend`, `test-critical-frontend`, `build`, `inventory`, `lint-data`, `audit-baseline`, and `audit-acceptance`. Run portable tests, E2E, and the benchmark with the commands above. For source review use `PYTHONPATH=app/backend/src app/backend/venv/bin/python scripts/quality/prepare-source-review.py --output /tmp/lessonai-source-review-UNIQUE.json` with a fresh path and the local corpus.
+- **Makefile** (tracked, run from the repository root) defines `backend`, `frontend`, `test-backend`, `test-frontend`, `test` and `build`. `test-backend` blanks the three API keys and uses a throwaway `LESSONAI_CONFIG_DIR`; override `PYTHON`, `NPM` or `PYTEST_ARGS`, for example `make test-backend PYTEST_ARGS="-m 'not corpus_integration'"`. Run E2E and the benchmark with the commands above. For source review use `PYTHONPATH=app/backend/src app/backend/venv/bin/python scripts/quality/prepare-source-review.py --output /tmp/lessonai-source-review-UNIQUE.json` with a fresh path and the local corpus.
 - **Pre-PR verification** covers the available portable, critical, frontend, build, and E2E checks. Record unavailable suites and their missing inputs.
 - **Database migrations:** none server side. Client projects use `IndexedDB` (`schema_version: 2`) with a one-time migration from `sessionStorage` (`lessonai_slide_deck_json_v1`) in `app/frontend/src/shared/storage/projectStore.js`. Bài giảng bản 3 are validated by `normalizeLesson()` in `app/frontend/src/shared/storage/lessonProject.js`; converting v2 projects to v3 is not built yet (#58).
 
@@ -166,7 +167,7 @@ When you resolve an item, update or remove it here.
 - **Config and secrets.** Pytest is configured in `[tool.pytest.ini_options]` of `app/backend/pyproject.toml` (`pythonpath = ["src"]`, `testpaths = ["tests"]`); run with `-c app/backend/pyproject.toml`. Runtime secrets/paths come from `app/backend/.env` (loaded by `lessonai/core/config.py`): `GEMINI_API_KEY`, `GROQ_API_KEY`, `OPENROUTER_API_KEY`, `LESSONAI_DATA_DIR`, `LESSONAI_OUTPUT_DIR`, `LESSONAI_CONFIG_DIR`, `LESSONAI_LOG_LEVEL`, `LESSONAI_LOCAL_ORIGINS`, and the optional Langfuse tracing keys `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_BASE_URL`, `LANGFUSE_TRACING_ENABLED`. Template: `infra/env.example`.
 - **Gemini failover.** `LLMGateway` has a 45 s generation deadline. Provider and model ordering depend on the task and provider preference.
 - **Gemini schema cleaning.** `google-genai` rejects `additionalProperties: true` (`ConfigDict(extra="allow")` on `SlideDeckSchema` and `LessonPlanSchema`) with a client-side `ValueError`. The cleaner `_clean_gemini_schema_node` currently strips `additionalProperties`/`discriminator` keys from the whole tree regardless of context and merges `oneOf` into `anyOf` without checking broken or circular `$ref`.
-- **Uvicorn reload.** The local Makefile recipe starts from the repository root with `--app-dir app/backend/src` and `--reload`. The command above adds `--reload-dir app/backend/src` to scope file watching to backend source.
+- **Uvicorn reload.** `make backend` starts from the repository root with `--app-dir app/backend/src --reload --reload-dir app/backend/src`, so file watching stays inside backend source.
 - **Port `8000` conflict.** `[Errno 48] Address already in use`: inspect with `lsof -i :8000` or run E2E with `LESSONAI_TEST_PORT=18080`.
 - **Ephemeral sessions.** Owner sessions have a 24-hour TTL. Copilot sessions expire after 1 hour and proposals after 15 minutes, subject to their parent session. All live in memory, so restarting the backend clears them.
 - **Persistent confirmation key (ADR 0005).** Figure confirmations and Expert Confirmations (deck and lesson-plan review tokens) are signed with `signing.key` in the per-user config dir from `config_dir()` in `lessonai/core/signing.py` (override: `LESSONAI_CONFIG_DIR`). Tokens never expire and survive restarts. A token dies when its fingerprint changes; one signed by a key this machine lacks (key file deleted or replaced, or a token from another machine) fails with `confirmation_key_changed`. A corrupt or unreadable key file returns 503 `signing_key_unavailable` and stays untouched for recovery.

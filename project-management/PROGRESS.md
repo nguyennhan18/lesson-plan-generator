@@ -77,7 +77,7 @@
 - **Phiên và token:** Phiên chủ máy và phiên Copilot vẫn nằm trong bộ nhớ, có hạn theo mục Gotchas của [AGENTS.md](../AGENTS.md), và mất khi khởi động lại backend. Từ #37, token xác nhận hình và Xác nhận chuyên môn được ký bằng khóa lâu dài `signing.key` trong thư mục cấu hình của người dùng. Token không hết hạn, còn sau khi khởi động lại, và chỉ mất khi dấu vân tay đổi hoặc tệp khóa bị xóa hay thay.
 - **Bàn làm việc:** Nhãn "Đã xác nhận chuyên môn" và dấu hình nét liền hiển thị theo token đã lưu trong Bài giảng. Trình duyệt không kiểm được chữ ký, máy chủ chỉ kiểm khi dùng tới, giống giao diện cũ. #49 cần kiểm token với nội dung khi mở bài. Chưa chuyển được dự án bản 2 sang bản 3 (#58). Nhận diện và đổi bài SGK cần `curriculum/math12_ct2018.json` trong thư mục dữ liệu runtime (cấu hình `LESSONAI_DATA_DIR`); checkout này không có tệp đó mặc định.
 - **E2E cũ chập chờn:** `workflows.spec.js` › "fresh profile is empty; editing and reload preserve a real project" có lúc đạt, có lúc trượt. Ca này tải lại trang ngay sau khi thêm slide. Ngày 25/11, trên Chromium 1248 của Playwright: chạy riêng tại `2a4c431` trượt 3/5. Trên Chrome 158 của máy: chạy riêng đạt 5/5, cả bộ cũ ×4 đạt 60/60; chạy cùng bộ mới thì trượt ở 2/4 lượt.
-- **Dựng lại bản bàn giao:** Makefile, corpus và một phần các suite chỉ có ở workspace cục bộ. Bốn ca RAG cần corpus thật đã mang marker `corpus_integration` nên bộ lọc portable bỏ qua chúng. Kiểm tra trung vị truy hồi dưới 30 ms không ổn định trong lượt xác minh dưới đây. Bản build trước đây có cảnh báo chunk MathLive lớn.
+- **Dựng lại bản bàn giao:** Corpus chỉ có ở workspace cục bộ. Makefile và CI (`.github/workflows/ci.yml`) đã vào Git trên `main`. Bốn ca RAG cần corpus thật đã mang marker `corpus_integration` nên bộ lọc portable bỏ qua chúng. Kiểm tra trung vị truy hồi dưới 30 ms không ổn định trong lượt xác minh dưới đây. Bản build trước đây có cảnh báo chunk MathLive lớn.
 
 ## Risks & Open Questions (Rủi ro & câu hỏi mở)
 
@@ -86,6 +86,12 @@
 ## Update Log (Nhật ký cập nhật)
 
 [Nhật ký trước 2026-11-14](PROGRESS-before-2026-11-14.md) được lưu riêng.
+
+- `2026-11-26 — Gộp PR #60 vào main, chính sách track mới, Makefile và CI (trên main)`:
+  - Gộp `feature/ban-lam-viec` (`b58d887`) vào `main` bằng merge commit `ce96587`. Giải 11 xung đột với `fda9680` theo bản của nhánh, ghép `generate_text` có tracing của main, xoá `services/generation/fallback.py` và dàn ý dự phòng phía frontend mà merge tự đưa lại (ADR 0001), chuyển khối Langfuse vào `infra/env.example`. Sửa theo review hai trục ở `05e15cd`.
+  - ADR 0012: track mặc định, chỉ chặn artifact, bí mật, tệp Office/PDF, học liệu SGK và corpus, hồ sơ đồ án và `reports/` (trừ thư mục được dẫn chiếu). Đưa 25 tệp chỉ có ở máy vào Git, gom ba tài liệu RAG vào `docs/rag/`, xoá `quality/`.
+  - Gắn `corpus_integration` cho bốn ca retriever cần corpus; thêm `Makefile` và `.github/workflows/ci.yml` thay cho `rag-fixture-tests.yml`.
+  - Kiểm thử: backend đầy đủ có bản sao corpus `142 passed`; như CI (venv từ `requirements-lock.txt`, không corpus, `-m 'not corpus_integration'`) `138 passed, 4 deselected`; frontend `101/101`; `make build` đạt; E2E Bàn làm việc `13/13` trên commit gộp.
 
 - `2026-11-26 — Triển khai khung cơ bản Bàn làm việc (#40–#43, #46) và Cổng toán mở rộng (#21–#24) trên nhánh feature/ban-lam-viec`:
   - **Cổng toán (#21–#24 trên nền #20):** Mở rộng `app/backend/src/lessonai/services/math_spec.py` và `math_worker.py` trong tiến trình con `spawn` để chứng minh ký hiệu:
