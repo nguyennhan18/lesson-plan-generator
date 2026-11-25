@@ -1,6 +1,15 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { listLessons, loadLesson, normalizeLesson, readLessonFile, saveLesson } from '../src/shared/storage/lessonProject.js';
+import {
+  detectElementOverflow,
+  listLessons,
+  loadLesson,
+  normalizeLesson,
+  readLessonFile,
+  replaceItemSlides,
+  saveLesson,
+  updateSlideElement,
+} from '../src/shared/storage/lessonProject.js';
 import { assertLegacyProject, restoreProject, saveProject } from '../src/shared/storage/projectStore.js';
 import { createWorkbenchActions, emptyWorkbench } from '../src/features/workbench/workbenchActions.js';
 
@@ -531,4 +540,86 @@ test('sửa dữ kiện trong chữ Mục đưa hình đã xác nhận về đ�
     assert.equal(visual.status, 'proposed');
     assert.equal(visual.requirement_token, undefined);
   }
+});
+
+test('kéo thả và đổi cỡ phần tử bám lưới 20, tăng revision, xóa Xác nhận chuyên môn, đánh dấu slide đã sửa tay và giữ nguyên Dàn ý (#42)', async () => {
+  installFakeIndexedDB();
+  const desk = workbench(), file = newFile();
+  file.deck.review_token = 'signed-expert-token';
+  await desk.actions.importFile(JSON.stringify(file));
+  const beforeOutline = structuredClone(desk.session.lesson.outline);
+  const beforeRevision = desk.session.lesson.deck.revision;
+  const slideId = desk.session.lesson.deck.slides[0].slide_id;
+  const elId = desk.session.lesson.deck.slides[0].elements[0].element_id;
+
+  await desk.actions.changeElement(slideId, elId, { x: 133, y: 247, w: 611, h: 189 });
+  const after = desk.session.lesson;
+  const movedEl = after.deck.slides[0].elements[0];
+  assert.equal(movedEl.x, 140);
+  assert.equal(movedEl.y, 240);
+  assert.equal(movedEl.w, 620);
+  assert.equal(movedEl.h, 180);
+  assert.equal(after.deck.revision, beforeRevision + 1);
+  assert.equal(after.deck.review_token, undefined);
+  assert.equal(after.deck.slides[0].edited, true);
+  assert.deepEqual(after.outline, beforeOutline);
+});
+
+test('chữ quá dài vượt ngưỡng thu nhỏ tối thiểu 24pt thì phần tử mang dấu tràn (#42)', () => {
+  const shortEl = { element_id: 'e1', type: 'paragraph', x: 100, y: 100, w: 800, h: 200, text: 'Hàm số đồng biến trên R.' };
+  const longEl = {
+    element_id: 'e2',
+    type: 'paragraph',
+    x: 100,
+    y: 100,
+    w: 240,
+    h: 80,
+    text: 'Đoạn văn rất dài vượt quá kích thước hộp chứa sau khi đã thu nhỏ tới cỡ chữ tối thiểu 24pt trên khung trình chiếu 16:9. '.repeat(4),
+  };
+  assert.equal(detectElementOverflow(shortEl), false);
+  assert.equal(detectElementOverflow(longEl), true);
+  const file = normalizeLesson(newFile());
+  const updated = updateSlideElement(file, file.deck.slides[0].slide_id, file.deck.slides[0].elements[0].element_id, {
+    w: 200,
+    h: 60,
+    text: longEl.text,
+  });
+  assert.equal(updated.deck.slides[0].elements[0].overflow, true);
+});
+
+test('quy tắc đánh dấu Cần xem lại khi sửa Mục và sinh lại chỉ thay slide của đúng Mục đó (#43)', async () => {
+  installFakeIndexedDB();
+  const desk = workbench(), file = newFile();
+  for (const item of file.outline.items) item.needs_review = false;
+  await desk.actions.importFile(JSON.stringify(file));
+
+  const target = desk.session.lesson.outline.items[0];
+  // Sửa số phút không đánh dấu Cần xem lại
+  await desk.actions.editItem(target.item_id, { minutes: target.minutes + 2 });
+  assert.equal(desk.session.lesson.outline.items[0].needs_review, false);
+
+  // Sửa số slide đánh dấu Cần xem lại
+  await desk.actions.editItem(target.item_id, { slide_count: 2 });
+  assert.equal(desk.session.lesson.outline.items[0].needs_review, true);
+
+  // Sinh lại chỉ thay slide của Mục đó và xóa dấu Cần xem lại
+  const otherSlidesBefore = desk.session.lesson.deck.slides.filter(s => s.item_id !== target.item_id);
+  const replaced = replaceItemSlides(desk.session.lesson, target.item_id, [
+    { slide_id: 's-regen-1', item_id: target.item_id, layout: 'Mở đầu', notes: '', elements: [{ element_id: 'el-r1', type: 'title', x: 120, y: 280, w: 1360, h: 220, text: 'Slide mới 1' }] },
+    { slide_id: 's-regen-2', item_id: target.item_id, layout: 'Nội dung', notes: '', elements: [{ element_id: 'el-r2', type: 'title', x: 100, y: 80, w: 1400, h: 100, text: 'Slide mới 2' }] },
+  ]);
+  assert.equal(replaced.outline.items[0].needs_review, false);
+  assert.deepEqual(
+    replaced.deck.slides.filter(s => s.item_id === target.item_id).map(s => s.slide_id),
+    ['s-regen-1', 's-regen-2'],
+  );
+  assert.deepEqual(replaced.deck.slides.filter(s => s.item_id !== target.item_id), otherSlidesBefore);
+});
+
+test('Cài đặt lưu nhà cung cấp và model, Phân tích lớp học cập nhật trình độ lớp (#46)', () => {
+  const desk = workbench();
+  desk.actions.updateSettings({ model_provider: 'groq', model_id: 'llama-3.3-70b-versatile' });
+  assert.deepEqual(desk.session.settings, { model_provider: 'groq', model_id: 'llama-3.3-70b-versatile' });
+  desk.actions.applyClassLevel('advanced');
+  assert.equal(desk.session.preferredLevel, 'advanced');
 });

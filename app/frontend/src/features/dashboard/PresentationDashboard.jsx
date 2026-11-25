@@ -6,7 +6,6 @@ import {
   BookOpen,
   ArrowRight,
   Clock,
-  CheckCircle2,
   Sliders,
   Play,
   RotateCcw,
@@ -20,7 +19,7 @@ import {
  * Trạm 1: Dashboard Khởi Tạo Bài Giảng (PresentationDashboard.jsx)
  * Tuân thủ FRONTEND_ARCHITECTURE.md (Mục 3.1 & Mục 7 - Input Data Pipeline)
  * - Hộp nhập lệnh thông minh (NotebookInputBox)
- * - Thanh công cụ nút cấu hình dạng viên thuốc (Pill Settings: Model, Số slide, Khối lớp, RAG SGK, Học lực)
+ * - Thanh công cụ nút cấu hình dạng viên thuốc (Pill Settings: Model, Số slide, Khối lớp, Học lực)
  * - Danh sách bài giảng gần đây trong bộ nhớ (Recent Presentations)
  * - Chuyển tiếp mượt mà sang Trạm 2: Duyệt Dàn Ý (Outline Workspace)
  */
@@ -38,7 +37,6 @@ export default function PresentationDashboard({
   const [classProficiency, setClassProficiency] = useState('standard');
   const [modelProvider, setModelProvider] = useState('gemini');
   const [modelId, setModelId] = useState('');
-  const [useRag, setUseRag] = useState(true);
   const [textContent, setTextContent] = useState('concise'); // 'concise' | 'detailed'
 
   const handleSubmit = (e) => {
@@ -56,7 +54,6 @@ export default function PresentationDashboard({
       class_proficiency: classProficiency,
       model_provider: modelProvider,
       model_id: modelId || null,
-      use_rag: useRag,
       text_content: textContent,
       tone: 'academic',
       language: 'vi'
@@ -76,8 +73,8 @@ export default function PresentationDashboard({
             Thiết Kế Bài Giảng AI Chuẩn Sư Phạm 5512
           </h1>
           <p className="text-xs sm:text-sm text-[#707070] max-w-2xl mx-auto leading-relaxed">
-            Nhập chủ đề hoặc từ khóa môn Toán. Hệ thống tự động đối chiếu Sách Giáo Khoa GDPT 2018,
-            lập Dàn ý chi tiết (Outline) và sẵn sàng sinh bộ Slide kèm mô hình 3D tương tác.
+            Nhập chủ đề, mục tiêu và dữ kiện môn Toán. Hệ thống lập Dàn ý để bạn kiểm tra
+            trước khi sinh Bộ slide kèm hình tương tác.
           </p>
         </div>
 
@@ -209,22 +206,7 @@ export default function PresentationDashboard({
                 ))}
               </div>
 
-              {/* Pill 5: RAG SGK GDPT 2018 Toggle */}
-              <button
-                type="button"
-                onClick={() => setUseRag(!useRag)}
-                className={`px-3.5 py-1.5 rounded-full border text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer ${
-                  useRag
-                    ? 'bg-[#ffffff] border-[#141414] text-[#141414]'
-                    : 'bg-[#f3f3f3] border-[#e0e0e0] text-[#707070]'
-                }`}
-                title="Bật/Tắt đối chiếu dữ liệu với Sách giáo khoa Toán 12 KNTT"
-              >
-                <CheckCircle2 size={13} className={useRag ? 'text-[#0066ff]' : 'text-[#adadad]'} />
-                <span>RAG SGK KNTT 12</span>
-              </button>
-
-              {/* Pill 6: Tỷ lệ 16:9 Cinema */}
+              {/* Pill 5: Tỷ lệ 16:9 Cinema */}
               <div className="px-3 py-1.5 rounded-full bg-[#f3f3f3] border border-[#e0e0e0] text-[#141414] text-xs font-semibold flex items-center gap-1">
                 <span>16:9 Widescreen</span>
               </div>

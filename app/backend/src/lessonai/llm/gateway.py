@@ -19,6 +19,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 
 from lessonai.core.config import BACKEND_DIR
+from lessonai.llm import tracing
 
 # Nạp OpenAI Client cho Groq và OpenRouter
 try:
@@ -394,7 +395,7 @@ class LLMGateway:
                 if f"groq:{m}" not in self._dead_models
             ]
 
-        if task_type == "lesson_plan":
+        if task_type in ("lesson_plan", "lesson_architect", "lesson_author", "lesson_repair"):
             # 1. Soạn Kế hoạch bài dạy 5512 (Ưu tiên OpenRouter nếu có, sau đó Google, Groq)
             if self.openrouter_key and "openrouter:deepseek/deepseek-chat" not in self._dead_models:
                 routes.append(ProviderRoute("openrouter", "deepseek/deepseek-chat", "https://openrouter.ai/api/v1", self.openrouter_key))
@@ -407,7 +408,7 @@ class LLMGateway:
             if self.openrouter_key and "openrouter:meta-llama/llama-3.3-70b-instruct" not in self._dead_models:
                 routes.append(ProviderRoute("openrouter", "meta-llama/llama-3.3-70b-instruct", "https://openrouter.ai/api/v1", self.openrouter_key))
 
-        elif task_type == "slide":
+        elif task_type in ("slide", "slide_narrative", "slide_visual_quiz", "slide_repair", "outline"):
             # 2. Sinh cấu trúc Slide bài giảng (Ưu tiên OpenRouter nếu có, sau đó Groq LPU, Google)
             if self.openrouter_key and "openrouter:deepseek/deepseek-chat" not in self._dead_models:
                 routes.append(ProviderRoute("openrouter", "deepseek/deepseek-chat", "https://openrouter.ai/api/v1", self.openrouter_key))
@@ -460,11 +461,15 @@ class LLMGateway:
         model_id: Optional[str] = None,
         *,
         single_attempt: bool = False,
+        role_name: Optional[str] = None,
+        prompt_name: Optional[str] = None,
+        prompt_version: Optional[str] = None,
     ) -> T:
         """
         Thực thi sinh dữ liệu có cấu trúc Pydantic Schema qua chuỗi Fallback thông minh.
         Tích hợp Exponential Backoff 4s -> 8s khi gặp lỗi 429/RESOURCE_EXHAUSTED.
         Tự động chuyển mạch tức thời sang Provider tiếp theo (Google -> Groq -> OpenRouter).
+        Ghi nhận Langfuse Generation & Token Usage (input/output/total).
         """
         deadline = time.monotonic() + 45
         routes = self.get_active_routes(task_type)
@@ -487,6 +492,7 @@ class LLMGateway:
             routes = routes[:1]
         last_error = None
         start_time = time.time()
+        gen_name = role_name or prompt_name or task_type
 
         for idx, route in enumerate(routes):
             attempt_start = time.time()
@@ -497,8 +503,19 @@ class LLMGateway:
             for route_attempt in range(max_route_attempts):
                 remaining=deadline-time.monotonic()
                 if remaining<=0:raise TimeoutError("Tác vụ AI vượt thời hạn 45 giây")
+                gen = tracing.start_generation(
+                    name=gen_name,
+                    provider=route.provider_id,
+                    model=route.model_name,
+                    system_prompt=system_prompt,
+                    prompt=prompt,
+                    temperature=temperature,
+                    role_name=role_name,
+                    prompt_name=prompt_name,
+                    prompt_version=prompt_version,
+                )
                 try:
-                    print(f"[LLM Gateway] Đang định tuyến tới [{route.provider_id.upper()}]: Model '{route.model_name}' (Tác vụ: '{task_type}' | Lần {route_attempt + 1})...")
+                    print(f"[LLM Gateway] Đang định tuyến tới [{route.provider_id.upper()}]: Model '{route.model_name}' (Tác vụ: '{gen_name}' | Lần {route_attempt + 1})...")
 
                     # ================= 1. XỬ LÝ QUA GOOGLE GENAI SDK =================
                     if route.provider_id == "google" and self.google_client is not None and genai_types is not None:
@@ -521,6 +538,8 @@ class LLMGateway:
                         raw_text = res.text or ""
                         clean_text = strip_markdown_json_fence(fix_latex_backslashes(raw_text))
                         result = response_schema.model_validate_json(clean_text)
+                        usage = tracing.extract_usage_details(res, route.provider_id)
+                        gen.finish(output=raw_text, usage_details=usage)
 
                         latency = round(time.time() - attempt_start, 2)
                         self.transition_history.append({
@@ -588,6 +607,8 @@ class LLMGateway:
 
                         clean_text = strip_markdown_json_fence(fix_latex_backslashes(raw_text))
                         result = response_schema.model_validate_json(clean_text)
+                        usage = tracing.extract_usage_details(completion, route.provider_id)
+                        gen.finish(output=raw_text, usage_details=usage)
 
                         latency = round(time.time() - attempt_start, 2)
                         self.transition_history.append({
@@ -638,6 +659,8 @@ class LLMGateway:
                         raw_text = completion.choices[0].message.content or "{}"
                         clean_text = strip_markdown_json_fence(fix_latex_backslashes(raw_text))
                         result = response_schema.model_validate_json(clean_text)
+                        usage = tracing.extract_usage_details(completion, route.provider_id)
+                        gen.finish(output=raw_text, usage_details=usage)
 
                         latency = round(time.time() - attempt_start, 2)
                         self.transition_history.append({
@@ -666,6 +689,7 @@ class LLMGateway:
                 except Exception as e:
                     last_error = e
                     err_str = str(e)
+                    gen.fail(e)
                     err_lower = err_str.lower()
                     is_rate_limit = any(term in err_lower for term in ["429", "resource_exhausted", "ratelimit", "quota"])
                     is_dead_model = any(

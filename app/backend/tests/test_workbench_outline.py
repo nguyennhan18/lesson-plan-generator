@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from lessonai.main import app
 from lessonai.api.routes import presentation
 from lessonai.services.generation import workbench_outline
+from lessonai.rag.context_builder import PedagogicalContextBuilder
 
 URL = "/api/v1/workbench/outline"
 ACTIVITIES = ["Khởi động", "Hình thành kiến thức", "Luyện tập", "Vận dụng"]
@@ -20,30 +21,30 @@ def fake_ai(monkeypatch):
         for activity, kind in zip(ACTIVITIES, ["Mở đầu", "Ví dụ", "Bài luyện tập", "Tổng kết"])
     ]
     calls = []
+    claimed_sources = []
 
     def generate(**kwargs):
         calls.append(kwargs)
-        return dict(title="Tích phân", items=items, used_sources=[1])
+        return dict(title="Tích phân", items=items, used_sources=claimed_sources)
 
     monkeypatch.setattr(workbench_outline.llm_gateway, "generate_structured", generate)
     monkeypatch.setattr(presentation, "resolve_lesson", lambda *_: ("M12-C4-B2", "Tích phân"))
-    refs = [{"id": "s1", "source_type": "slide_kntt12", "sha256": "a" * 64}]
     monkeypatch.setattr(
-        workbench_outline.PedagogicalContextBuilder, "build_slide_deck_context",
-        lambda *_args, **_kwargs: ('{"source_units":[{"id":"s1","content":"Định nghĩa tích phân"}]}', refs),
+        PedagogicalContextBuilder, "build_slide_deck_context",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError("RAG must not run")),
     )
-    return items, calls, refs
+    return items, calls, claimed_sources
 
 
-def test_outline_uses_one_call_and_returns_reviewed_sources_with_duration_warning(fake_ai):
-    _, calls, refs = fake_ai
+def test_outline_uses_one_call_without_rag_and_returns_duration_warning(fake_ai):
+    _, calls, _ = fake_ai
     response = TestClient(app).post(URL, json=REQUEST)
     assert response.status_code == 200, response.json()
     result = response.json()
     assert len(calls) == 1
     assert calls[0]["single_attempt"] is True
-    assert "Định nghĩa tích phân" in calls[0]["prompt"]
-    assert result["source_refs"] == refs
+    assert "nguồn đã duyệt" not in calls[0]["prompt"]
+    assert result["source_refs"] == []
     assert "48" in result["warnings"][0]
     assert [item["activity"] for item in result["outline"]["items"]] == ACTIVITIES
     assert len({item["item_id"] for item in result["outline"]["items"]}) == 4
@@ -57,8 +58,7 @@ def test_invalid_ai_response_is_rejected_without_another_call(fake_ai, problem):
     elif problem == "missing":
         items.pop()
     elif problem == "source":
-        # Remove the reviewed set while the model still claims the first source.
-        fake_ai[2].clear()
+        fake_ai[2].append(1)
     else:
         field, value = {
             "slide_count": ("slide_count", 5), "kind": ("kind", "Lạ"), "placement": ("kind", "Tổng kết"),
@@ -101,11 +101,6 @@ def test_identify_uses_curriculum_registry_without_ai(tmp_path, monkeypatch):
 
 
 def test_no_reviewed_sources_can_return_empty_list(fake_ai, monkeypatch):
-    items, _, refs = fake_ai
-    refs.clear()
-    monkeypatch.setattr(workbench_outline.llm_gateway, "generate_structured", lambda **_: {
-        "title": "Tích phân", "items": items, "used_sources": [],
-    })
     response = TestClient(app).post(URL, json=REQUEST)
     assert response.status_code == 200
     assert response.json()["source_refs"] == []

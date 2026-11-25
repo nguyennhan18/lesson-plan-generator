@@ -4,11 +4,13 @@
 
 ## Current Status (Trạng thái hiện tại)
 
+- **RAG tạm ngừng trong tạo bài:** Các luồng tạo Dàn ý, Kế hoạch bài dạy và Bộ slide (Studio bản 2 và Bàn làm việc bản 3) không truy xuất corpus hoặc đưa ngữ cảnh RAG vào prompt. API cũ vẫn nhận `use_rag` để giữ tương thích nhưng tham số không có tác dụng. Dàn ý mới trả `source_refs=[]`; Bộ slide từ chối trích dẫn do AI tự gắn. Kho và mã RAG được giữ để nghiên cứu nguồn gốc sau.
+- **Role-Based Prompt Chaining & Langfuse v5 Observability (`feature/ban-lam-viec`):** Đã chuyển đổi luồng sinh Giáo án 5512 (`/api/v1/lesson-plan/generate`), Bộ Slide (`/api/v1/slide/generate`), Dàn ý bản 2 (`/api/v1/presentation/outline`) và Dàn ý Bàn làm việc bản 3 (`/api/v1/workbench/outline`) sang kiến trúc chuỗi phân vai kết hợp Langfuse v5 (`chain`, `agent`, `generation` kèm `usage_details` input/output/total tokens, `evaluator`, `scores`), tuân thủ ADR 0001 (Zero-Fallback), ADR 0002 (Dàn ý là nguồn chung), `outline_contract.py`, tập khối 3D `KINDS` và khóa OpenAPI `fixtures/api_contract.json`. Trong giai đoạn RAG tạm ngừng, các chuỗi tạo bài không phát sinh span `retriever`.
 - **Bàn giao:** M1–M4 chưa có ký nhận bàn giao. M5 vẫn mở. Điều kiện đóng từng mốc nằm trong hồ sơ nghiệm thu cục bộ `project-management/release-gates/remediation-acceptance-2026-11-03.md`.
 - **Bàn làm việc (#36):** #37 có khóa ký lâu dài cho mọi xác nhận. #38 có khung Bàn làm việc (biến thể B) sau công tắc. Khung này nhập và xuất được JSON bản 3. #39 thêm soạn Dàn ý từ yêu cầu, chọn bài SGK và trình độ lớp, rồi sửa, thêm, xóa và đổi thứ tự Mục. Giao diện cũ vẫn là mặc định cho tới #59.
 - **Tạo bài nhiều vai trò:** Thiết kế demo và hợp đồng bốn endpoint đã được duyệt theo #19. #20 đưa `POST /api/v1/math-spec/verify` vào nhánh để kiểm chứng đồng nhất thức đạo hàm đa thức. `evaluate`, `approve` và `orchestrator/run` còn thuộc phạm vi triển khai.
 - **Nền kỹ thuật bàn giao:** Commit `a241d5f` sửa health version thành 0.2.0, `ff83356` nhập OMML thành LaTeX từ DOCX/PPTX, `d1cf0e4` xuất bảng PPTX native có phân trang, `0615341` và `0d46559` bổ sung công cụ chuẩn bị duyệt nguồn và đối chiếu manifest/corpus.
-- **Kiểm thử:** Nhật ký #20 ghi 12 ca math-spec đạt, backend portable cục bộ 447 đạt / 1 bỏ qua / 11 loại theo marker, backend critical 179 đạt và frontend critical 8/8. Các số cục bộ gồm tệp ngoài Git. CI fixture RAG đã xanh ở `9980026` theo nhật ký 14/11. `.github/workflows/rag-fixture-tests.yml` chạy hai tệp test RAG trên Ubuntu. Chưa có bằng chứng CI toàn bộ suite ở mốc này.
+- **Kiểm thử:** Trên `feature/ban-lam-viec` (`3927e92` + Role-Based Prompt Chaining): `test_prompt_chaining_and_tracing.py`, `test_workbench_outline.py`, `test_remediation_workflows.py`, `test_confirmation_signing_key.py` đạt `75/75` (gồm `test_openapi_contract`); `npm --prefix app/frontend test` đạt `97/97`. Nhật ký #20 ghi 12 ca math-spec đạt, backend portable cục bộ 447 đạt / 1 bỏ qua / 11 loại theo marker, backend critical 179 đạt. CI fixture RAG đã xanh ở `9980026` theo nhật ký 14/11.
 - **Benchmark #3:** Báo cáo 22/11 ghi 15/15 ca kỹ thuật và 45/45 qua ba vòng trên snapshot có tệp sửa cục bộ. Fixture vẫn `pending_teacher_signoff` và báo cáo ghi `handover_eligible=false`. [Báo cáo và manifest](../reports/math12-benchmark-baseline-20261122-DDw4sJ/FINAL.md).
 
 ## Blockers (Các điểm nghẽn chặn bàn giao)
@@ -36,15 +38,21 @@
   - Repaired `scripts/quality/prepare-source-review.py` (`retriever.get_corpus_candidates_for_review()`) to emit all `2,741` units (`1,847` slides + `894` questions) with full `content_units` identity fields instead of `0` units when `reviewed_sources.json` is empty, and updated `scripts/quality/deck_lint.py` and `test_phase3_pedagogical_rag.py` (`6/6` passed).
   - Created the 15-case canonical Grade 12 Math benchmark & counterexample suite (`data/fixtures/math12_benchmark_suite.json`), CLI runner (`scripts/quality/run_benchmark_suite.py`), and pytest suite (`app/backend/tests/test_math12_benchmark_suite.py`) covering `valid`, `faulty`, `under_specified`, `contradictory`, and `out_of_scope` cases (`15/15` technical checks passed; `teacher_signoff_complete=False` pending human teacher sign-off).
 
+- **Role-Based Prompt Chaining & Langfuse v5 Full Observability on `feature/ban-lam-viec` (`2026-11-25`):**
+  - Built hierarchical Langfuse v5 tracing (`app/backend/src/lessonai/llm/tracing.py`) and updated `LLMGateway` (`app/backend/src/lessonai/llm/gateway.py`) with `chain`, `retriever`, `agent` (`prompt_name`, `prompt_version`), `generation` (`usage_details` token extraction), `evaluator` gates, and automated trace `Scores`, while preserving the 45 s generation deadline, `to_gemini_response_schema`, `classify_generation_error`, `single_attempt`, and `GenerationMetadata` provenance.
+  - Added intermediate handoff schemas (`app/backend/src/lessonai/schemas/chain_schemas.py`), 8 role-specific system prompts (`app/backend/src/lessonai/prompts/roles.py`), and `SkipJsonSchema`-wrapped `session_id` (`app/backend/src/lessonai/schemas/schemas.py`, `workbench_outline.py`).
+  - Refactored `workbench_outline.py`, `outline.py`, `lesson_plan.py`, and `slides.py` into role-based prompt chains enforcing ADR 0001 (Zero-Fallback), ADR 0002 (Outline as common source), `outline_contract.py`, `KINDS` 3D validation, `block_errors`, and RAG `source_refs` SHA-256 verification.
+
 ## In Progress (Đang làm dở)
 
+- Theo dõi & đánh giá thực nghiệm các chỉ số Langfuse (`Scores`, token usage, tỉ lệ kích hoạt `repair_reviewer`) trên `feature/ban-lam-viec` và tiếp tục các ticket Bàn làm việc sau #39.
 - Demo nhiều vai trò theo #18 có hợp đồng API #19 và bước xác minh đạo hàm #20. Xem [tài liệu quyết định D1–D13](../docs/architecture/multi-role-generation-decisions.md).
 
 ## Next Steps (Việc tiếp theo)
 
-1. Hoàn tất hồ sơ nguồn KNTT12-25 và tổ chức duyệt chuyên môn Toán 12. Ghi bằng chứng ký nghiệm thu thiết bị trên cùng ứng viên bàn giao.
-2. Tái lập ứng viên bàn giao với bộ test/fixture cần thiết. Thu thập CI Linux, kết quả build/E2E và bằng chứng IndexedDB cho M2.
-3. Tiếp tục phạm vi demo #18 theo các ticket triển khai sau #19. Kiểm chứng luồng đầu cuối qua ba miền tham số, sau đó đo tạo bài để đặt ngưỡng hiệu năng theo O7.
+1. Chạy thử nghiệm thực tế chuỗi Role-Based Prompt Chaining với khóa Langfuse Cloud trên `feature/ban-lam-viec` để đo token usage và điểm `Scores` cho cả luồng Bàn làm việc bản 3 lẫn Studio bản 2.
+2. Nghiên cứu lại nguồn gốc bộ RAG và hồ sơ KNTT12-25 ở giai đoạn riêng; chỉ cân nhắc bật lại sau khi xác minh được nguồn. Ghi bằng chứng ký nghiệm thu thiết bị trên cùng ứng viên bàn giao.
+3. Tái lập ứng viên bàn giao với bộ test/fixture cần thiết. Thu thập CI Linux, kết quả build/E2E và bằng chứng IndexedDB cho M2.
 
 ## Known Issues & Technical Debt (Vấn đề đã biết / nợ kỹ thuật)
 
@@ -64,6 +72,12 @@
 ## Update Log (Nhật ký cập nhật)
 
 [Nhật ký trước 2026-11-14](PROGRESS-before-2026-11-14.md) được lưu riêng.
+
+- `2026-11-25 — Triển khai Role-Based Prompt Chaining & Giám sát Langfuse v5 trên nhánh feature/ban-lam-viec`:
+  - Tại HEAD `3927e92` (`feature/ban-lam-viec`), triển khai kiến trúc chuỗi prompt phân vai kết hợp Langfuse SDK v5 (`langfuse==5.2.0`) cho cả luồng Bàn làm việc bản 3 (`/api/v1/workbench/outline`) lẫn luồng Studio bản 2 (`/presentation/outline`, `/lesson-plan/generate`, `/slide/generate`).
+  - Tạo mới 4 tệp: `app/backend/src/lessonai/llm/tracing.py`, `app/backend/src/lessonai/schemas/chain_schemas.py`, `app/backend/src/lessonai/prompts/roles.py`, `app/backend/tests/test_prompt_chaining_and_tracing.py`. Cập nhật 10 tệp: `app/backend/requirements.txt`, `app/backend/src/lessonai/llm/gateway.py`, `app/backend/src/lessonai/schemas/schemas.py`, `app/backend/src/lessonai/schemas/workbench_outline.py`, `app/backend/src/lessonai/services/generation/workbench_outline.py`, `outline.py`, `lesson_plan.py`, `slides.py`, và các route `presentation.py`, `lesson_plan.py`, `slides.py` (kèm tệp `project-management/PROGRESS.md` này).
+  - Bảo toàn tuyệt đối ADR 0001 (Zero-Fallback: không chèn bài mẫu, trả lỗi phân loại qua `classify_generation_error`), ADR 0002 (Dàn ý là nguồn chung), `outline_contract.py` (`validate_plan_outline`, `validate_slide_outline_item`), kiểm tra tập khối 3D `KINDS`, `block_errors`, đối chiếu `sha256` của `source_refs`, thời hạn 45 giây của `LLMGateway` và snapshot OpenAPI `fixtures/api_contract.json`.
+  - Kết quả xác minh: `pytest` trên `test_prompt_chaining_and_tracing.py`, `test_workbench_outline.py`, `test_remediation_workflows.py`, `test_confirmation_signing_key.py` đạt `75/75`; `npm --prefix app/frontend test` đạt `97/97`.
 
 - `2026-11-25 — Ticket #39, Lập Dàn ý từ yêu cầu`:
   - Thêm hai route Workbench để nhận diện bài từ danh mục SGK và lập Dàn ý bản 3. Một lần thử qua gateway. Máy chủ kiểm đủ bốn Hoạt động đúng thứ tự, Loại mục, vị trí Mở đầu/Tổng kết và giới hạn slide. Thời lượng khác 45 phút trả cảnh báo. Tham chiếu trả về lấy từ tập nguồn đã duyệt gửi cho AI.

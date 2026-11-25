@@ -1,5 +1,6 @@
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator
+from pydantic.json_schema import SkipJsonSchema
 from .slide_schema import ClassProficiency
 from .provenance import GenerationMetadata
 # 4 bước dạy học CV 5512
@@ -83,6 +84,10 @@ class LessonRequest(BaseModel):
         description="Mục tiêu chuẩn đầu ra mong muốn của bài dạy"
     )
     plan: Optional[LessonPlanSchema] = Field(default=None, description="Kế hoạch bài dạy đã có để đồng bộ Slide")
+    session_id: SkipJsonSchema[Optional[str]] = Field(
+        default=None,
+        description="Mã phiên Langfuse gom chung toàn bộ chuỗi Outline -> Giáo án -> Slide"
+    )
 
     @model_validator(mode="after")
     def validate_and_infer_scope(self) -> "LessonRequest":
@@ -175,6 +180,10 @@ class OutlineRequest(BaseModel):
     model_id: Optional[str] = Field(default=None)
     tone: Optional[str] = Field(default="academic")
     language: Optional[str] = Field(default="vi")
+    session_id: SkipJsonSchema[Optional[str]] = Field(
+        default=None,
+        description="Mã phiên Langfuse gom chung toàn bộ chuỗi Outline -> Giáo án -> Slide"
+    )
 
     @model_validator(mode="after")
     def validate_and_infer(self) -> "OutlineRequest":
@@ -198,6 +207,7 @@ class OutlineResponse(BaseModel):
     grade: int
     class_proficiency: str
     lesson_id: Optional[str] = None
+    session_id: SkipJsonSchema[Optional[str]] = None
     outline_slides: List[OutlineSlideItem]
 
     @model_validator(mode="after")

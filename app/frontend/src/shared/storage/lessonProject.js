@@ -180,6 +180,131 @@ function optionalRecord(value, name) {
   return value;
 }
 
+export const STAGE_SIZE = STAGE;
+export const SNAP_GRID = 20;
+const TEXT_ELEMENT_TYPES = new Set(['title', 'paragraph', 'text', 'steps', 'caption']);
+const MIN_FONT_PX = 24;
+
+export const snapToGrid = (value, grid = SNAP_GRID) => Math.round(value / grid) * grid;
+
+/**
+ * Estimate optimal font size (down to MIN_FONT_PX = 24pt equivalent on 1600×900) and whether text still overflows (#42).
+ */
+export function measureElementTextFit(element) {
+  if (!element || !TEXT_ELEMENT_TYPES.has(element.type)) {
+    return { fontSize: null, overflow: false };
+  }
+  const baseSizes = { title: element.hero ? 88 : 64, paragraph: 38, text: 36, steps: 34, caption: 26 };
+  const base = baseSizes[element.type] || 34;
+  const lines = Array.isArray(element.items)
+    ? element.items
+    : typeof element.text === 'string'
+      ? element.text.split('\n')
+      : [];
+  const totalChars = lines.reduce((sum, line) => sum + (line || '').length, 0);
+  if (totalChars === 0) return { fontSize: base, overflow: false };
+
+  const padX = element.type === 'steps' ? 84 : element.type === 'text' ? 52 : 16;
+  const padY = 16;
+  const availW = Math.max(40, (element.w || 160) - padX);
+  const availH = Math.max(24, (element.h || 60) - padY);
+
+  const fitsAt = size => {
+    const charW = size * 0.54;
+    const cols = Math.max(1, Math.floor(availW / charW));
+    const lineH = size * 1.38;
+    const gap = (element.type === 'text' || element.type === 'steps') ? size * 0.45 : 0;
+    const neededLines = lines.reduce((sum, line) => sum + Math.max(1, Math.ceil((line || '').length / cols)), 0);
+    const neededH = neededLines * lineH + Math.max(0, lines.length - 1) * gap;
+    return neededH <= availH;
+  };
+
+  for (let size = base; size >= MIN_FONT_PX; size -= 2) {
+    if (fitsAt(size)) return { fontSize: size, overflow: false };
+  }
+  return { fontSize: MIN_FONT_PX, overflow: true };
+}
+
+export function detectElementOverflow(element) {
+  return measureElementTextFit(element).overflow;
+}
+
+/**
+ * Move, resize, or edit an element on a canvas slide (#42, #48).
+ * Snaps x, y, w, h to the 20-unit grid within 1600×900, marks overflow when text exceeds minimum font size,
+ * increments deck.revision, clears deck.review_token, and marks the slide edited: true. Dàn ý never changes.
+ */
+export function updateSlideElement(lesson, slideId, elementId, changes, { snap = true, minW = 160, minH = 60 } = {}) {
+  if (!lesson?.deck?.slides) fail('Bài giảng chưa có Bộ slide.');
+  let touched = false;
+  const slides = lesson.deck.slides.map(slide => {
+    if (slide.slide_id !== slideId) return slide;
+    let slideChanged = false;
+    const elements = slide.elements.map(el => {
+      if (el.element_id !== elementId) return el;
+      const next = { ...el, ...changes };
+      if (changes.w !== undefined || changes.h !== undefined) {
+        const rawW = changes.w !== undefined ? changes.w : el.w;
+        const rawH = changes.h !== undefined ? changes.h : el.h;
+        next.w = Math.max(minW, Math.min(STAGE.width - el.x, snap ? snapToGrid(rawW) : rawW));
+        next.h = Math.max(minH, Math.min(STAGE.height - el.y, snap ? snapToGrid(rawH) : rawH));
+      }
+      if (changes.x !== undefined || changes.y !== undefined) {
+        const rawX = changes.x !== undefined ? changes.x : el.x;
+        const rawY = changes.y !== undefined ? changes.y : el.y;
+        next.x = Math.max(0, Math.min(STAGE.width - next.w, snap ? snapToGrid(rawX) : rawX));
+        next.y = Math.max(0, Math.min(STAGE.height - next.h, snap ? snapToGrid(rawY) : rawY));
+      }
+      if (TEXT_ELEMENT_TYPES.has(next.type)) {
+        next.overflow = changes.overflow !== undefined ? Boolean(changes.overflow) : detectElementOverflow(next);
+      }
+      if (JSON.stringify(next) !== JSON.stringify(el)) {
+        slideChanged = true;
+        touched = true;
+      }
+      return next;
+    });
+    return slideChanged ? { ...slide, edited: true, elements } : slide;
+  });
+  if (!touched) return lesson;
+  const { review_token, ...restDeck } = lesson.deck;
+  return normalizeLesson({
+    ...lesson,
+    deck: {
+      ...restDeck,
+      revision: (lesson.deck.revision ?? 0) + 1,
+      slides,
+    },
+  });
+}
+
+/**
+ * Replace only the slides of a single Mục (#43) while keeping all other Mục slides intact and clearing needs_review.
+ */
+export function replaceItemSlides(lesson, itemId, newItemSlides) {
+  if (!lesson?.deck?.slides) fail('Bài giảng chưa có Bộ slide.');
+  const kept = lesson.deck.slides.filter(slide => slide.item_id !== itemId);
+  const byItem = new Map(lesson.outline.items.map(item => [item.item_id, []]));
+  for (const slide of kept) {
+    byItem.get(slide.item_id)?.push(slide);
+  }
+  for (const slide of newItemSlides) {
+    byItem.get(itemId)?.push(slide);
+  }
+  const orderedSlides = lesson.outline.items.flatMap(item => byItem.get(item.item_id) || []);
+  const items = lesson.outline.items.map(item => (item.item_id === itemId ? { ...item, needs_review: false } : item));
+  const { review_token, ...restDeck } = lesson.deck;
+  return normalizeLesson({
+    ...lesson,
+    outline: { ...lesson.outline, items },
+    deck: {
+      ...restDeck,
+      revision: (lesson.deck.revision ?? 0) + 1,
+      slides: orderedSlides,
+    },
+  });
+}
+
 export function normalizeLesson(input) {
   if (!isRecord(input)) fail('tệp không chứa một Bài giảng.');
   // _storage_revision is the IndexedDB write counter (projectStore.saveProject), not lesson content.

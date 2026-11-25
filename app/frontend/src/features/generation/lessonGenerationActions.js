@@ -29,7 +29,6 @@ export function createLessonGenerationActions({
           num_slides: parseInt(config.num_slides, 10) || 8,
           lesson_id: config.lesson_id || undefined,
           class_proficiency: config.class_proficiency || 'standard',
-          use_rag: config.use_rag !== undefined ? config.use_rag : true,
           model_provider: config.model_provider || 'gemini',
           model_id: config.model_id || null,
           tone: config.tone || 'academic',
@@ -72,7 +71,6 @@ export function createLessonGenerationActions({
       subject: outline?.subject || presentationConfig.subject || 'Toán học',
       grade: outline?.grade || presentationConfig.grade || 12,
       lesson_id: outline?.lesson_id || presentationConfig.lesson_id,
-      use_rag: presentationConfig.use_rag,
       proficiency: presentationConfig.class_proficiency || classProficiency || 'standard',
       outcome: recommendedOutcome
     };
@@ -96,7 +94,6 @@ export function createLessonGenerationActions({
           subject: params.subject,
           grade: parseInt(params.grade, 10),
           lesson_id: params.lesson_id || undefined,
-          use_rag: params.use_rag !== undefined ? params.use_rag : true,
           class_proficiency: params.proficiency || 'standard',
           target_outcome: params.outcome || ''
         });
@@ -115,7 +112,6 @@ export function createLessonGenerationActions({
           subject: params.subject,
           grade: parseInt(params.grade, 10),
           lesson_id: params.lesson_id || undefined,
-          use_rag: params.use_rag !== undefined ? params.use_rag : true,
           class_proficiency: params.proficiency || 'standard',
           target_outcome: params.outcome || '',
           plan: planData.plan

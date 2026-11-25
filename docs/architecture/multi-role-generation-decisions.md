@@ -220,11 +220,11 @@ Cập nhật mỗi khi một phép kiểm được thêm. Ô chưa có phép ki�
 | Mục bắt buộc | Phép kiểm (tên, phiên bản) | Phạm vi công bố | Trạng thái |
 |---|---|---|---|
 | Nhãn đạo hàm theo biến | `derivative_polynomial_identity` v1, ký hiệu | Đa thức theo biến và tối đa hai tham số thực, tổng bậc tối đa 8 (tính cả tham số); đúng với mọi giá trị thực; biểu thức không xác định (ví dụ chia cho 0) là `unverified` | Đã triển khai (#20) |
-| Nghiệm thực và tính đầy đủ | Chưa có | — | `unverified`; ticket #21 |
-| Điểm dừng, dấu đạo hàm, cực trị | Chưa có | — | `unverified`; ticket #22 |
-| An toàn của khoảng tham số | Chưa có | — | `unverified`; ticket #23 |
-| Điều kiện loại trừ (kể cả rỗng) | Chưa có | — | `unverified`; ticket #23 |
-| Từng bước giải | Chưa có | — | `unverified`; ticket #24 |
+| Nghiệm thực và tính đầy đủ | `real_roots_factorized_sign` v1, ký hiệu | Đa thức theo biến và tối đa một tham số thực, tổng bậc tối đa 8, phân tích được thành các nhân tử bậc tối đa 2 theo biến trên từng miền dấu của tham số (`a < 0`, `a = 0`, `a > 0`) hoặc không tham số; ngoài phạm vi hoặc nghiệm xấp xỉ là `unverified` | Đã triển khai (#21) |
+| Điểm dừng, dấu đạo hàm, cực trị | `stationary_points_factorized_sign` v1, `derivative_sign_factorized` v1, `extrema_stationary_sign` v1, ký hiệu | Đa thức theo biến và tối đa một tham số thực, tổng bậc tối đa 8, đạo hàm phân tích được thành các nhân tử bậc tối đa 2 trên từng miền dấu của tham số (`a < 0`, `a = 0`, `a > 0`) hoặc không tham số; từng mệnh đề điểm dừng, dấu, cực trị có bằng chứng riêng | Đã triển khai (#22) |
+| An toàn của khoảng tham số | `parameter_interval_safety` v1, ký hiệu | Đa thức theo biến và đúng một tham số thực, tổng bậc tối đa 8, kiểm tra cấu trúc AST không có phép chia/căn/log trên toàn đoạn tham số hữu hạn `[a_min, a_max]` và mọi `x` thực | Đã triển khai (#23) |
+| Điều kiện loại trừ (kể cả rỗng) | `domain_exclusion_completeness` v1, ký hiệu | Đa thức (tổng bậc tối đa 8, danh sách loại trừ rỗng chứng minh bằng cấu trúc AST) và phân thức một biến có mẫu số bậc tối đa 2 trên tập số thực; biểu thức có căn/log/mẫu phụ thuộc tham số là `unverified` | Đã triển khai (#23) |
+| Từng bước giải | `structured_solution_step` v1, ký hiệu | Bước giải có cấu trúc thuộc một trong các phép kiểm đã công bố (`identity`, `derivative`, `roots`, `stationary_points`, `sign`, `extrema`, `exclusions`); lời giải văn xuôi giữ `unverified` | Đã triển khai (#24) |
 | Công thức hàm và họ hàm phù hợp ý đồ | Không phải phép kiểm máy | — | Giáo viên duyệt ý đồ ở dàn ý (D4); ticket #27 |
 
 ### O4.1 — Chuyển provider khi lỗi giữa chuỗi vai trò (đã chốt hướng, chưa triển khai)

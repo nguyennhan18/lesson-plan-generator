@@ -29,7 +29,8 @@ def generate_slide_endpoint(req: LessonRequest):
             use_rag=req.use_rag,
             plan=req.plan,
             class_proficiency=req.class_proficiency,
-            target_outcome=req.target_outcome
+            target_outcome=req.target_outcome,
+            session_id=req.session_id
         )
         deck_dict = slide_deck.model_dump()
         from lessonai.services.content_quality import evaluate_deck

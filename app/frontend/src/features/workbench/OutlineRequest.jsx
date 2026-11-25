@@ -1,9 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { CLASS_LEVEL_LABELS, outlineRequest } from './workbenchActions.js';
 
-export default function OutlineRequest({ actions, onCreated, onBusyChange, disabled }) {
+export default function OutlineRequest({ actions, onCreated, onBusyChange, disabled, defaultLevel = 'standard' }) {
   const [request, setRequest] = useState('');
-  const [level, setLevel] = useState('standard');
+  const [level, setLevel] = useState(defaultLevel);
+  useEffect(() => {
+    if (defaultLevel && CLASS_LEVEL_LABELS[defaultLevel]) {
+      setLevel(defaultLevel);
+    }
+  }, [defaultLevel]);
   const [match, setMatch] = useState(null);
   const [changing, setChanging] = useState(false);
   const [choice, setChoice] = useState(null);

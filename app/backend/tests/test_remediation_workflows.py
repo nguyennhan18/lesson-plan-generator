@@ -511,17 +511,12 @@ def test_export_fails_explicitly_when_formula_cannot_be_inserted(deck):
             export_slide_deck_to_pptx(deck)
 
 
-def test_generation_binds_citations_to_supplied_source_version(deck):
+def test_generation_rejects_citations_while_rag_is_paused(deck):
     from lessonai.services.generation.slides import generate_slide_deck
-    refs=[{'source_type':'slide_kntt12','id':'p1','sha256':'actual-source-version'}]
     deck['slides'][0]['source_refs']=[{'source_type':'slide_kntt12','id':'p1','sha256':'invented-version'}]
-    with patch('lessonai.rag.context_builder.PedagogicalContextBuilder.build_slide_deck_context',return_value=('source context',refs)), patch('lessonai.llm.gateway.llm_gateway.generate_structured',return_value=SlideDeckSchema.model_validate(deck)):
-        with pytest.raises(ValueError,match='phiên bản nguồn'):
-            generate_slide_deck('Bài',lesson_id='M12-C1-B1')
-    deck['slides'][0]['source_refs'][0].pop('sha256')
-    with patch('lessonai.rag.context_builder.PedagogicalContextBuilder.build_slide_deck_context',return_value=('source context',refs)), patch('lessonai.llm.gateway.llm_gateway.generate_structured',return_value=SlideDeckSchema.model_validate(deck)):
-        result=generate_slide_deck('Bài',lesson_id='M12-C1-B1')
-        assert result.slides[0].source_refs[0].model_dump()['sha256']=='actual-source-version'
+    with patch('lessonai.llm.gateway.llm_gateway.generate_structured',return_value=SlideDeckSchema.model_validate(deck)):
+        with pytest.raises(ValueError,match='RAG tạm ngừng'):
+            generate_slide_deck('Bài',lesson_id='M12-C1-B1',use_rag=True)
 
 
 def test_production_sample_preview_is_retired(api):

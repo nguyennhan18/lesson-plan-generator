@@ -7,7 +7,13 @@ from fastapi import APIRouter
 from lessonai.schemas.workbench_outline import (
     WorkbenchLessonMatch, WorkbenchOutlineRequest, WorkbenchOutlineResponse, WorkbenchRequestText,
 )
+from lessonai.schemas.workbench_slides import (
+    WorkbenchItemSlidesRequest, WorkbenchSlidesRequest, WorkbenchSlidesResponse,
+)
 from lessonai.services.generation.workbench_outline import generate_outline, identify_lesson, resolve_lesson
+from lessonai.services.generation.workbench_slides import (
+    generate_workbench_slides, regenerate_workbench_item_slides,
+)
 
 router = APIRouter()
 
@@ -31,7 +37,8 @@ def generate_outline_endpoint(req: OutlineRequest):
             model_provider=req.model_provider,
             model_id=req.model_id,
             tone=req.tone,
-            language=req.language
+            language=req.language,
+            session_id=req.session_id
         )
     except Exception as e:
         raise HTTPException(status_code=503, detail=classify_generation_error(e, "dàn ý")) from e
@@ -51,3 +58,21 @@ def generate_workbench_outline(req: WorkbenchOutlineRequest):
         return generate_outline(req, lesson_id, title)
     except Exception as error:
         raise HTTPException(503, detail=classify_generation_error(error, "Dàn ý")) from error
+
+
+@router.post("/api/v1/workbench/slides", response_model=WorkbenchSlidesResponse)
+def build_workbench_slides(req: WorkbenchSlidesRequest):
+    try:
+        return generate_workbench_slides(req)
+    except Exception as error:
+        raise HTTPException(503, detail=classify_generation_error(error, "Bộ slide")) from error
+
+
+@router.post("/api/v1/workbench/slides/item", response_model=WorkbenchSlidesResponse)
+def regenerate_workbench_item(req: WorkbenchItemSlidesRequest):
+    try:
+        return regenerate_workbench_item_slides(req)
+    except KeyError as error:
+        raise HTTPException(422, detail={"code": "unknown_outline_item", "message": str(error)}) from error
+    except Exception as error:
+        raise HTTPException(503, detail=classify_generation_error(error, "slide của Mục")) from error

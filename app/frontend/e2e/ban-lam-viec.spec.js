@@ -287,3 +287,273 @@ test('đổi bài SGK rồi thử lại sau lỗi AI, Bản soạn cũ vẫn cò
   expect(calls[0]).toEqual({ request: 'Soạn bài tích phân', lesson_id: 'M12-C4-B1', level: 'advanced' });
   expect(calls[1]).toEqual(calls[0]);
 });
+
+const lessonFileWithSlides = () => ({
+  ...lessonFile(),
+  project_id: 'e2e-bai-giang-co-slide',
+  deck: {
+    revision: 1,
+    slides: [
+      {
+        slide_id: 's1',
+        item_id: 'm1',
+        layout: 'Mở đầu',
+        notes: 'Ghi chú chỉ dành cho giáo viên, không hiện khi chiếu',
+        elements: [
+          { element_id: 'e1-title', type: 'title', hero: true, x: 120, y: 280, w: 1360, h: 220, reveal: 0, parts: 1, text: 'Khảo sát hàm số bậc ba' },
+          { element_id: 'e1-cap', type: 'caption', x: 120, y: 540, w: 900, h: 60, reveal: 0, parts: 1, text: 'Toán 12, Chương I, Bài 4' },
+        ],
+      },
+      {
+        slide_id: 's2',
+        item_id: 'm3',
+        layout: 'Kiến thức trọng tâm',
+        notes: '',
+        elements: [
+          { element_id: 'e2-title', type: 'title', x: 100, y: 80, w: 1400, h: 100, reveal: 0, parts: 1, text: 'Sơ đồ khảo sát hàm số' },
+          {
+            element_id: 'e2-steps',
+            type: 'steps',
+            x: 100,
+            y: 220,
+            w: 1400,
+            h: 400,
+            reveal: 1,
+            parts: 3,
+            items: ['Bước 1: Tìm tập xác định', 'Bước 2: Xét sự biến thiên', 'Bước 3: Vẽ đồ thị'],
+          },
+          { element_id: 'e2-formula', type: 'formula', x: 100, y: 660, w: 1400, h: 140, reveal: 4, parts: 1, latex: "f'(x) = 3x^2 - 3" },
+        ],
+      },
+      {
+        slide_id: 's3',
+        item_id: 'm5',
+        layout: 'Câu hỏi trắc nghiệm',
+        notes: '',
+        elements: [
+          {
+            element_id: 'e3-title',
+            type: 'title',
+            x: 100,
+            y: 80,
+            w: 220,
+            h: 60,
+            reveal: 0,
+            parts: 1,
+            text: 'Tiêu đề rất dài để kiểm tra tự thu nhỏ chữ xuống ngưỡng tối thiểu 24pt và đánh dấu tràn khung trên canvas 16:9 khi hộp quá hẹp '.repeat(2),
+          },
+          {
+            element_id: 'e3-quiz',
+            type: 'quiz',
+            x: 100,
+            y: 200,
+            w: 1400,
+            h: 640,
+            reveal: 0,
+            parts: 1,
+            question: 'Hàm số $y = x^3 - 3x + 1$ đạt cực đại tại điểm nào?',
+            options: [
+              { label: 'A', text: '$x = 1$', correct: false, why: 'Cực tiểu' },
+              { label: 'B', text: '$x = -1$', correct: true, why: 'Đổi dấu từ + sang -' },
+              { label: 'C', text: '$x = 3$', correct: false, why: 'Giá trị cực đại' },
+              { label: 'D', text: '$x = 0$', correct: false, why: 'Không phải điểm dừng' },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+});
+
+test('nạp JSON bản 3 có slide thì canvas và dải slide hiển thị, chọn được slide, kéo phần tử bám lưới 20 và chữ dài sinh dấu tràn (#40, #42)', async ({ page }) => {
+  const problems = watch(page);
+  await openWorkbench(page);
+  await importLesson(page, lessonFileWithSlides());
+
+  const canvas = page.getByTestId('wb-canvas');
+  await expect(canvas).toBeVisible();
+  const strip = page.getByRole('region', { name: 'Dải slide' });
+  await expect(strip.getByRole('button', { name: /^Slide \d+$/ })).toHaveCount(3);
+
+  // Chọn slide 2 từ Dải slide
+  await strip.getByRole('button', { name: 'Slide 2' }).click();
+  await expect(canvas).toContainText('Sơ đồ khảo sát hàm số');
+  await expect(canvas.getByRole('math')).toHaveCount(1);
+
+  // Chọn phần tử tiêu đề trên slide 2 và kéo sang vị trí mới -> bám lưới bội số của 20
+  const titleEl = canvas.locator('[data-element-id="e2-title"]');
+  const box = await titleEl.boundingBox();
+  await page.mouse.move(box.x + 30, box.y + 20);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 95, box.y + 75, { steps: 4 });
+  await page.mouse.up();
+
+  const properties = page.getByRole('complementary', { name: 'Thuộc tính' });
+  await expect(properties).toContainText('Loại phần tửTiêu đề');
+  const posText = await properties.locator('.wb-props').textContent();
+  const match = posText.match(/Vị trí(\d+),\s*(\d+)/);
+  expect(match).not.toBeNull();
+  expect(Number(match[1]) % 20).toBe(0);
+  expect(Number(match[2]) % 20).toBe(0);
+
+  // Chọn slide 3 từ cây Dàn ý -> kiểm tra dấu tràn chữ và câu hỏi trắc nghiệm tĩnh
+  await treeItem(page, 'Hàm số').getByRole('button').first().click();
+  await outlineTree(page).getByRole('button', { name: 'Mục 5, Slide 3' }).click();
+  await expect(canvas.locator('[data-element-id="e3-title"]')).toHaveAttribute('data-overflow', 'true');
+  await expect(canvas).toContainText('Tràn chữ');
+  expect(problems).toEqual([]);
+});
+
+test('trình chiếu cơ bản: các bước hiện dần đúng thứ tự, sang slide sau, Esc đưa về đúng slide và không có lỗi trang (#41)', async ({ page }) => {
+  const problems = watch(page);
+  await openWorkbench(page);
+  await importLesson(page, lessonFileWithSlides());
+
+  await page.getByRole('button', { name: 'Trình chiếu' }).click();
+  const presenter = page.getByRole('region', { name: 'Màn trình chiếu' });
+  await expect(presenter).toBeVisible();
+  await expect(presenter).not.toContainText('Ghi chú chỉ dành cho giáo viên');
+  await expect(presenter.getByLabel('Số trang')).toHaveText('1/3');
+
+  // Slide 1 có 0 bước hiện dần -> bấm ArrowRight sang Slide 2 ở bước 0 (chỉ hiện tiêu đề, chưa hiện các bước giải)
+  await page.keyboard.press('ArrowRight');
+  await expect(presenter.getByLabel('Số trang')).toHaveText('2/3');
+  await expect(presenter).toContainText('Sơ đồ khảo sát hàm số');
+  await expect(presenter).not.toContainText('Bước 1: Tìm tập xác định');
+
+  // Bước 1, 2, 3 hiện từng ý; Bước 4 hiện công thức
+  await page.keyboard.press('ArrowRight');
+  await expect(presenter).toContainText('Bước 1: Tìm tập xác định');
+  await expect(presenter).not.toContainText('Bước 2: Xét sự biến thiên');
+
+  await page.keyboard.press('Space');
+  await expect(presenter).toContainText('Bước 2: Xét sự biến thiên');
+
+  await page.keyboard.press('PageDown');
+  await expect(presenter).toContainText('Bước 3: Vẽ đồ thị');
+
+  await page.keyboard.press('ArrowRight');
+  await expect(presenter.getByRole('math')).toHaveCount(1);
+
+  // Bấm Esc thoát trình chiếu -> quay về đúng Slide 2 đang chiếu
+  await page.keyboard.press('Escape');
+  await expect(presenter).toBeHidden();
+  await expect(page.getByRole('region', { name: 'Dải slide' }).getByRole('button', { name: 'Slide 2' })).toHaveAttribute('aria-current', 'true');
+  expect(problems).toEqual([]);
+});
+
+test('đổi số slide khi đã có Bộ slide thì hiện Cần xem lại và nút sinh lại, chỉ thay slide của Mục đó (#43)', async ({ page }) => {
+  const problems = watch(page);
+  await openWorkbench(page);
+  await importLesson(page, lessonFileWithSlides());
+
+  await page.route('**/api/v1/workbench/slides/item', route => route.fulfill({
+    json: {
+      prompt_chars: 520,
+      slides: [
+        {
+          slide_id: 's1-new-a',
+          item_id: 'm1',
+          layout: 'Mở đầu',
+          notes: '',
+          elements: [{ element_id: 'en-1', type: 'title', x: 120, y: 280, w: 1360, h: 220, reveal: 0, parts: 1, text: 'Mở đầu mới 1' }],
+        },
+        {
+          slide_id: 's1-new-b',
+          item_id: 'm1',
+          layout: 'Nội dung',
+          notes: '',
+          elements: [{ element_id: 'en-2', type: 'title', x: 100, y: 80, w: 1400, h: 100, reveal: 0, parts: 1, text: 'Mở đầu mới 2' }],
+        },
+      ],
+    },
+  }));
+
+  await outlineTree(page).getByRole('listitem').first().getByRole('button').first().click();
+  const properties = page.getByRole('complementary', { name: 'Thuộc tính' });
+  await properties.getByLabel('Số slide dự kiến').fill('2');
+  await properties.getByRole('button', { name: 'Lưu Mục' }).click();
+
+  await expect(outlineTree(page).getByRole('listitem').first()).toContainText('Cần xem lại');
+  const regenBtn = properties.getByRole('button', { name: 'Sinh lại slide của mục này' });
+  await expect(regenBtn).toBeVisible();
+  await regenBtn.click();
+
+  await expect(outlineTree(page).getByRole('listitem').first()).not.toContainText('Cần xem lại');
+  await expect(page.getByRole('region', { name: 'Dải slide' }).getByRole('button', { name: /^Slide \d+$/ })).toHaveCount(4);
+  expect(problems).toEqual([]);
+});
+
+test('đổi model trong Cài đặt thì Lập Dàn ý gửi đúng model, Phân tích lớp học điền sẵn trình độ lớp (#46)', async ({ page }) => {
+  const problems = watch(page);
+  await openWorkbench(page);
+
+  await page.route('**/api/v1/workbench/outline/identify', route => route.fulfill({
+    json: { lesson_id: 'M12-C4-B2', lessons: [{ lesson_id: 'M12-C4-B2', title: 'Tích phân' }] },
+  }));
+  const outlineCalls = [];
+  await page.route('**/api/v1/workbench/outline', route => {
+    outlineCalls.push(route.request().postDataJSON());
+    return route.fulfill({
+      json: {
+        schema_version: 3,
+        title: 'Tích phân',
+        sgk: 'Tích phân',
+        lesson_id: 'M12-C4-B2',
+        outline: lessonFile().outline,
+        source_refs: [],
+        warnings: [],
+      },
+    });
+  });
+  await page.route('**/api/v1/ingest/classify-grades', route => route.fulfill({
+    json: {
+      filename: 'diem-12a1.csv',
+      total_students: 30,
+      mean: 8.4,
+      std_dev: 0.7,
+      cv: 0.083,
+      class_label: 'advanced',
+      target_outcome: 'Lớp khá giỏi',
+      counts: { below_5: 0, between_5_8: 6, above_8: 24 },
+      student_evaluations: [],
+    },
+  }));
+
+  // 1. Đổi nhà cung cấp và model trong Cài đặt
+  await page.getByRole('button', { name: 'Menu phụ' }).click();
+  await page.getByRole('button', { name: 'Cài đặt' }).click();
+  const settingsModal = page.getByRole('dialog', { name: 'Cài đặt' });
+  await settingsModal.getByLabel('Nhà cung cấp AI').selectOption('groq');
+  await settingsModal.getByLabel('Model AI').fill('llama-3.3-70b-versatile');
+  await settingsModal.getByRole('button', { name: 'Lưu cài đặt' }).click();
+
+  // 2. Mở Phân tích lớp học từ Menu phụ và áp dụng kết quả
+  await page.getByRole('button', { name: 'Menu phụ' }).click();
+  await page.getByRole('button', { name: 'Phân tích lớp học' }).click();
+  const analyticsModal = page.getByRole('dialog', { name: 'Phân tích lớp học' });
+  await analyticsModal.getByLabel('Nhập bảng điểm').setInputFiles({
+    name: 'diem-12a1.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from('score\n8.5\n9.0\n'),
+  });
+  await analyticsModal.getByRole('button', { name: 'Áp dụng phân hóa vào bài dạy' }).click();
+  await expect(analyticsModal).toBeHidden();
+
+  // 3. Trình độ lớp ở ô yêu cầu đã được điền sẵn 'advanced' (Khá), và Lập dàn ý gửi đúng model đã chọn
+  const mainForm = page.getByRole('main');
+  await expect(mainForm.getByLabel('Trình độ lớp')).toHaveValue('advanced');
+  await mainForm.getByLabel('Yêu cầu soạn bài').fill('Soạn bài tích phân');
+  await expect(mainForm.getByText('Bài SGK: Tích phân')).toBeVisible();
+  await mainForm.getByRole('button', { name: 'Lập dàn ý' }).click();
+
+  expect(outlineCalls).toHaveLength(1);
+  expect(outlineCalls[0]).toEqual({
+    request: 'Soạn bài tích phân',
+    lesson_id: 'M12-C4-B2',
+    level: 'advanced',
+    model_provider: 'groq',
+    model_id: 'llama-3.3-70b-versatile',
+  });
+  expect(problems).toEqual([]);
+});

@@ -1,5 +1,15 @@
 import { postJson } from '../../shared/api/client.js';
-import { ACTIVITIES, normalizeLesson, listLessons, loadLesson, readLessonFile, saveLesson, storedCopy } from '../../shared/storage/lessonProject.js';
+import {
+  ACTIVITIES,
+  normalizeLesson,
+  listLessons,
+  loadLesson,
+  readLessonFile,
+  saveLesson,
+  storedCopy,
+  updateSlideElement,
+  replaceItemSlides,
+} from '../../shared/storage/lessonProject.js';
 import { LESSON_SCHEMA_VERSION, UNSUPPORTED_VERSION } from '../../shared/storage/projectStore.js';
 
 /**
@@ -8,13 +18,34 @@ import { LESSON_SCHEMA_VERSION, UNSUPPORTED_VERSION } from '../../shared/storage
  * fails, the lesson stays open and marked unsaved, and nothing replaces it until it is saved.
  */
 export const CLASS_LEVEL_LABELS = { basic: 'Cơ bản', standard: 'Trung bình', advanced: 'Khá' };
+export const LEVEL_CODE_BY_LABEL = Object.fromEntries(
+  Object.entries(CLASS_LEVEL_LABELS).map(([code, label]) => [label, code]),
+);
+const SETTINGS_KEY = 'lessonai-workbench-settings';
+
+function readStoredSettings() {
+  try {
+    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(SETTINGS_KEY) : null;
+    if (!raw) return { model_provider: '', model_id: '' };
+    const parsed = JSON.parse(raw);
+    return {
+      model_provider: typeof parsed?.model_provider === 'string' ? parsed.model_provider : '',
+      model_id: typeof parsed?.model_id === 'string' ? parsed.model_id : '',
+    };
+  } catch {
+    return { model_provider: '', model_id: '' };
+  }
+}
 
 export const emptyWorkbench = () => ({
   lesson: null,        // Bản soạn đang mở (Bài giảng bản 3 đã chuẩn hóa)
   lessons: null,       // Bài giảng đã lưu trên máy; null khi chưa đọc xong
   legacyCount: 0,      // dự án bản 2, chỉ giao diện cũ mở được
   saveState: 'saved',  // 'saved' | 'saving' | 'unsaved' (lần lưu gần nhất thất bại)
-  notice: null         // { kind: 'error' | 'save-failed', message } | { kind: 'conflict', message, lesson }
+  notice: null,        // { kind: 'error' | 'save-failed', message } | { kind: 'conflict', message, lesson }
+  settings: readStoredSettings(),
+  preferredLevel: 'standard',
+  analyticsData: null,
 });
 
 function storageProblem(error) {
@@ -159,9 +190,42 @@ export function createWorkbenchActions({ getSession, setSession, download = down
     if (lesson) download(lessonFileName(lesson), JSON.stringify(lesson, null, 2));
   }
 
+  function withModelSettings(payload) {
+    const settings = getSession().settings || {};
+    const extra = {};
+    if (settings.model_provider) extra.model_provider = settings.model_provider;
+    if (settings.model_id) extra.model_id = settings.model_id;
+    return { ...payload, ...extra };
+  }
+
+  function updateSettings(nextSettings) {
+    const clean = {
+      model_provider: (nextSettings?.model_provider || '').trim(),
+      model_id: (nextSettings?.model_id || '').trim(),
+    };
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(clean));
+      }
+    } catch {
+      // preference only
+    }
+    patch({ settings: clean });
+  }
+
+  function setAnalyticsResult(analyticsData) {
+    patch({ analyticsData });
+  }
+
+  function applyClassLevel(level) {
+    if (level && CLASS_LEVEL_LABELS[level]) {
+      patch({ preferredLevel: level });
+    }
+  }
+
   async function generateLesson(payload) {
     if (holdUnsaved()) return false;
-    const generated = await outlineRequest('/api/v1/workbench/outline', payload);
+    const generated = await outlineRequest('/api/v1/workbench/outline', withModelSettings(payload));
     if (generated.schema_version !== LESSON_SCHEMA_VERSION) {
       throw new Error('[invalid_ai_output] Máy chủ không trả Dàn ý bản 3.');
     }
@@ -172,6 +236,59 @@ export function createWorkbenchActions({ getSession, setSession, download = down
       level: CLASS_LEVEL_LABELS[payload.level]
     });
     await persist(lesson, lesson.project_id);
+    return true;
+  }
+
+  async function buildSlides() {
+    if (holdUnsaved()) return false;
+    const { lesson } = getSession();
+    if (!lesson) return false;
+    const levelCode = LEVEL_CODE_BY_LABEL[lesson.level] || 'standard';
+    const response = await outlineRequest('/api/v1/workbench/slides', withModelSettings({
+      title: lesson.title || 'Bài giảng Toán 12',
+      sgk: lesson.sgk ?? null,
+      lesson_id: lesson.lesson_id ?? null,
+      level: levelCode,
+      outline: lesson.outline,
+    }));
+    const clearedItems = lesson.outline.items.map(item => ({ ...item, needs_review: false }));
+    const updated = normalizeLesson({
+      ...lesson,
+      outline: { ...lesson.outline, items: clearedItems },
+      deck: {
+        revision: (lesson.deck?.revision ?? 0) + 1,
+        slides: response.slides,
+      },
+    });
+    await persist(updated);
+    return true;
+  }
+
+  async function regenerateItemSlides(itemId) {
+    if (holdUnsaved()) return false;
+    const { lesson } = getSession();
+    if (!lesson?.deck) return false;
+    const levelCode = LEVEL_CODE_BY_LABEL[lesson.level] || 'standard';
+    const response = await outlineRequest('/api/v1/workbench/slides/item', withModelSettings({
+      title: lesson.title || 'Bài giảng Toán 12',
+      sgk: lesson.sgk ?? null,
+      lesson_id: lesson.lesson_id ?? null,
+      level: levelCode,
+      outline: lesson.outline,
+      item_id: itemId,
+    }));
+    const updated = replaceItemSlides(lesson, itemId, response.slides);
+    await persist(updated);
+    return true;
+  }
+
+  async function changeElement(slideId, elementId, changes) {
+    if (holdUnsaved()) return false;
+    const { lesson } = getSession();
+    if (!lesson?.deck) return false;
+    const updated = updateSlideElement(lesson, slideId, elementId, changes);
+    if (updated === lesson) return false;
+    await persist(updated);
     return true;
   }
 
@@ -245,10 +362,12 @@ export function createWorkbenchActions({ getSession, setSession, download = down
   const dismissNotice = () => patch({ notice: null });
 
   return {
-    refreshLessons, exportLesson, dismissNotice,
+    refreshLessons, exportLesson, dismissNotice, updateSettings, setAnalyticsResult, applyClassLevel,
     openLesson: exclusive(openLesson), closeLesson: exclusive(closeLesson), importFile: exclusive(importFile),
     replaceStored: exclusive(replaceStored), keepStored: exclusive(keepStored), retrySave: exclusive(retrySave),
-    generateLesson: exclusive(generateLesson), editItem: exclusive(editItem), addItem: exclusive(addItem),
+    generateLesson: exclusive(generateLesson), buildSlides: exclusive(buildSlides),
+    regenerateItemSlides: exclusive(regenerateItemSlides), changeElement: exclusive(changeElement),
+    editItem: exclusive(editItem), addItem: exclusive(addItem),
     moveItem: exclusive(moveItem), removeItem: exclusive(removeItem)
   };
 }

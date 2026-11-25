@@ -2,6 +2,7 @@
 from typing import Annotated, Literal, get_args
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
+from pydantic.json_schema import SkipJsonSchema
 
 from lessonai.schemas.slide_schema import ClassProficiency
 
@@ -24,6 +25,9 @@ class WorkbenchRequestText(BaseModel):
 class WorkbenchOutlineRequest(WorkbenchRequestText):
     lesson_id: str | None = None
     level: ClassProficiency
+    session_id: SkipJsonSchema[str | None] = None
+    model_provider: str | None = None
+    model_id: str | None = None
 
 
 class WorkbenchLessonOption(BaseModel):

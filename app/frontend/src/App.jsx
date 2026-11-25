@@ -47,7 +47,6 @@ export default function App() {
     grade: 12,
     num_slides: 8,
     class_proficiency: 'standard',
-    use_rag: true,
     model_provider: 'gemini',
     model_id: null,
     tone: 'academic',

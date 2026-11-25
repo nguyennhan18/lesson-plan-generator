@@ -278,3 +278,439 @@ button.wb-chip:hover { background: #f0f0f0; }
 @media (prefers-reduced-motion: no-preference) {
   .wb-ink { animation: wb-ink 220ms ease-out both; }
 }
+
+.wb-dialog--wide {
+  width: min(56rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 3rem);
+  overflow: auto;
+}
+.wb-error-text { color: #9d2626; font-size: 13px; margin: 0; }
+.wb-regen-box { display: flex; flex-direction: column; gap: 8px; }
+.wb-regen-warn { padding: 10px; border: 1px dashed var(--ink); border-radius: 6px; display: flex; flex-direction: column; gap: 8px; }
+
+/* Thu nhỏ slide trong cây Dàn ý và Dải slide */
+.wb-item-slides {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  padding: 4px 8px 10px 36px;
+}
+.wb-mini {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.wb-mini.is-current .wb-sheet-thumb {
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+/* Khung làm việc Canvas 16:9 và Dải slide (#40, #42) */
+.wb-work {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+.wb-canvas-wrap {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  padding: 20px 24px 12px;
+}
+.wb-strip {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  overflow-x: auto;
+  padding: 10px 20px 14px;
+  border-top: 1px solid var(--rule);
+  background: var(--paper);
+}
+.wb-strip-group {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  padding-left: 10px;
+  border-left: 2px solid var(--ink);
+}
+.wb-strip-n {
+  align-self: flex-start;
+  font: 600 13px/1 var(--font-content);
+}
+.wb-strip-slide {
+  flex-shrink: 0;
+  width: 128px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+.wb-strip-slide.is-current .wb-sheet-thumb {
+  box-shadow: 0 0 0 2px var(--ink);
+}
+
+/* SlideCanvas 1600 × 900 */
+.wb-stage-outer {
+  position: relative;
+  overflow: hidden;
+}
+.wb-stage-outer--width {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+}
+.wb-stage-outer--contain {
+  width: 100%;
+  height: 100%;
+}
+.wb-canvas-wrap > .wb-stage-outer {
+  flex: 1;
+  align-self: stretch;
+  height: auto;
+}
+.wb-sheet-thumb {
+  box-shadow: 0 0 0 1px var(--rule);
+}
+.wb-stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: hidden;
+  transform-origin: 0 0;
+  background: var(--paper);
+  color: var(--ink);
+}
+.wb-stage--thumb {
+  pointer-events: none;
+}
+.wb-stage--edit {
+  box-shadow: inset 0 0 0 calc(1px / var(--s)) var(--ink);
+}
+.wb-stage.is-dragging {
+  background-image:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.1) calc(1px / var(--s)), transparent 0),
+    linear-gradient(rgba(0, 0, 0, 0.1) calc(1px / var(--s)), transparent 0);
+  background-size: 20px 20px;
+}
+.wb-el {
+  position: absolute;
+  overflow: hidden;
+}
+.wb-stage--edit .wb-el {
+  cursor: move;
+  overflow: visible;
+}
+.wb-stage--edit .wb-el:hover {
+  outline: calc(1px / var(--s)) dashed var(--pencil);
+  outline-offset: calc(4px / var(--s));
+}
+.wb-stage--edit .wb-el.is-selected {
+  outline: calc(2px / var(--s)) solid var(--ink);
+  outline-offset: calc(4px / var(--s));
+}
+.wb-stage--edit .wb-el.is-overflow {
+  outline: calc(2px / var(--s)) dashed var(--ink);
+}
+.wb-el-overflow-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 2px 8px;
+  border: 1.5px dashed var(--ink);
+  background: var(--paper);
+  font: 600 18px/1.2 var(--font-tool);
+  pointer-events: none;
+}
+.wb-el-handle {
+  position: absolute;
+  right: calc(-8px / var(--s));
+  bottom: calc(-8px / var(--s));
+  width: calc(14px / var(--s));
+  height: calc(14px / var(--s));
+  border: calc(2px / var(--s)) solid var(--ink);
+  background: var(--paper);
+  cursor: nwse-resize;
+}
+
+/* Nội dung các phần tử trên Slide 1600 × 900 */
+.wb-s-title {
+  margin: 0;
+  font: 600 64px/1.12 var(--font-content);
+  letter-spacing: -0.012em;
+}
+.wb-s-title--hero {
+  font-size: 88px;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+.wb-s-para {
+  margin: 0;
+  font: 400 38px/1.42 var(--font-content);
+}
+.wb-s-caption {
+  margin: 0;
+  color: var(--pencil);
+  font: 400 26px/1.4 var(--font-tool);
+}
+.wb-s-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font: 400 36px/1.42 var(--font-content);
+}
+.wb-s-list li {
+  position: relative;
+  margin-bottom: 16px;
+  padding-left: 44px;
+}
+.wb-s-list li::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 0.58em;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--ink);
+}
+.wb-s-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: wbstep;
+  font: 400 34px/1.42 var(--font-content);
+}
+.wb-s-steps li {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  align-items: start;
+  margin-bottom: 18px;
+  counter-increment: wbstep;
+}
+.wb-s-steps li::before {
+  content: counter(wbstep);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  margin-top: 2px;
+  border: 2.5px solid var(--ink);
+  border-radius: 50%;
+  font: 600 26px/1 var(--font-tool);
+}
+.wb-s-formula {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  font-size: 46px;
+}
+.wb-s-table {
+  width: 100%;
+  border-collapse: collapse;
+  font: 400 28px/1.35 var(--font-content);
+}
+.wb-s-table th, .wb-s-table td {
+  padding: 12px 16px;
+  border: 2px solid var(--ink);
+  text-align: left;
+}
+.wb-s-table th {
+  font-weight: 600;
+  background: #f4f4f4;
+}
+.wb-s-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.wb-s-quiz {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  height: 100%;
+}
+.wb-s-quiz-q {
+  margin: 0;
+  font: 600 40px/1.3 var(--font-content);
+}
+.wb-s-quiz-opts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px 28px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.wb-s-quiz-opt {
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  font: 400 32px/1.3 var(--font-content);
+}
+.wb-s-quiz-letter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  font: 600 26px/1 var(--font-tool);
+}
+.wb-s-pending, .wb-s-figure {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  height: 100%;
+  padding: 24px;
+  text-align: center;
+  font-family: var(--font-tool);
+}
+.wb-s-pending {
+  border: 3px dashed var(--ink);
+}
+.wb-s-pending strong {
+  font: 600 30px/1.25 var(--font-tool);
+}
+.wb-s-pending p {
+  margin: 0;
+  color: var(--pencil);
+  font: 400 24px/1.4 var(--font-tool);
+}
+.wb-s-figure {
+  border: 3px solid var(--math-ink);
+}
+.wb-s-figure-kind {
+  font: 600 28px/1.25 var(--font-tool);
+  color: var(--math-ink);
+}
+.wb-s-figure-label {
+  font: 400 30px/1.35 var(--font-content);
+}
+.wb-s-figure-expr {
+  font-size: 24px;
+  color: var(--pencil);
+}
+
+/* Chế độ Trình chiếu toàn màn hình (#41) */
+.wb-present {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  background: #000000;
+}
+.wb-present-stage {
+  position: absolute;
+  inset: 0;
+}
+.wb-present-board {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background-color: var(--grid-paper);
+  background-image:
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(var(--grid-li) 1px, transparent 1px);
+  background-size: 32px 32px, 32px 32px, 32px 8px;
+}
+.wb-present-board-title {
+  position: absolute;
+  top: 20px;
+  left: 24px;
+  color: var(--pencil);
+  font: 600 15px/1 var(--font-tool);
+}
+.wb-present-ink {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.wb-present-ink.is-active {
+  cursor: crosshair;
+  pointer-events: auto;
+}
+.wb-present-ink path {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.wb-present-blackout {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  border: none;
+  background: #000000;
+  cursor: pointer;
+}
+.wb-present-bar {
+  position: absolute;
+  left: 50%;
+  bottom: 20px;
+  z-index: 7;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 5px;
+  transform: translateX(-50%);
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  background: var(--paper);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  transition: opacity 0.25s ease;
+}
+.wb-present-bar.is-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.wb-present-bar button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--ink);
+  font: 500 13px/1 var(--font-tool);
+  cursor: pointer;
+}
+.wb-present-bar button:hover {
+  background: #efefef;
+}
+.wb-present-bar button[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--paper);
+}
+.wb-present-count {
+  padding: 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.wb-present-sep {
+  width: 1px;
+  height: 20px;
+  margin: 0 4px;
+  background: var(--rule);
+}
