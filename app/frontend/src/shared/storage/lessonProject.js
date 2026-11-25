@@ -22,8 +22,8 @@ import { LEGACY_SCHEMA_VERSION, LESSON_SCHEMA_VERSION, UNSUPPORTED_VERSION, list
 
 export const LESSON_MINUTES = 45;
 export const ACTIVITIES = ['Khởi động', 'Hình thành kiến thức', 'Luyện tập', 'Vận dụng'];
-const ITEM_KINDS = ['Mở đầu', 'Tình huống khởi động', 'Kiến thức trọng tâm', 'Ví dụ', 'Bài luyện tập', 'Câu hỏi trắc nghiệm', 'Tổng kết'];
-const KIND_ACTIVITY = { 'Mở đầu': 'Khởi động', 'Tổng kết': 'Vận dụng' };
+export const ITEM_KINDS = ['Mở đầu', 'Tình huống khởi động', 'Kiến thức trọng tâm', 'Ví dụ', 'Bài luyện tập', 'Câu hỏi trắc nghiệm', 'Tổng kết'];
+export const KIND_ACTIVITY = { 'Mở đầu': 'Khởi động', 'Tổng kết': 'Vận dụng' };
 export const VISUAL_KIND_NAMES = { graph: 'Đồ thị hàm số', bbt: 'Bảng biến thiên', oxyz: 'Hình Oxyz', solid: 'Khối đa diện' };
 const VISUAL_KINDS = Object.keys(VISUAL_KIND_NAMES);
 const VISUAL_ORIGINS = ['ai', 'teacher'];

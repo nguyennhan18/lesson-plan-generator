@@ -1,11 +1,12 @@
 /**
  * Bàn làm việc (spec #36, variant B): top bar, left column (saved Bài giảng, or the Dàn ý tree with
- * the time budget), centre (the Phiếu Dàn ý, read-only in this version) and right column (properties).
+ * the time budget), centre (the Phiếu Dàn ý) and right column (properties).
  * The session (Bản soạn, saved list, notices) is App state; only what is selected lives here.
  */
 import React, { useEffect, useRef, useState } from 'react';
+import OutlineRequest from './OutlineRequest.jsx';
 import MathText from '../../shared/math/MathText';
-import { ACTIVITIES, LESSON_MINUTES, VISUAL_KIND_NAMES, isExpertConfirmed } from '../../shared/storage/lessonProject.js';
+import { ACTIVITIES, ITEM_KINDS, KIND_ACTIVITY, LESSON_MINUTES, VISUAL_KIND_NAMES, isExpertConfirmed } from '../../shared/storage/lessonProject.js';
 import './workbench.css';
 
 const UNTITLED = 'Bài giảng chưa đặt tên';
@@ -112,7 +113,7 @@ function LessonList({ lessons, legacyCount, onOpen }) {
   );
 }
 
-function OutlineTree({ lesson, selectedId, onSelect }) {
+function OutlineTree({ lesson, selectedId, onSelect, animate }) {
   const items = lesson.outline.items;
   return (
     <>
@@ -123,7 +124,7 @@ function OutlineTree({ lesson, selectedId, onSelect }) {
           {group.entries.length === 0 ? <p className="wb-meta wb-act-empty">Chưa có Mục.</p> : (
             <ol className="wb-items">
               {group.entries.map(({ item, number }) => (
-                <li key={item.item_id}>
+                <li key={item.item_id} className={animate ? 'wb-ink' : undefined} style={animate ? { animationDelay: `${Math.min(number - 1, 24) * 65}ms` } : undefined}>
                   <button type="button" className="wb-item" aria-current={item.item_id === selectedId ? 'true' : undefined} onClick={() => onSelect(item.item_id)}>
                     <span className="wb-item-n">{number}</span>
                     <span className="wb-item-body">
@@ -149,6 +150,9 @@ function OutlineTree({ lesson, selectedId, onSelect }) {
 function OutlineSheet({ lesson, onSelect }) {
   const items = lesson.outline.items;
   const visuals = items.flatMap((item, index) => item.visuals.map(visual => ({ item, number: index + 1, visual })));
+  const sources = Array.isArray(lesson.source_refs)
+    ? lesson.source_refs.filter(source => typeof source?.id === 'string' && typeof source?.source_type === 'string')
+    : [];
   const pending = visuals.filter(({ visual }) => !isDataConfirmed(visual)).length;
   const planned = plannedSlides(items);
   const about = [lesson.sgk, lesson.level && `Trình độ lớp: ${lesson.level.toLowerCase()}`].filter(Boolean).join('. ');
@@ -163,6 +167,14 @@ function OutlineSheet({ lesson, onSelect }) {
         <div><dt>Bộ slide</dt><dd>{lesson.deck ? `${lesson.deck.slides.length} slide` : 'chưa dựng'}</dd></div>
       </dl>
       <TimeBudget items={items} />
+      {items.reduce((total, item) => total + item.minutes, 0) !== LESSON_MINUTES &&
+        <p className="wb-meta" role="status">Thời lượng dự kiến khác {LESSON_MINUTES} phút.</p>}
+      <section aria-label="Nguồn đã duyệt">
+        {sources.length > 0 ? <>
+          <h2 className="wb-h3">Nguồn đã duyệt đã dùng</h2>
+          <ul>{sources.map((source, index) => <li key={index}>{source.id} · {source.source_type}</li>)}</ul>
+        </> : <p className="wb-meta">Chưa có nguồn đã duyệt cho bài này</p>}
+      </section>
       <section className="wb-visuals" aria-labelledby="wb-sheet-visuals">
         <h2 id="wb-sheet-visuals" className="wb-h3">Yêu cầu trực quan</h2>
         {visuals.length === 0 ? <p className="wb-meta">Dàn ý chưa có Yêu cầu trực quan nào.</p> : (
@@ -182,7 +194,7 @@ function OutlineSheet({ lesson, onSelect }) {
   );
 }
 
-function ItemProperties({ lesson, itemId }) {
+function ItemProperties({ lesson, itemId, actions, disabled }) {
   if (!lesson) return <p className="wb-panel wb-meta">Mở một Bài giảng để xem Dàn ý và thuộc tính của từng Mục.</p>;
   const index = lesson.outline.items.findIndex(item => item.item_id === itemId);
   if (index < 0) return <p className="wb-panel wb-meta">Chọn một Mục ở cột trái để xem Loại mục, số slide, số phút và hình của Mục đó.</p>;
@@ -205,6 +217,8 @@ function ItemProperties({ lesson, itemId }) {
           <ul className="wb-points">{item.points.map((point, i) => <li key={i}><MathText text={point} /></li>)}</ul>
         </>
       )}
+      <ItemEditor key={JSON.stringify(item)} item={item} index={index} items={lesson.outline.items}
+        built={built} actions={actions} disabled={disabled} />
       {item.visuals.length > 0 && (
         <>
           <h4 className="wb-label">Hình</h4>
@@ -213,6 +227,86 @@ function ItemProperties({ lesson, itemId }) {
       )}
     </div>
   );
+}
+
+function ItemEditor({ item, index, items, built, actions, disabled }) {
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const apply = async action => {
+    setError('');
+    setBusy(true);
+    try { await action(); }
+    catch (error) { setError(error.message); }
+    finally { setBusy(false); }
+  };
+  const initialPoints = item.points.join('\n');
+  const save = event => {
+    event.preventDefault();
+    const fields = new FormData(event.currentTarget);
+    const title = fields.get('title');
+    const points = fields.get('points');
+    if (!title.trim()) { setError('Hãy nhập tiêu đề Mục.'); return; }
+    apply(() => actions.editItem(item.item_id, {
+      title: title === item.title ? item.title : title.trim(),
+      points: points === initialPoints ? item.points : points.split('\n').map(point => point.trim()).filter(Boolean),
+      slide_count: Number(fields.get('slide_count')), minutes: Number(fields.get('minutes'))
+    }));
+  };
+  return <form className="wb-form" onSubmit={save}>
+    <fieldset disabled={disabled || busy}>
+      <label>Tiêu đề Mục<input name="title" defaultValue={item.title} required /></label>
+      <label>Các ý (mỗi dòng một ý)<textarea name="points" rows={4} defaultValue={initialPoints} /></label>
+      <label>Số slide dự kiến<input type="number" name="slide_count" min="1" max="4" required defaultValue={item.slide_count} /></label>
+      <label>Số phút dự kiến<input type="number" name="minutes" min="1" max={LESSON_MINUTES} required defaultValue={item.minutes} /></label>
+      <button className="wb-btn wb-btn--primary" type="submit">Lưu Mục</button>
+      <div className="wb-form-row">
+        {[-1, 1].map(direction => <button key={direction} type="button" className="wb-btn"
+          disabled={items[index + direction]?.activity !== item.activity}
+          onClick={() => apply(() => actions.moveItem(item.item_id, direction))}>{direction < 0 ? 'Lên' : 'Xuống'}</button>)}
+        <button type="button" className="wb-btn" onClick={() => setConfirmDelete(value => !value)}>Xóa Mục</button>
+      </div>
+      {confirmDelete && <div className="wb-form-row">
+        <p className="wb-meta">{built ? `Xóa cả ${built} slide đã dựng từ Mục này?` : 'Xóa Mục này khỏi Dàn ý?'}</p>
+        <button type="button" className="wb-btn" onClick={() => apply(() => actions.removeItem(item.item_id))}>Xác nhận xóa</button>
+      </div>}
+    </fieldset>
+    {error && <p role="alert">{error}</p>}
+  </form>;
+}
+
+function AddItem({ actions, onSelect, disabled }) {
+  const [activity, setActivity] = useState(ACTIVITIES[0]);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const kinds = ITEM_KINDS.filter(kind => !KIND_ACTIVITY[kind] || KIND_ACTIVITY[kind] === activity);
+
+  async function add(event) {
+    event.preventDefault();
+    const kind = new FormData(event.currentTarget).get('kind');
+    setBusy(true);
+    setError('');
+    try {
+      const id = await actions.addItem(activity, kind);
+      if (id) onSelect(id);
+    } catch (error) { setError(error.message); }
+    finally { setBusy(false); }
+  }
+
+  return <form className="wb-panel wb-form" onSubmit={add}>
+    <fieldset disabled={disabled || busy}>
+      <label>Hoạt động của Mục mới
+        <select value={activity} onChange={event => setActivity(event.target.value)}>
+          {ACTIVITIES.map(value => <option key={value}>{value}</option>)}
+        </select>
+      </label>
+      <label>Loại mục mới
+        <select key={activity} name="kind">{kinds.map(kind => <option key={kind}>{kind}</option>)}</select>
+      </label>
+      <button className="wb-btn" type="submit">Thêm Mục</button>
+    </fieldset>
+    {error && <p role="alert">{error}</p>}
+  </form>;
 }
 
 function FileMenu({ canExport, actions }) {
@@ -274,6 +368,13 @@ function Notice({ notice, actions }) {
 
 export default function Workbench({ session, actions, onSwitchOff }) {
   const { lesson, notice } = session;
+  const [modalOpen, setModalOpen] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const dialog = useRef(null);
+  const disabled = session.saveState !== 'saved';
+  const created = () => {
+    if (dialog.current.open) dialog.current.close();
+  };
   const [selection, setSelection] = useState({ lessonId: null, itemId: null });
   const selectedId = lesson && selection.lessonId === lesson.project_id ? selection.itemId : null;
   const select = itemId => setSelection({ lessonId: lesson.project_id, itemId });
@@ -293,32 +394,45 @@ export default function Workbench({ session, actions, onSwitchOff }) {
         {lesson && <StatusTag confirmed={isExpertConfirmed(lesson)} />}
         {session.saveState === 'unsaved' && <span className="wb-unsaved">Chưa lưu</span>}
         <div className="wb-top-end">
+          <button type="button" className="wb-btn" disabled={disabled || generating} onClick={() => {
+            setModalOpen(true);
+            dialog.current.showModal();
+          }}>Soạn bài mới</button>
           <FileMenu canExport={Boolean(lesson)} actions={actions} />
           <label className="wb-switch">
-            <input type="checkbox" role="switch" checked onChange={onSwitchOff} />
+            <input type="checkbox" role="switch" checked disabled={generating} onChange={onSwitchOff} />
             <span>Bàn làm việc</span>
           </label>
         </div>
       </header>
+      <dialog ref={dialog} className="wb-dialog" aria-labelledby="wb-new-title" onClose={() => setModalOpen(false)}
+        onCancel={event => {
+          if (generating) event.preventDefault();
+        }}>
+        <h2 id="wb-new-title" className="wb-h3">Soạn bài mới</h2>
+        {modalOpen && <OutlineRequest actions={actions} onCreated={created} onBusyChange={setGenerating} disabled={disabled} />}
+        <button type="button" className="wb-btn" disabled={generating} onClick={() => dialog.current.close()}>Đóng hộp soạn bài</button>
+      </dialog>
       {notice && <Notice key={notice.message} notice={notice} actions={actions} />}
       <div className="wb-body">
         <aside className="wb-left" aria-label={lesson ? 'Dàn ý' : 'Bài giảng đã lưu'}>
           <h2 className="wb-column-title">{lesson ? 'Dàn ý' : 'Bài giảng đã lưu'}</h2>
           {lesson
-            ? <OutlineTree lesson={lesson} selectedId={selectedId} onSelect={select} />
+            ? <OutlineTree lesson={lesson} selectedId={selectedId} onSelect={select} animate={session.introducedId === lesson.project_id} />
             : <LessonList lessons={session.lessons} legacyCount={session.legacyCount} onOpen={actions.openLesson} />}
         </aside>
         <main className="wb-center">
           {lesson ? <OutlineSheet key={lesson.project_id} lesson={lesson} onSelect={select} /> : (
             <div className="wb-empty wb-fade">
-              <h1 className="wb-sheet-title">Chưa mở Bài giảng nào</h1>
-              <p>Mở một Bài giảng đã lưu ở cột trái, hoặc nhập tệp JSON bản 3 từ menu Tệp.</p>
+              <h1 className="wb-sheet-title">Soạn bài mới</h1>
+              <OutlineRequest actions={actions} onCreated={created} onBusyChange={setGenerating} disabled={disabled || modalOpen} />
             </div>
           )}
         </main>
         <aside className="wb-right" aria-label="Thuộc tính">
           <h2 className="wb-column-title">Thuộc tính</h2>
-          <ItemProperties lesson={lesson} itemId={selectedId} />
+          <ItemProperties lesson={lesson} itemId={selectedId} actions={actions} disabled={disabled} />
+          {lesson && <AddItem key={lesson.project_id} actions={actions} onSelect={select} disabled={disabled} />}
         </aside>
       </div>
     </div>

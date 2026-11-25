@@ -243,3 +243,38 @@ button.wb-chip:hover { background: #f0f0f0; }
 @media (prefers-reduced-motion: reduce) {
   .wb *, .wb *::before, .wb *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+.wb-form, .wb-form fieldset { display: grid; gap: .75rem; min-width: 0; }
+.wb-form label { display: grid; gap: .25rem; font-weight: 600; font-size: .85rem; }
+.wb-form input, .wb-form textarea, .wb-form select {
+  width: 100%;
+  padding: .45rem .55rem;
+  border: 1px solid currentColor;
+  border-radius: .25rem;
+  background: white;
+  font: inherit;
+  font-weight: 400;
+}
+.wb-form textarea { resize: vertical; }
+.wb-form button { justify-self: start; }
+.wb-form [role="alert"] { color: #9d2626; overflow-wrap: anywhere; }
+.wb-form-row { display: flex; gap: .45rem; align-items: center; flex-wrap: wrap; }
+.wb-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: min(32rem, calc(100vw - 2rem));
+  padding: 1.25rem;
+  border: 1px solid #222;
+  background: #faf9f6;
+  color: #222;
+}
+.wb-dialog::backdrop { background: rgb(0 0 0 / 38%); }
+.wb-dialog > * + * { margin-top: .75rem; }
+@keyframes wb-ink {
+  from { opacity: 0; clip-path: inset(0 100% 0 0); }
+  to { opacity: 1; clip-path: inset(0); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .wb-ink { animation: wb-ink 220ms ease-out both; }
+}

@@ -232,3 +232,58 @@ test('màn soạn đủ ba cột ở độ rộng 1280 px, chữ dùng font đó
   expect(await page.getByRole('complementary', { name: 'Thuộc tính' }).locator('.wb-fade').evaluate(element => getComputedStyle(element).animationName)).toBe('none');
   expect(problems).toEqual([]);
 });
+
+test('sửa Mục nhập từ JSON thì cây và thời lượng cập nhật', async ({ page }) => {
+  await openWorkbench(page);
+  const file = lessonFile();
+  file.outline.items[2].points = ['Tập xác định\nSự biến thiên'];
+  await importLesson(page, file);
+  const tree = outlineTree(page);
+  await tree.getByRole('button', { name: /Sơ đồ khảo sát/ }).click();
+  const properties = page.getByRole('complementary', { name: 'Thuộc tính' });
+  await properties.getByLabel('Tiêu đề Mục').fill('Quy trình khảo sát');
+  await properties.getByLabel('Số phút dự kiến').fill('14');
+  await properties.getByRole('button', { name: 'Lưu Mục' }).click();
+  await expect(tree.getByRole('button', { name: /Quy trình khảo sát/ })).toBeVisible();
+  await expect(tree).toContainText('49/45 phút, 10 slide, vượt 4 phút');
+  await expect(properties.getByRole('listitem')).toHaveCount(1);
+});
+
+test('đổi bài SGK rồi thử lại sau lỗi AI, Bản soạn cũ vẫn còn', async ({ page }) => {
+  await openWorkbench(page);
+  await importLesson(page, lessonFile());
+  await page.route('**/api/v1/workbench/outline/identify', route => route.fulfill({ json: {
+    lesson_id: 'M12-C4-B2',
+    lessons: [{ lesson_id: 'M12-C4-B2', title: 'Tích phân' }, { lesson_id: 'M12-C4-B1', title: 'Nguyên hàm' }]
+  } }));
+  const calls = [];
+  await page.route('**/api/v1/workbench/outline', route => {
+    calls.push(route.request().postDataJSON());
+    if (calls.length === 1) return route.fulfill({ status: 503, json: {
+      detail: { code: 'generation_unavailable', message: 'Dịch vụ AI gián đoạn.', request_id: 'e2e' }
+    } });
+    return route.fulfill({ json: {
+      schema_version: 3, title: 'Nguyên hàm', sgk: 'Nguyên hàm',
+      outline: lessonFile().outline, warnings: [], source_refs: []
+    } });
+  });
+
+  await page.getByRole('button', { name: 'Soạn bài mới' }).click();
+  const modal = page.getByRole('dialog', { name: 'Soạn bài mới' });
+  await modal.getByLabel('Yêu cầu soạn bài').fill('Soạn bài tích phân');
+  await expect(modal.getByText('Bài SGK: Tích phân')).toBeVisible();
+  await modal.getByRole('button', { name: 'Đổi bài' }).click();
+  await modal.getByRole('combobox', { name: 'Bài SGK', exact: true }).selectOption('M12-C4-B1');
+  await modal.getByRole('combobox', { name: 'Trình độ lớp', exact: true }).selectOption('advanced');
+  await modal.getByRole('button', { name: 'Lập dàn ý' }).click();
+  await expect(modal.getByRole('alert')).toContainText('[generation_unavailable]');
+  await expect(page.locator('.wb-sheet-title').filter({ hasText: 'Khảo sát hàm số bậc ba' })).toBeVisible();
+  await modal.getByRole('button', { name: 'Thử lại', exact: true }).click();
+  await expect(modal).toBeHidden();
+  await expect(page.getByRole('main').getByRole('heading', { name: 'Nguyên hàm' })).toBeVisible();
+  await expect(page.getByText('Chưa có nguồn đã duyệt cho bài này')).toBeVisible();
+  await expect(outlineTree(page).getByRole('listitem').first()).toHaveCSS('animation-name', 'wb-ink');
+  expect(calls).toHaveLength(2);
+  expect(calls[0]).toEqual({ request: 'Soạn bài tích phân', lesson_id: 'M12-C4-B1', level: 'advanced' });
+  expect(calls[1]).toEqual(calls[0]);
+});

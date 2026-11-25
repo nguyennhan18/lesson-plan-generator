@@ -457,7 +457,9 @@ class LLMGateway:
         task_type: str = "lesson_plan",
         temperature: float = 0.7,
         model_provider: Optional[str] = None,
-        model_id: Optional[str] = None
+        model_id: Optional[str] = None,
+        *,
+        single_attempt: bool = False,
     ) -> T:
         """
         Thực thi sinh dữ liệu có cấu trúc Pydantic Schema qua chuỗi Fallback thông minh.
@@ -481,6 +483,8 @@ class LLMGateway:
                 "Không tìm thấy tuyến LLM khả dụng. Kiểm tra API key, quyền truy cập và danh sách model."
             )
 
+        if single_attempt:
+            routes = routes[:1]
         last_error = None
         start_time = time.time()
 
@@ -488,7 +492,7 @@ class LLMGateway:
             attempt_start = time.time()
 
             # Hỗ trợ tối đa 2 lần thử nội bộ trên từng route có kèm Exponential Backoff nếu chạm trần 429
-            max_route_attempts = 2 if route.provider_id == "google" else 1
+            max_route_attempts = 2 if route.provider_id == "google" and not single_attempt else 1
 
             for route_attempt in range(max_route_attempts):
                 remaining=deadline-time.monotonic()
@@ -501,7 +505,10 @@ class LLMGateway:
                         config = genai_types.GenerateContentConfig(
                             system_instruction=system_prompt,
                             response_mime_type="application/json",
-                            http_options={"timeout":int(min(20,remaining)*1000)},
+                            http_options={
+                                "timeout": int(min(20, remaining) * 1000),
+                                **({"retry_options": {"attempts": 1}} if single_attempt else {}),
+                            },
                             response_schema=to_gemini_response_schema(response_schema),
                             temperature=temperature,
                             automatic_function_calling=genai_types.AutomaticFunctionCallingConfig.model_validate({"disable": True})
@@ -566,7 +573,9 @@ class LLMGateway:
                             raw_text = completion.choices[0].message.content or "{}"
                         except Exception as groq_err:
                             err_text = str(groq_err).lower()
-                            if "failed to generate json" in err_text or "failed_generation" in err_text or "json_validate_failed" in err_text:
+                            if not single_attempt and any(marker in err_text for marker in (
+                                "failed to generate json", "failed_generation", "json_validate_failed",
+                            )):
                                 print(f"[LLM Gateway] Groq json_object bị từ chối do thẻ suy luận/cú pháp, đang thử lại chế độ tự làm sạch JSON trên '{route.model_name}'...")
                                 completion = self.groq_client.with_options(timeout=min(20,remaining),max_retries=0).chat.completions.create(
                                     model=route.model_name,

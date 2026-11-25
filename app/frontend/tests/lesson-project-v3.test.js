@@ -488,3 +488,47 @@ test('tệp bản 3 trùng mã với dự án bản 2 trên máy thì không ghi
   assert.match(desk.session.notice.message, /^Phiên bản chưa hỗ trợ: trên máy có dự án bản 2 «Dự án cũ» cùng mã với tệp này\./);
   await assert.rejects(loadLesson(file.project_id), { message: /dự án đã lưu là dự án bản 2/ });
 });
+
+test('sửa, thêm, đổi thứ tự và xóa Mục rồi mở lại đúng Dàn ý đã lưu', async () => {
+  installFakeIndexedDB();
+  const desk = workbench(), file = newFile();
+  await desk.actions.importFile(JSON.stringify(file));
+  const original = desk.session.lesson.outline.items[0];
+  await desk.actions.editItem(original.item_id, { title: 'Sửa tiêu đề', points: ['Ý đã sửa'], slide_count: 4, minutes: 8 });
+  const newId = await desk.actions.addItem(original.activity, 'Tình huống khởi động');
+  assert.ok(newId);
+  const initialIndex = desk.session.lesson.outline.items.findIndex(item => item.item_id === newId);
+  await desk.actions.moveItem(newId, -1);
+  assert.equal(desk.session.lesson.outline.items[initialIndex - 1].item_id, newId);
+  await desk.actions.removeItem(newId);
+  const saved = await loadLesson(file.project_id);
+  assert.deepEqual(saved.outline.items[0], { ...original, title: 'Sửa tiêu đề', points: ['Ý đã sửa'], slide_count: 4, minutes: 8, needs_review: true });
+});
+
+test('lỗi lưu Mục giữ Bản soạn vừa sửa để lưu lại', async () => {
+  const db = installFakeIndexedDB();
+  const desk = workbench(), file = newFile();
+  await desk.actions.importFile(JSON.stringify(file));
+  const original = desk.session.lesson.outline.items[0];
+  db.failNextCommit(quotaExceeded());
+  await desk.actions.editItem(original.item_id, { title: 'Sửa khi hết dung lượng' });
+  assert.equal(desk.session.saveState, 'unsaved');
+  assert.equal(desk.session.lesson.outline.items[0].title, 'Sửa khi hết dung lượng');
+  assert.equal((await loadLesson(file.project_id)).outline.items[0].title, original.title);
+});
+
+test('sửa dữ kiện trong chữ Mục đưa hình đã xác nhận về đề xuất', async () => {
+  installFakeIndexedDB();
+  const desk = workbench(), file = newFile();
+  await desk.actions.importFile(JSON.stringify(file));
+  const item = desk.session.lesson.outline.items.find(item => item.visuals.some(visual => visual.status === 'confirmed'));
+  await desk.actions.editItem(item.item_id, { minutes: item.minutes + 1 });
+  assert.deepEqual(desk.session.lesson.outline.items.find(current => current.item_id === item.item_id).visuals, item.visuals);
+  await desk.actions.editItem(item.item_id, { points: ['Dữ kiện mới'] });
+  const revised = desk.session.lesson.outline.items.find(current => current.item_id === item.item_id);
+  assert.ok(revised.visuals.length > 0);
+  for (const visual of revised.visuals) {
+    assert.equal(visual.status, 'proposed');
+    assert.equal(visual.requirement_token, undefined);
+  }
+});

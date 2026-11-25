@@ -5,7 +5,7 @@
 ## Current Status (Trạng thái hiện tại)
 
 - **Bàn giao:** M1–M4 chưa có ký nhận bàn giao. M5 vẫn mở. Điều kiện đóng từng mốc nằm trong hồ sơ nghiệm thu cục bộ `project-management/release-gates/remediation-acceptance-2026-11-03.md`.
-- **Bàn làm việc (#36):** #37 có khóa ký lâu dài cho mọi xác nhận. #38 có khung Bàn làm việc (biến thể B) sau công tắc. Khung này mở được Bài giảng bản 3 ở chế độ chỉ xem: cây Dàn ý, thanh thời lượng và phiếu Dàn ý; nhập và xuất được JSON bản 3. Giao diện cũ vẫn là mặc định cho tới #59.
+- **Bàn làm việc (#36):** #37 có khóa ký lâu dài cho mọi xác nhận. #38 có khung Bàn làm việc (biến thể B) sau công tắc. Khung này nhập và xuất được JSON bản 3. #39 thêm soạn Dàn ý từ yêu cầu, chọn bài SGK và trình độ lớp, rồi sửa, thêm, xóa và đổi thứ tự Mục. Giao diện cũ vẫn là mặc định cho tới #59.
 - **Tạo bài nhiều vai trò:** Thiết kế demo và hợp đồng bốn endpoint đã được duyệt theo #19. #20 đưa `POST /api/v1/math-spec/verify` vào nhánh để kiểm chứng đồng nhất thức đạo hàm đa thức. `evaluate`, `approve` và `orchestrator/run` còn thuộc phạm vi triển khai.
 - **Nền kỹ thuật bàn giao:** Commit `a241d5f` sửa health version thành 0.2.0, `ff83356` nhập OMML thành LaTeX từ DOCX/PPTX, `d1cf0e4` xuất bảng PPTX native có phân trang, `0615341` và `0d46559` bổ sung công cụ chuẩn bị duyệt nguồn và đối chiếu manifest/corpus.
 - **Kiểm thử:** Nhật ký #20 ghi 12 ca math-spec đạt, backend portable cục bộ 447 đạt / 1 bỏ qua / 11 loại theo marker, backend critical 179 đạt và frontend critical 8/8. Các số cục bộ gồm tệp ngoài Git. CI fixture RAG đã xanh ở `9980026` theo nhật ký 14/11. `.github/workflows/rag-fixture-tests.yml` chạy hai tệp test RAG trên Ubuntu. Chưa có bằng chứng CI toàn bộ suite ở mốc này.
@@ -51,9 +51,9 @@
 - **Gemini:** Adapter hiện xử lý `additionalProperties`, `discriminator` và `oneOf`. Mã duyệt đệ quy có thể xóa property trùng tên keyword và gộp nhánh `oneOf` vào `anyOf`. Chạy xác minh trên luồng sinh nội dung thực khi sửa adapter.
 - **Cảnh 3D:** Kiểm tra vai trò ở `outline_contract.py` yêu cầu `has_3d` và `scene_spec` lúc sinh deck, trong khi xác nhận trực quan có thể tạo scene sau. Prompt slide còn dùng tên loại hình cũ. Trình dựng cảnh hỗ trợ lập phương, chóp tứ giác đều và chóp tứ giác vuông tại A. PPTX dùng góc camera cố định.
 - **Nhập/xuất Office:** Hỗ trợ nhập OMML đã có. Phạm vi MathType/OLE vẫn cần kiểm chứng riêng. Bảng PPTX native và phân trang đã có. Còn cần kiểm tra khả năng đọc công thức dài và bảng trên thiết bị lớp học.
-- **Hợp đồng JSON:** Một số handler vẫn nhận `dict`, gồm các thao tác chat có request model chưa gắn vào route. Fixture OpenAPI và test hợp đồng đầy đủ còn là tệp cục bộ.
+- **Hợp đồng JSON:** Một số handler vẫn nhận `dict`, gồm các thao tác chat có request model chưa gắn vào route. Fixture OpenAPI và test đối chiếu paths/schemas đã được đưa vào Git ở #39.
 - **Phiên và token:** Phiên chủ máy và phiên Copilot vẫn nằm trong bộ nhớ, có hạn theo mục Gotchas của [AGENTS.md](../AGENTS.md), và mất khi khởi động lại backend. Từ #37, token xác nhận hình và Xác nhận chuyên môn được ký bằng khóa lâu dài `signing.key` trong thư mục cấu hình của người dùng. Token không hết hạn, còn sau khi khởi động lại, và chỉ mất khi dấu vân tay đổi hoặc tệp khóa bị xóa hay thay.
-- **Bàn làm việc:** Nhãn "Đã xác nhận chuyên môn" và dấu hình nét liền hiển thị theo token đã lưu trong Bài giảng. Trình duyệt không kiểm được chữ ký, máy chủ chỉ kiểm khi dùng tới, giống giao diện cũ. #49 cần kiểm token với nội dung khi mở bài. Chưa chuyển được dự án bản 2 sang bản 3 (#58).
+- **Bàn làm việc:** Nhãn "Đã xác nhận chuyên môn" và dấu hình nét liền hiển thị theo token đã lưu trong Bài giảng. Trình duyệt không kiểm được chữ ký, máy chủ chỉ kiểm khi dùng tới, giống giao diện cũ. #49 cần kiểm token với nội dung khi mở bài. Chưa chuyển được dự án bản 2 sang bản 3 (#58). Nhận diện và đổi bài SGK cần `curriculum/math12_ct2018.json` trong thư mục dữ liệu runtime (cấu hình `LESSONAI_DATA_DIR`); checkout này không có tệp đó mặc định.
 - **E2E cũ chập chờn:** `workflows.spec.js` › "fresh profile is empty; editing and reload preserve a real project" có lúc đạt, có lúc trượt. Ca này tải lại trang ngay sau khi thêm slide. Ngày 25/11, trên Chromium 1248 của Playwright: chạy riêng tại `2a4c431` trượt 3/5. Trên Chrome 158 của máy: chạy riêng đạt 5/5, cả bộ cũ ×4 đạt 60/60; chạy cùng bộ mới thì trượt ở 2/4 lượt.
 - **Dựng lại bản bàn giao:** Makefile, corpus và một phần các suite chỉ có ở workspace cục bộ. Bốn ca RAG cần corpus thật vẫn chạy khi lọc marker portable ở mốc này. Kiểm tra trung vị truy hồi dưới 30 ms không ổn định trong lượt xác minh dưới đây. Bản build trước đây có cảnh báo chunk MathLive lớn.
 
@@ -64,6 +64,11 @@
 ## Update Log (Nhật ký cập nhật)
 
 [Nhật ký trước 2026-11-14](PROGRESS-before-2026-11-14.md) được lưu riêng.
+
+- `2026-11-25 — Ticket #39, Lập Dàn ý từ yêu cầu`:
+  - Thêm hai route Workbench để nhận diện bài từ danh mục SGK và lập Dàn ý bản 3. Một lần thử qua gateway. Máy chủ kiểm đủ bốn Hoạt động đúng thứ tự, Loại mục, vị trí Mở đầu/Tổng kết và giới hạn slide. Thời lượng khác 45 phút trả cảnh báo. Tham chiếu trả về lấy từ tập nguồn đã duyệt gửi cho AI.
+  - Thẻ soạn và hộp Soạn bài mới giữ yêu cầu để thử lại khi AI lỗi. Dàn ý hiện dần từ một phản hồi, có ghi chú nguồn và thời lượng. Cột phải lưu sửa, thêm, xóa và đổi thứ tự các Mục trong cùng Hoạt động. Nếu đổi tiêu đề hoặc các ý, hình của Mục đó cần xác nhận lại. Lỗi lưu giữ Bản soạn.
+  - Kiểm tra trên `feature/ban-lam-viec`, mốc trước sửa `134d750`: pytest toàn bộ checkout 123 đạt khi dùng bản sao corpus cục bộ và tắt khóa LLM (15 ca API/gateway mới); lượt lọc critical 55 đạt. `npm --prefix app/frontend test` đạt 97 ca; `run build` đạt với cảnh báo chunk MathLive đã biết; `run test:e2e` đạt 9 ca. Checkout thiếu tệp cho lệnh frontend critical riêng. Probe danh mục thật khớp `M12-C4-B2` và trả 19 lựa chọn. Đối chiếu OpenAPI giữ toàn bộ route/schema cũ. Chưa gọi AI thật hay đổi trạng thái nghiệm thu M1–M5.
 
 - `2026-11-25 — Ticket #38, Bàn làm việc mở được Bài giảng bản 3`:
   - **Nhánh và mốc:** `feature/ban-lam-viec`, sửa từ `2a4c431`.

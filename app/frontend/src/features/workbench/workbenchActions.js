@@ -1,4 +1,5 @@
-import { listLessons, loadLesson, readLessonFile, saveLesson, storedCopy } from '../../shared/storage/lessonProject.js';
+import { postJson } from '../../shared/api/client.js';
+import { ACTIVITIES, normalizeLesson, listLessons, loadLesson, readLessonFile, saveLesson, storedCopy } from '../../shared/storage/lessonProject.js';
 import { LESSON_SCHEMA_VERSION, UNSUPPORTED_VERSION } from '../../shared/storage/projectStore.js';
 
 /**
@@ -6,6 +7,8 @@ import { LESSON_SCHEMA_VERSION, UNSUPPORTED_VERSION } from '../../shared/storage
  * The session is App state (getSession/setSession); these actions never drop the Bản soạn. When a save
  * fails, the lesson stays open and marked unsaved, and nothing replaces it until it is saved.
  */
+export const CLASS_LEVEL_LABELS = { basic: 'Cơ bản', standard: 'Trung bình', advanced: 'Khá' };
+
 export const emptyWorkbench = () => ({
   lesson: null,        // Bản soạn đang mở (Bài giảng bản 3 đã chuẩn hóa)
   lessons: null,       // Bài giảng đã lưu trên máy; null khi chưa đọc xong
@@ -38,6 +41,13 @@ const UNSAVED_HOLD = 'Bản soạn đang mở chưa được lưu. Hãy bấm "L
 const SAVING_HOLD = 'Bản soạn đang được lưu. Hãy thử lại sau giây lát.';
 
 export function createWorkbenchActions({ getSession, setSession, download = downloadFile }) {
+  let busy = false;
+  const exclusive = action => async (...args) => {
+    if (busy) return;
+    busy = true;
+    try { return await action(...args); }
+    finally { busy = false; }
+  };
   const patch = changes => setSession(previous => ({ ...previous, ...changes }));
   const report = (kind, message) => patch({ notice: { kind, message } });
   const holdUnsaved = () => {
@@ -56,8 +66,8 @@ export function createWorkbenchActions({ getSession, setSession, download = down
     }
   }
 
-  async function persist(lesson) {
-    patch({ lesson, saveState: 'saving', notice: null });
+  async function persist(lesson, introducedId = null) {
+    patch({ lesson, introducedId, saveState: 'saving', notice: null });
     try {
       await saveLesson(lesson);
     } catch (error) {
@@ -72,7 +82,7 @@ export function createWorkbenchActions({ getSession, setSession, download = down
   async function openLesson(projectId) {
     if (holdUnsaved()) return;
     try {
-      patch({ lesson: await loadLesson(projectId), notice: null });
+      patch({ lesson: await loadLesson(projectId), introducedId: null, notice: null });
     } catch (error) {
       report('error', storageProblem(error));
     }
@@ -80,7 +90,7 @@ export function createWorkbenchActions({ getSession, setSession, download = down
 
   async function closeLesson() {
     if (holdUnsaved()) return;
-    patch({ lesson: null, notice: null });
+    patch({ lesson: null, introducedId: null, notice: null });
     await refreshLessons();
   }
 
@@ -107,7 +117,7 @@ export function createWorkbenchActions({ getSession, setSession, download = down
       stored = { state: 'none' };
     }
     if (stored.state === 'same') {
-      patch({ lesson: incoming, saveState: 'saved', notice: null });
+      patch({ lesson: incoming, introducedId: null, saveState: 'saved', notice: null });
       return;
     }
     if (stored.state === 'different' && stored.version !== LESSON_SCHEMA_VERSION) {
@@ -149,7 +159,108 @@ export function createWorkbenchActions({ getSession, setSession, download = down
     if (lesson) download(lessonFileName(lesson), JSON.stringify(lesson, null, 2));
   }
 
+  async function generateLesson(payload) {
+    if (holdUnsaved()) return false;
+    const generated = await outlineRequest('/api/v1/workbench/outline', payload);
+    if (generated.schema_version !== LESSON_SCHEMA_VERSION) {
+      throw new Error('[invalid_ai_output] Máy chủ không trả Dàn ý bản 3.');
+    }
+    const { warnings, ...draft } = generated; // The sheet derives time feedback from the current items.
+    const lesson = normalizeLesson({
+      ...draft,
+      project_id: crypto.randomUUID(),
+      level: CLASS_LEVEL_LABELS[payload.level]
+    });
+    await persist(lesson, lesson.project_id);
+    return true;
+  }
+
+  async function changeItems(change) {
+    if (holdUnsaved()) return false;
+    const { lesson } = getSession();
+    if (!lesson) return false;
+    const items = change(lesson.outline.items);
+    if (items.length === lesson.outline.items.length && items.every((item, index) => item === lesson.outline.items[index])) return false;
+
+    const positions = new Map(items.map(({ item_id }, index) => [item_id, index]));
+    const deck = lesson.deck && {
+      ...lesson.deck,
+      review_token: undefined,
+      revision: lesson.deck.revision + 1,
+      slides: lesson.deck.slides.filter(slide => positions.has(slide.item_id))
+        .sort((a, b) => positions.get(a.item_id) - positions.get(b.item_id))
+    };
+    const removedSlides = new Set(lesson.deck?.slides.filter(slide => !positions.has(slide.item_id)).map(slide => slide.slide_id));
+    const keepSlideData = data => Object.fromEntries(Object.entries(data).filter(([id]) => !removedSlides.has(id)));
+    const plan = lesson.plan && { ...lesson.plan, review_token: undefined, needs_review: true };
+    const revised = normalizeLesson({
+      ...lesson,
+      outline: { ...lesson.outline, items }, deck, plan,
+      annotations: keepSlideData(lesson.annotations), polls: keepSlideData(lesson.polls)
+    });
+    await persist(revised);
+    return true;
+  }
+
+  const editItem = (id, fields) => changeItems(items => items.map(item => {
+    if (item.item_id !== id) return item;
+    const sourceChanged = (fields.title !== undefined && fields.title !== item.title)
+      || (fields.points !== undefined && JSON.stringify(fields.points) !== JSON.stringify(item.points));
+    const contentChanged = sourceChanged || (fields.slide_count !== undefined && fields.slide_count !== item.slide_count);
+    if (!contentChanged && (fields.minutes === undefined || fields.minutes === item.minutes)) return item;
+    const hasSlides = getSession().lesson.deck?.slides.some(slide => slide.item_id === id);
+    // #37 signs the Mục's title and points together with the visual data.
+    const visuals = sourceChanged ? item.visuals.map(visual => {
+      if (visual.status !== 'confirmed') return visual;
+      const { requirement_token, source_fingerprint, ...proposal } = visual;
+      return { ...proposal, status: 'proposed' };
+    }) : item.visuals;
+    return { ...item, ...fields, visuals, needs_review: item.needs_review || Boolean(contentChanged && hasSlides) };
+  }));
+
+  async function addItem(activity, kind) {
+    const id = crypto.randomUUID();
+    const created = await changeItems(items => {
+      const index = items.findIndex(item => ACTIVITIES.indexOf(item.activity) > ACTIVITIES.indexOf(activity));
+      const next = [...items];
+      next.splice(index < 0 ? next.length : index, 0, {
+        item_id: id, activity, kind, title: 'Mục mới', points: [], slide_count: 1, minutes: 1
+      });
+      return next;
+    });
+    if (created) return id;
+  }
+
+  const removeItem = id => changeItems(items => items.filter(item => item.item_id !== id));
+
+  const moveItem = (id, direction) => changeItems(items => {
+    const index = items.findIndex(item => item.item_id === id);
+    const neighbor = index + direction;
+    if (index < 0 || items[neighbor]?.activity !== items[index].activity) return items;
+    const next = [...items];
+    [next[index], next[neighbor]] = [next[neighbor], next[index]];
+    return next;
+  });
+
   const dismissNotice = () => patch({ notice: null });
 
-  return { refreshLessons, openLesson, closeLesson, importFile, replaceStored, keepStored, retrySave, exportLesson, dismissNotice };
+  return {
+    refreshLessons, exportLesson, dismissNotice,
+    openLesson: exclusive(openLesson), closeLesson: exclusive(closeLesson), importFile: exclusive(importFile),
+    replaceStored: exclusive(replaceStored), keepStored: exclusive(keepStored), retrySave: exclusive(retrySave),
+    generateLesson: exclusive(generateLesson), editItem: exclusive(editItem), addItem: exclusive(addItem),
+    moveItem: exclusive(moveItem), removeItem: exclusive(removeItem)
+  };
+}
+
+export async function outlineRequest(url, payload, options) {
+  try {
+    const response = await postJson(url, payload, options);
+    const result = await response.json();
+    if (response.ok) return result;
+    throw new Error(`[${result.detail?.code || 'request_failed'}] ${result.detail?.message || 'Yêu cầu Dàn ý thất bại.'}`);
+  } catch (error) {
+    if (error.name === 'AbortError' || error.message.startsWith('[')) throw error;
+    throw new Error('[connection_error] Không nhận được phản hồi từ máy chủ. Hãy thử lại.', { cause: error });
+  }
 }

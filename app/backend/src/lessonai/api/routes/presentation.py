@@ -4,6 +4,11 @@ from lessonai.services.generation import generate_presentation_outline
 from lessonai.llm.gateway import classify_generation_error
 from fastapi import APIRouter
 
+from lessonai.schemas.workbench_outline import (
+    WorkbenchLessonMatch, WorkbenchOutlineRequest, WorkbenchOutlineResponse, WorkbenchRequestText,
+)
+from lessonai.services.generation.workbench_outline import generate_outline, identify_lesson, resolve_lesson
+
 router = APIRouter()
 
 @router.post("/api/v1/presentation/outline", response_model=OutlineResponse)
@@ -30,3 +35,19 @@ def generate_outline_endpoint(req: OutlineRequest):
         )
     except Exception as e:
         raise HTTPException(status_code=503, detail=classify_generation_error(e, "dàn ý")) from e
+
+
+@router.post("/api/v1/workbench/outline/identify", response_model=WorkbenchLessonMatch)
+def identify_workbench_lesson(req: WorkbenchRequestText):
+    return identify_lesson(req.request)
+
+
+@router.post("/api/v1/workbench/outline", response_model=WorkbenchOutlineResponse)
+def generate_workbench_outline(req: WorkbenchOutlineRequest):
+    lesson_id, title = resolve_lesson(req.request, req.lesson_id)
+    if req.lesson_id is not None and lesson_id is None:
+        raise HTTPException(422, detail={"code": "unknown_textbook_lesson", "message": "Không tìm thấy bài SGK đã chọn."})
+    try:
+        return generate_outline(req, lesson_id, title)
+    except Exception as error:
+        raise HTTPException(503, detail=classify_generation_error(error, "Dàn ý")) from error
