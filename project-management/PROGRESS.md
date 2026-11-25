@@ -1,6 +1,6 @@
 # PROGRESS.md — Project Progress & Remediation Tracker (`LessonAI-5512`)
 
-> Mốc mã đối chiếu ngày 2026-11-23 là `46e4ed2` trên nhánh `feat/multi-role-orchestrator`.
+> Mốc mã hiện tại ngày 2026-11-26 trên nhánh `feature/ban-lam-viec` (sau khi hoàn thiện khung cơ bản Bàn làm việc `#36–#43, #46` và Cổng toán `#20–#24`, kế thừa mốc `3927e92` và `46e4ed2`).
 
 ## Current Status (Trạng thái hiện tại)
 
@@ -42,17 +42,30 @@
   - Built hierarchical Langfuse v5 tracing (`app/backend/src/lessonai/llm/tracing.py`) and updated `LLMGateway` (`app/backend/src/lessonai/llm/gateway.py`) with `chain`, `retriever`, `agent` (`prompt_name`, `prompt_version`), `generation` (`usage_details` token extraction), `evaluator` gates, and automated trace `Scores`, while preserving the 45 s generation deadline, `to_gemini_response_schema`, `classify_generation_error`, `single_attempt`, and `GenerationMetadata` provenance.
   - Added intermediate handoff schemas (`app/backend/src/lessonai/schemas/chain_schemas.py`), 8 role-specific system prompts (`app/backend/src/lessonai/prompts/roles.py`), and `SkipJsonSchema`-wrapped `session_id` (`app/backend/src/lessonai/schemas/schemas.py`, `workbench_outline.py`).
   - Refactored `workbench_outline.py`, `outline.py`, `lesson_plan.py`, and `slides.py` into role-based prompt chains enforcing ADR 0001 (Zero-Fallback), ADR 0002 (Outline as common source), `outline_contract.py`, `KINDS` 3D validation, `block_errors`, and RAG `source_refs` SHA-256 verification.
+- **Cổng toán ký hiệu đầy đủ (`#20–#24`, `2026-11-26`):**
+  - Hoàn thiện 8 phép kiểm ký hiệu trong worker `spawn` qua `POST /api/v1/math-spec/verify` (`lessonai/services/math_spec.py`, `lessonai/services/math_worker.py`): đồng nhất thức đạo hàm đa thức (`#20`), nghiệm thực và tính đầy đủ theo từng miền `a < 0`, `a = 0`, `a > 0` (`#21`), điểm dừng, dấu đạo hàm và phân loại cực trị kèm tọa độ (`#22`), khoảng tham số an toàn và tính đầy đủ của danh sách điều kiện loại trừ kể cả rỗng từ AST (`#23`), cùng kiểm chứng riêng từng bước giải có cấu trúc không lan sang văn xuôi (`#24`). Đạt `16/16` ca kiểm thử trong `app/backend/tests/test_math_spec_verify.py`.
+- **Khung cơ bản Bàn làm việc bản 3 (`#36–#43, #46`, `2026-11-26`):**
+  - Hoàn thiện khóa ký lâu dài không hết hạn `signing.key` (`#37`), lớp lưu Bài giảng bản 3 (`schema_version: 3`) và khung Bàn làm việc 3 cột đóng gói 4 font WOFF offline (`#38`), nhận diện bài SGK, lập và chỉnh sửa Dàn ý bản 3 theo 4 Hoạt động (`#39`).
+  - Hoàn thiện API dựng Bộ slide từ Dàn ý đã duyệt qua danh mục 9 Bố cục mẫu với ngân sách prompt 12.000 ký tự (`POST /api/v1/workbench/slides`, `#40`), API sinh lại slide của một Mục Cần xem lại (`POST /api/v1/workbench/slides/item`, `#43`), Canvas 16:9 (`1600 × 900`) trên nền giấy ô li kèm Dải slide và cây slide thu nhỏ (`#40`), kéo thả & đổi cỡ phần tử bám lưới 20 đơn vị kèm tự thu nhỏ chữ xuống 24pt và đánh dấu `Tràn chữ` (`#42`), chế độ Trình chiếu toàn màn hình hiện dần từng bước có bút chú thích, bảng phụ ô li, tối màn hình (`#41`), cùng Menu phụ chứa Cài đặt nhà cung cấp/model AI và Phân tích lớp học điền sẵn trình độ lớp (`#46`). Đạt `101/101` Node tests, `23/23` Workbench API tests và `13/13` Playwright E2E tests.
+
+## Ticket Status Summary on `feature/ban-lam-viec` (Tổng hợp trạng thái Ticket)
+
+| Loạt Ticket | Đã hoàn thành trên `feature/ban-lam-viec` | Còn mở (tiếp theo sau khung cơ bản) |
+|---|---|---|
+| **Loạt Cổng toán (`#20–#24`)** | **`#20`, `#21`, `#22`, `#23`, `#24`** (5/5 hoàn tất mã nguồn, bảng phạm vi công bố và kiểm thử `16/16`) | *(Đã hoàn tất toàn bộ 5 ticket mã nguồn trên nhánh)* |
+| **Loạt Bàn làm việc (`#36–#59`)** | **`#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#42`, `#43`, `#46`** (9 ticket khung cơ bản hoàn tất mã nguồn, khóa OpenAPI và kiểm thử Backend/Node/E2E) | `#44` (Xuất PPTX), `#45` (Trợ giảng AI), `#47` (Bỏ phiếu trắc nghiệm), `#48` (Sửa nội dung phần tử), `#49` (Kiểm tra bài & Xác nhận chuyên môn), `#50` (KHBD từ Dàn ý), `#51–#57` (Đồ thị, Khối đa diện, Hình Oxyz, BBT, Tô miền diện tích, Điểm đặc biệt qua Cổng toán), `#58` (Chuyển bản 2 sang bản 3), `#59` (Bỏ giao diện/endpoint cũ) |
+| **Loạt Orchestrator (`#25–#35`) & Demo đầu (`#2–#18`)** | **`#3`** (đo nền 15 ca benchmark), **`#19`** (duyệt hợp đồng API), **`#20–#24`** (nền Cổng toán), chuỗi prompt theo vai trò kèm Langfuse v5 (`9e026b2`) | Các ticket `#25–#35` (`TRIAGE`) và `#2–#18` đã được thay thế hoặc gộp định hướng bởi spec `#36` và ADR 0001–0010 (xem [role-orchestrator-design.md](../docs/architecture/role-orchestrator-design.md) và [multi-role-generation-decisions.md](../docs/architecture/multi-role-generation-decisions.md)) |
 
 ## In Progress (Đang làm dở)
 
-- Theo dõi & đánh giá thực nghiệm các chỉ số Langfuse (`Scores`, token usage, tỉ lệ kích hoạt `repair_reviewer`) trên `feature/ban-lam-viec` và tiếp tục các ticket Bàn làm việc sau #39.
-- Demo nhiều vai trò theo #18 có hợp đồng API #19 và bước xác minh đạo hàm #20. Xem [tài liệu quyết định D1–D13](../docs/architecture/multi-role-generation-decisions.md).
+- Triển khai tiếp các ticket tính năng mở rộng trên nền khung Bàn làm việc bản 3 đã hoàn thiện (`#44`, `#45`, `#47–#59`).
+- Theo dõi & đánh giá thực nghiệm các chỉ số Langfuse (`Scores`, token usage, tỉ lệ kích hoạt `repair_reviewer`) trên `feature/ban-lam-viec`.
 
 ## Next Steps (Việc tiếp theo)
 
-1. Chạy thử nghiệm thực tế chuỗi Role-Based Prompt Chaining với khóa Langfuse Cloud trên `feature/ban-lam-viec` để đo token usage và điểm `Scores` cho cả luồng Bàn làm việc bản 3 lẫn Studio bản 2.
-2. Nghiên cứu lại nguồn gốc bộ RAG và hồ sơ KNTT12-25 ở giai đoạn riêng; chỉ cân nhắc bật lại sau khi xác minh được nguồn. Ghi bằng chứng ký nghiệm thu thiết bị trên cùng ứng viên bàn giao.
-3. Tái lập ứng viên bàn giao với bộ test/fixture cần thiết. Thu thập CI Linux, kết quả build/E2E và bằng chứng IndexedDB cho M2.
+1. Triển khai nhóm xuất bản, kiểm định và soạn thảo trên Bàn làm việc: `#44` (Xuất PPTX từ Bộ slide canvas), `#48` (Sửa nội dung phần tử trên canvas), `#49` (Kiểm tra bài và Xác nhận chuyên môn), `#50` (Kế hoạch bài dạy từ Dàn ý), `#45` (Trợ giảng AI), `#47` (Bỏ phiếu trắc nghiệm khi chiếu).
+2. Triển khai nhóm Yêu cầu trực quan Toán 12 trên Bàn làm việc nối với Cổng toán `#20–#24`: `#51`, `#52`, `#56`, `#57` (Đồ thị hàm số, miền tô, điểm đặc biệt qua Cổng toán), `#55` (Bảng biến thiên), `#53` (Khối đa diện), `#54` (Hình Oxyz), tiếp theo là `#58` (Chuyển dự án bản 2 sang bản 3) và `#59` (Chuyển hẳn sang Bàn làm việc).
+3. Nghiên cứu lại nguồn gốc bộ RAG và hồ sơ KNTT12-25 ở giai đoạn riêng; hoàn tất chữ ký chuyên môn Toán 12, biên bản thiết bị thật và bằng chứng CI/IndexedDB cho M1–M5.
 
 ## Known Issues & Technical Debt (Vấn đề đã biết / nợ kỹ thuật)
 
