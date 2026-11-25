@@ -3,8 +3,10 @@
 PYTHON ?= app/backend/venv/bin/python
 NPM ?= npm
 PYTEST_ARGS ?=
+# Console script của import-linter. Trên CI, nơi pip cài vào PATH: make lint LINT_IMPORTS=lint-imports
+LINT_IMPORTS ?= app/backend/venv/bin/lint-imports
 
-.PHONY: backend frontend test test-backend test-frontend build
+.PHONY: backend frontend lint test test-backend test-frontend build
 
 # Backend ở cổng 8000, tự nạp lại khi sửa app/backend/src.
 backend:
@@ -22,6 +24,12 @@ test-frontend:
 	$(NPM) --prefix app/frontend test
 
 test: test-backend test-frontend
+
+# Luật tầng trong [tool.importlinter] của app/backend/pyproject.toml.
+# Cần app/backend/requirements-dev.txt. Đừng gọi bằng `python -m importlinter.cli`:
+# cách đó chỉ nạp module rồi thoát 0, tức cổng lint luôn xanh.
+lint:
+	PYTHONPATH=app/backend/src $(LINT_IMPORTS) app/backend/pyproject.toml
 
 build:
 	$(NPM) --prefix app/frontend run build

@@ -87,6 +87,13 @@
 
 [Nhật ký trước 2026-11-14](PROGRESS-before-2026-11-14.md) được lưu riêng.
 
+- `2026-11-26 — Cưỡng chế luật tầng bằng import-linter, bổ sung langfuse vào lockfile`:
+  - `app/backend/requirements-lock.txt` thiếu `langfuse` dù `requirements.txt` khai `langfuse>=5.0.0`, nên CI cài theo lockfile không có gói này và mọi nhánh mã tracing không được chạy trên CI. Thêm 13 pin (`langfuse==5.2.0` cùng `opentelemetry-*`, `protobuf`, `backoff`, `wrapt`, `googleapis-common-protos`); không pin cũ nào bị đổi.
+  - Thêm `app/backend/requirements-dev.txt` cho công cụ chỉ dùng khi phát triển và trên CI (`import-linter==2.17`). Không đưa vào `requirements.txt` vì `pyproject.toml` lấy tệp đó làm `install_requires`.
+  - `[tool.importlinter]` trong `app/backend/pyproject.toml` chốt thứ tự tầng `api > exporters > services > llm|rag|parsers|prompts > schemas > core|utils`, kèm 10 dòng `ignore_imports` cho 12 vi phạm đang có; mỗi dòng ghi cách xử lý sẽ dùng khi gom `services/`. `exporters` nằm trên `services` vì bộ xuất phải chạy cổng chất lượng và vẽ hình trước khi ghi tệp.
+  - Thêm target `make lint` và một bước CI. Không gọi bằng `python -m importlinter.cli`: cách đó chỉ nạp module rồi thoát 0, tức cổng lint luôn xanh — đã thử và xác nhận.
+  - Kiểm chứng: `make lint` xanh (1 kept, 0 broken); thêm một import ngược tầng thì đỏ (exit 1), thiếu công cụ cũng đỏ (exit 127). Mô phỏng CI từ venv trắng: cài lock + dev, `langfuse 5.2.0` có mặt, lint xanh, `138 passed, 4 deselected`. Bộ đầy đủ có corpus `142 passed`; frontend `101/101`; `make build` đạt.
+
 - `2026-11-26 — Khôi phục hồ sơ nghiệm thu và sửa tham chiếu hỏng trong AGENTS.md`:
   - `project-management/release-gates/remediation-acceptance-2026-11-03.md` (64 dòng) không còn trong checkout nào dù [AGENTS.md](../AGENTS.md) mục 2 và Current Status ở đây đều coi nó là căn cứ đóng M1–M5. Khôi phục nguyên văn từ lịch sử (`f7d0b61`), không sửa một chữ; từ nay được Git theo dõi theo ADR 0012.
   - AGENTS.md: bỏ tham chiếu tới nhánh `feat/multi-role-orchestrator` đã xóa, sửa `docs/adr/0001-verified-chi-do-may-chung-minh.md` thành `0008-...` (tệp đã được đánh lại số), và bỏ `project-review-probes.py` khỏi mục Gotchas — tệp này cũng mất khỏi đĩa và nó import `services/chat.py`, `services/geometry.py` vừa được xóa, nên không khôi phục.

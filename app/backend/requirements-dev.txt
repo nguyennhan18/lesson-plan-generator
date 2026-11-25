@@ -1,0 +1,8 @@
+# Công cụ chỉ dùng khi phát triển và trên CI; không phải phụ thuộc lúc chạy.
+# pyproject.toml lấy requirements.txt làm install_requires, nên các gói này nằm riêng ở đây.
+# Cài: python -m pip install -r app/backend/requirements-dev.txt
+grimp==3.20
+import-linter==2.17
+markdown-it-py==4.3.0
+mdurl==0.1.2
+rich==15.0.0

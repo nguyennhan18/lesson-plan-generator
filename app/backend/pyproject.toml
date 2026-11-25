@@ -28,3 +28,39 @@ pythonpath = ["src"]
 testpaths = ["tests"]
 
 markers = ["critical_regressions: release-blocking containment and behavior checks", "corpus_integration: requires the local untracked curriculum/corpus and historical artifacts"]
+
+# Luật tầng của backend, do CI cưỡng chế qua `make lint` (AGENTS.md, Code Conventions).
+# Mũi tên nghĩa là "được phép import"; mọi import đi ngược chiều sẽ làm CI đỏ.
+[tool.importlinter]
+root_package = "lessonai"
+
+[[tool.importlinter.contracts]]
+name = "Thu tu tang: api > exporters > services > llm|rag|parsers|prompts > schemas > core|utils"
+type = "layers"
+layers = [
+    "lessonai.api",
+    "lessonai.exporters",
+    "lessonai.services",
+    "lessonai.llm | lessonai.rag | lessonai.parsers | lessonai.prompts",
+    "lessonai.schemas",
+    "lessonai.core | lessonai.utils",
+]
+# 12 vi phạm đang có. Mỗi dòng nêu cách xử lý đã chốt; đợt gom services/ sẽ bỏ dần các dòng này.
+ignore_imports = [
+    # Chuyển office_math.py xuống parsers/ (nó chỉ trích xuất văn bản DOCX/PPTX).
+    "lessonai.parsers.docx_parser -> lessonai.services.office_math",
+    "lessonai.parsers.pptx_parser -> lessonai.services.office_math",
+    # Chuyển graph_generator.py và render_latex_to_bytes sang services/visuals/ (ADR 0006).
+    "lessonai.services.rendering -> lessonai.exporters.graph_generator",
+    "lessonai.services.rendering -> lessonai.exporters.slide_exporter",
+    # Chuyển core/jobs.py thành services/jobs.py (nó chạy worker của services).
+    "lessonai.core.jobs -> lessonai.services.math_worker",
+    "lessonai.core.jobs -> lessonai.services.uploads",
+    # Chuyển check_deck ra khỏi route, vào services/quality/.
+    "lessonai.exporters.slide_exporter -> lessonai.api.routes.quality",
+    "lessonai.exporters.docx_exporter -> lessonai.api.routes.quality",
+    "lessonai.exporters.dual_package_exporter -> lessonai.api.routes.quality",
+    # Ngoại lệ lâu dài: validator của LessonRequest/OutlineRequest gọi infer_lesson_id.
+    # Sửa chỗ này là đổi hành vi phân tích request, nên tách thành việc riêng.
+    "lessonai.schemas.schemas -> lessonai.rag.curriculum_registry",
+]

@@ -47,9 +47,10 @@ Single-context layout with root `GLOSSARY.md` and `docs/adr/`. Before exploring 
 8. One commit per topic. Never `git add -A` or `git add .`; add named files. Do not change branch, rebase, or force-push.
 
 ## 4. Tech Stack & Versions
-- **Backend (`app/backend/pyproject.toml`, `app/backend/requirements.txt`):** Python `>=3.11` (CI/venv runs `3.13`), `lessonai-backend` `0.2.0`, FastAPI `>=0.100.0`, Uvicorn `>=0.20.0`, Pydantic `>=2.0.0`, SymPy `>=1.13.0`, NumPy `>=2.0.0`, Matplotlib `>=3.10.0`, `python-docx` `>=1.0.0`, `python-pptx` `>=0.6.21`, `latex2mathml` `>=3.80.0`, `mathml2omml` `>=0.0.2`, `openpyxl` `>=3.1.0`, `pillow` `>=13.0.0`, `google-genai` `>=0.1.0`, `openai` `>=1.50.0`, `httpx` `>=0.27.0`, `python-dotenv` `>=1.0.0`, `python-multipart` `>=0.0.9`, `packaging` `>=25.0`, security floors `certifi>=2026.10.18`, `pyasn1>=0.6.5`, `urllib3>=2.8.0`. Exact pins: `app/backend/requirements-lock.txt`.
+- **Backend (`app/backend/pyproject.toml`, `app/backend/requirements.txt`):** Python `>=3.11` (CI/venv runs `3.13`), `lessonai-backend` `0.2.0`, FastAPI `>=0.100.0`, Uvicorn `>=0.20.0`, Pydantic `>=2.0.0`, SymPy `>=1.13.0`, NumPy `>=2.0.0`, Matplotlib `>=3.10.0`, `python-docx` `>=1.0.0`, `python-pptx` `>=0.6.21`, `latex2mathml` `>=3.80.0`, `mathml2omml` `>=0.0.2`, `openpyxl` `>=3.1.0`, `pillow` `>=13.0.0`, `google-genai` `>=0.1.0`, `openai` `>=1.50.0`, `httpx` `>=0.27.0`, `python-dotenv` `>=1.0.0`, `python-multipart` `>=0.0.9`, `packaging` `>=25.0`, `langfuse` `>=5.0.0`, security floors `certifi>=2026.10.18`, `pyasn1>=0.6.5`, `urllib3>=2.8.0`. Exact pins: `app/backend/requirements-lock.txt`.
 - **Frontend (`app/frontend/package.json`):** React `^19.0.0`, Vite `^6.0.0`, `@vitejs/plugin-react` `^4.3.4`, Tailwind CSS `^3.4.15`, PostCSS `^8.4.49`, Autoprefixer `^10.4.20`, Three.js `^0.170.0`, MathLive `0.111.4`, KaTeX `^0.18.10`, Lucide React `^0.460.0`. Exact pins: `app/frontend/package-lock.json`.
 - **Testing:** `pytest` `>=8.0.0`, Node native test runner (`node --test`), Playwright `1.64.1`.
+- **Lint:** `import-linter` `2.17` enforces the layering contract. It is a CI/dev tool, not a runtime dependency, so it is pinned in `app/backend/requirements-dev.txt` and kept out of `requirements.txt` (which `pyproject.toml` uses as `install_requires`).
 - **Storage:** browser `IndexedDB` (`lessonai-projects`) holding `schema_version: 2` projects of the old studio and `schema_version: 3` Bài giảng of the Bàn làm việc, plus JSON backup files; server side holds owner session/copilot state **in memory** (see Gotchas) and a local filesystem corpus (`app/backend/data` or `LESSONAI_DATA_DIR`).
 
 ## 5. Directory Structure
@@ -61,7 +62,8 @@ Single-context layout with root `GLOSSARY.md` and `docs/adr/`. Before exploring 
 ├── app/
 │   ├── backend/                    # FastAPI backend (`lessonai-backend`)
 │   │   ├── pyproject.toml          # Package metadata + pytest config
-│   │   ├── requirements-lock.txt
+│   │   ├── requirements-lock.txt   # Exact runtime pins
+│   │   ├── requirements-dev.txt    # CI/dev tools (import-linter)
 │   │   ├── data/                   # Runtime curriculum, RAG corpus, reviewed_sources.json
 │   │   ├── output/                 # Runtime export workspace
 │   │   ├── src/lessonai/
@@ -98,6 +100,7 @@ Run from the repository root. For PowerShell, use `app/backend/venv/Scripts/pyth
   python3.13 -m venv app/backend/venv
   app/backend/venv/bin/python -m pip install -r app/backend/requirements-lock.txt
   app/backend/venv/bin/python -m pip install --no-deps -e app/backend
+  app/backend/venv/bin/python -m pip install -r app/backend/requirements-dev.txt
   npm --prefix app/frontend ci
   ```
 - **Run** the backend on port 8000 and the frontend on port 5173.
@@ -116,13 +119,13 @@ Run from the repository root. For PowerShell, use `app/backend/venv/Scripts/pyth
   GEMINI_API_KEY= GROQ_API_KEY= OPENROUTER_API_KEY= LESSONAI_CONFIG_DIR="$(mktemp -d)" PYTHONPATH=app/backend/src app/backend/venv/bin/python scripts/quality/run_benchmark_suite.py --output /tmp/lessonai-math12-UNIQUE.json
   ```
   Replace `UNIQUE` with a run identifier before using the command.
-- **Makefile** (tracked, run from the repository root) defines `backend`, `frontend`, `test-backend`, `test-frontend`, `test` and `build`. `test-backend` blanks the three API keys and uses a throwaway `LESSONAI_CONFIG_DIR`; override `PYTHON`, `NPM` or `PYTEST_ARGS`, for example `make test-backend PYTEST_ARGS="-m 'not corpus_integration'"`. Run E2E and the benchmark with the commands above. For source review use `PYTHONPATH=app/backend/src app/backend/venv/bin/python scripts/quality/prepare-source-review.py --output /tmp/lessonai-source-review-UNIQUE.json` with a fresh path and the local corpus.
+- **Makefile** (tracked, run from the repository root) defines `backend`, `frontend`, `test-backend`, `test-frontend`, `test`, `lint` and `build`. `test-backend` blanks the three API keys and uses a throwaway `LESSONAI_CONFIG_DIR`; override `PYTHON`, `NPM` or `PYTEST_ARGS`, for example `make test-backend PYTEST_ARGS="-m 'not corpus_integration'"`. `make lint` runs the layering contract through the `lint-imports` console script (`LINT_IMPORTS` overrides its path; CI passes `LINT_IMPORTS=lint-imports`). Never invoke it as `python -m importlinter.cli`: that only imports the module and exits 0, so the gate would always pass. Run E2E and the benchmark with the commands above. For source review use `PYTHONPATH=app/backend/src app/backend/venv/bin/python scripts/quality/prepare-source-review.py --output /tmp/lessonai-source-review-UNIQUE.json` with a fresh path and the local corpus.
 - **Pre-PR verification** covers the available portable, critical, frontend, build, and E2E checks. Record unavailable suites and their missing inputs.
 - **Database migrations:** none server side. Client projects use `IndexedDB` (`schema_version: 2`) with a one-time migration from `sessionStorage` (`lessonai_slide_deck_json_v1`) in `app/frontend/src/shared/storage/projectStore.js`. Bài giảng bản 3 are validated by `normalizeLesson()` in `app/frontend/src/shared/storage/lessonProject.js`; converting v2 projects to v3 is not built yet (#58).
 
 ## 7. Code Conventions
 - **Imports:** import backend modules as `lessonai.*`. Never mutate `sys.path` in application code or `scripts/`.
-- **Layering:** `api/routes -> services -> llm / rag / parsers / exporters -> schemas`. The frontend keeps shared deck/slide/3D/presentation state in `app/frontend/src/App.jsx` and passes state plus updater callbacks into feature actions. Do not create a second state store in `src/features/*`. Splitting state is a pending design decision (see Boundaries, Ask first).
+- **Layering:** `api -> exporters -> services -> llm | rag | parsers | prompts -> schemas -> core | utils`, where the arrow means "may import". `make lint` enforces it on CI via the `[tool.importlinter]` contract in `app/backend/pyproject.toml`. That contract lists today's 12 violating imports under `ignore_imports`, each with the move that will remove it; do not add entries there without approval. `exporters` sits above `services` because an exporter runs the quality gates and draws the figures before writing a file. The frontend keeps shared deck/slide/3D/presentation state in `app/frontend/src/App.jsx` and passes state plus updater callbacks into feature actions. Do not create a second state store in `src/features/*`. Splitting state is a pending design decision (see Boundaries, Ask first).
 - **Error contract:** errors return `{"detail": {"code": "<snake_case>", "message": "<Vietnamese user message>", "request_id": "<uuid>"}}` plus header `X-Request-ID`. Keep this envelope. Adding fields inside `detail` needs approval because it touches `api_contract.json`.
 - **Generation failures:** Routes such as `presentation.py` return HTTP 503 with a classified error code from `classify_generation_error`. Preserve the locked error envelope.
 - **Request models:** prefer Pydantic request models in route signatures over `dict`. New endpoints must not accept raw `dict`.
