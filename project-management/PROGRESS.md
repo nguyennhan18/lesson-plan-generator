@@ -5,6 +5,7 @@
 ## Current Status (Trạng thái hiện tại)
 
 - **Bàn giao:** M1–M4 chưa có ký nhận bàn giao. M5 vẫn mở. Điều kiện đóng từng mốc nằm trong hồ sơ nghiệm thu cục bộ `project-management/release-gates/remediation-acceptance-2026-11-03.md`.
+- **Bàn làm việc (#36):** #37 có khóa ký lâu dài cho mọi xác nhận. #38 có khung Bàn làm việc (biến thể B) sau công tắc. Khung này mở được Bài giảng bản 3 ở chế độ chỉ xem: cây Dàn ý, thanh thời lượng và phiếu Dàn ý; nhập và xuất được JSON bản 3. Giao diện cũ vẫn là mặc định cho tới #59.
 - **Tạo bài nhiều vai trò:** Thiết kế demo và hợp đồng bốn endpoint đã được duyệt theo #19. #20 đưa `POST /api/v1/math-spec/verify` vào nhánh để kiểm chứng đồng nhất thức đạo hàm đa thức. `evaluate`, `approve` và `orchestrator/run` còn thuộc phạm vi triển khai.
 - **Nền kỹ thuật bàn giao:** Commit `a241d5f` sửa health version thành 0.2.0, `ff83356` nhập OMML thành LaTeX từ DOCX/PPTX, `d1cf0e4` xuất bảng PPTX native có phân trang, `0615341` và `0d46559` bổ sung công cụ chuẩn bị duyệt nguồn và đối chiếu manifest/corpus.
 - **Kiểm thử:** Nhật ký #20 ghi 12 ca math-spec đạt, backend portable cục bộ 447 đạt / 1 bỏ qua / 11 loại theo marker, backend critical 179 đạt và frontend critical 8/8. Các số cục bộ gồm tệp ngoài Git. CI fixture RAG đã xanh ở `9980026` theo nhật ký 14/11. `.github/workflows/rag-fixture-tests.yml` chạy hai tệp test RAG trên Ubuntu. Chưa có bằng chứng CI toàn bộ suite ở mốc này.
@@ -52,6 +53,8 @@
 - **Nhập/xuất Office:** Hỗ trợ nhập OMML đã có. Phạm vi MathType/OLE vẫn cần kiểm chứng riêng. Bảng PPTX native và phân trang đã có. Còn cần kiểm tra khả năng đọc công thức dài và bảng trên thiết bị lớp học.
 - **Hợp đồng JSON:** Một số handler vẫn nhận `dict`, gồm các thao tác chat có request model chưa gắn vào route. Fixture OpenAPI và test hợp đồng đầy đủ còn là tệp cục bộ.
 - **Phiên và token:** Phiên chủ máy và phiên Copilot vẫn nằm trong bộ nhớ, có hạn theo mục Gotchas của [AGENTS.md](../AGENTS.md), và mất khi khởi động lại backend. Từ #37, token xác nhận hình và Xác nhận chuyên môn được ký bằng khóa lâu dài `signing.key` trong thư mục cấu hình của người dùng. Token không hết hạn, còn sau khi khởi động lại, và chỉ mất khi dấu vân tay đổi hoặc tệp khóa bị xóa hay thay.
+- **Bàn làm việc:** Nhãn "Đã xác nhận chuyên môn" và dấu hình nét liền hiển thị theo token đã lưu trong Bài giảng. Trình duyệt không kiểm được chữ ký, máy chủ chỉ kiểm khi dùng tới, giống giao diện cũ. #49 cần kiểm token với nội dung khi mở bài. Chưa chuyển được dự án bản 2 sang bản 3 (#58).
+- **E2E cũ chập chờn:** `workflows.spec.js` › "fresh profile is empty; editing and reload preserve a real project" có lúc đạt, có lúc trượt. Ca này tải lại trang ngay sau khi thêm slide. Ngày 25/11, trên Chromium 1248 của Playwright: chạy riêng tại `2a4c431` trượt 3/5. Trên Chrome 158 của máy: chạy riêng đạt 5/5, cả bộ cũ ×4 đạt 60/60; chạy cùng bộ mới thì trượt ở 2/4 lượt.
 - **Dựng lại bản bàn giao:** Makefile, corpus và một phần các suite chỉ có ở workspace cục bộ. Bốn ca RAG cần corpus thật vẫn chạy khi lọc marker portable ở mốc này. Kiểm tra trung vị truy hồi dưới 30 ms không ổn định trong lượt xác minh dưới đây. Bản build trước đây có cảnh báo chunk MathLive lớn.
 
 ## Risks & Open Questions (Rủi ro & câu hỏi mở)
@@ -61,6 +64,24 @@
 ## Update Log (Nhật ký cập nhật)
 
 [Nhật ký trước 2026-11-14](PROGRESS-before-2026-11-14.md) được lưu riêng.
+
+- `2026-11-25 — Ticket #38, Bàn làm việc mở được Bài giảng bản 3`:
+  - **Nhánh và mốc:** `feature/ban-lam-viec`, sửa từ `2a4c431`.
+  - **Lớp lưu bản 3:** `lessonProject.js` chuẩn hóa và từ chối dữ liệu sai bằng thông báo chỉ rõ Mục, slide, phần tử. Tên trường snake_case theo phong bì bản 2 và cách #37 gắn xác nhận với `project_id` + `item_id`. Hoạt động và Loại mục lưu bằng tên tiếng Việt (NFC). Slide phải theo thứ tự Dàn ý. Phần tử phải nằm trong khung 1600 × 900. Hình chỉ trỏ tới Yêu cầu trực quan cùng Mục và cùng loại. Trạng thái "đã xác nhận" phải kèm token. Kế hoạch bài dạy chỉ cần là đối tượng.
+  - **Bàn làm việc:** công tắc lưu theo trình duyệt; khung biến thể B gồm thanh trên, cây Dàn ý, thanh thời lượng, phiếu Dàn ý chỉ xem, thuộc tính Mục. Nhập và xuất JSON bản 3 qua menu Tệp.
+  - **Khi nhập tệp:**
+    - Tệp cùng mã với Bài giảng trên máy nhưng khác nội dung thì hỏi trước khi thay.
+    - Tệp trùng mã với dự án bản 2 thì bị từ chối, không ghi đè.
+    - Lưu thất bại (kể cả hết dung lượng) thì giữ Bản soạn trên màn hình, báo lỗi, có "Lưu lại" và "Xuất tệp JSON dự phòng", và chặn mở bài khác cho tới khi lưu được.
+  - **Giao diện cũ:** từ chối dự án bản 3 với "Phiên bản chưa hỗ trợ" ở "Phục hồi JSON", ở ô chọn dự án và khi khởi động. `saveProject()` không ghi đè bản ghi có `schema_version` mới hơn. Phím tắt cũ tắt khi Bàn làm việc đang hiện.
+  - **Font:** WOFF bọc nguyên vẹn TTF của google/fonts `83c62e3`. Source Serif 4 ghi tên dành riêng "Source" nên không được subset. Bộ dựng xuất cả bốn tệp vào `dist/assets`.
+  - **Duyệt:** chủ dự án duyệt vượt ngưỡng 15 tệp (16 tệp) để thêm cờ `enabled` cho `usePresentationControls.js`.
+  - **Kết quả:**
+    - Node: tệp mới `tests/lesson-project-v3.test.js` 94/94. Cùng ba tệp cũ chỉ có ở máy: 119/127; 8 ca trượt trùng tên với mốc `2a4c431` (25/33).
+    - `npm run build` đạt.
+    - E2E: `e2e/ban-lam-viec.spec.js` 7/7 trên cả Chromium 1248 của Playwright (đã cài theo yêu cầu ticket) và Chrome 158 của máy. Cả bộ cũ và mới ở lượt cuối trên Chrome 158 là 22/22. Ca cũ chập chờn được ghi ở Known Issues.
+    - Backend được theo dõi với API key rỗng: `104 passed / 4 failed`. 4 ca cần corpus, như mốc.
+  - **Không đổi:** backend, `api_contract.json`, `.gitignore`, CI. Không đánh dấu gate M1–M5.
 
 - `2026-11-24 — Ticket #37, khóa ký lâu dài cho mọi xác nhận`: Nhánh `feature/ban-lam-viec`, sửa từ `47bd791` (khác mốc `46e4ed2` chỉ ở tài liệu). `lessonai/core/signing.py` giữ khóa `signing.key` 32 byte trong thư mục cấu hình theo người dùng (`config_dir()`, ghi đè bằng `LESSONAI_CONFIG_DIR`), tạo ở lần dùng đầu với quyền `0600` qua tệp tạm và `os.link` nên không ghi đè khóa đã có, đọc lại ở mỗi lần ký hoặc kiểm. HMAC tách theo mục đích (`visual_confirmation`, `deck_review`, `lesson_plan_review`), token mang `kid`. Bỏ ba khóa trong bộ nhớ và hạn 24 giờ. Token ký bằng khóa không còn trên máy bị từ chối với mã `confirmation_key_changed`: 409 ở `/visuals/scene` và `/chart/render`, issue lỗi có `code` trong báo cáo kiểm tra Bộ slide, và ghi chú `severity: info` khi Xác nhận chuyên môn mất hiệu lực. Tệp khóa hỏng hoặc không đọc được trả 503 `signing_key_unavailable` ở cả các route xuất và `/slide/enrich`, và không bị ghi đè. `services/expert_confirmation.py` gom phần ký và kiểm Xác nhận chuyên môn của Bộ slide và Kế hoạch bài dạy. Xác nhận hình gắn được với Mục dàn ý qua `project_id` (Bài giảng) + `item_id`; dấu vân tay nguồn của Mục gồm `title`, `points`, `bullet_points`, `math_focus`. OpenAPI sinh ra giống hệt `47bd791`, nên không sửa `api_contract.json`. Test mới `app/backend/tests/test_confirmation_signing_key.py` (24 ca, `git add -f`); fixture `api` của `test_remediation_workflows.py` dùng thư mục khóa tạm. Kết quả với API key rỗng: suite được theo dõi `104 passed / 4 failed` (4 ca cần corpus, như mốc `80 passed / 4 failed`). Suite cục bộ với bản sao corpus `358 passed / 145 failed / 1 skipped / 4 errors`, mốc `335 / 144 / 1 / 4`; khác biệt duy nhất là `test_lesson_review_contract.py::test_plan_token_is_independent_expires_and_does_not_survive_restart`, tệp chỉ có ở máy, vẫn khẳng định hạn 24 giờ mà ADR 0005 đã bỏ, cần chủ dự án sửa. `-m critical_regressions` `194 passed / 9 failed / 4 errors`, 8 lỗi cũ thuộc `test_critical_regressions.py` bản `fc26ce2`. E2E Playwright `15/15` trước và sau. Frontend Node `25 passed / 8 failed` chỉ chạy sau khi sửa (frontend không đổi; 8 lỗi ở tệp bản `fc26ce2`); `npm run build` đạt. Các test cục bộ mà `main` theo dõi đã bị checkout `main` ghi đè về bản `fc26ce2` lúc 23/11 16:43, kể cả `api_contract.json`; bản fixture có `math-spec` của #20 không còn trên máy. Không đổi `.gitignore`, CI hay schema dự án; không đánh dấu gate M1–M5.
 

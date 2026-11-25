@@ -50,7 +50,7 @@ Single-context layout with root `GLOSSARY.md` and `docs/adr/`. Before exploring 
 - **Backend (`app/backend/pyproject.toml`, `app/backend/requirements.txt`):** Python `>=3.11` (CI/venv runs `3.13`), `lessonai-backend` `0.2.0`, FastAPI `>=0.100.0`, Uvicorn `>=0.20.0`, Pydantic `>=2.0.0`, SymPy `>=1.13.0`, NumPy `>=2.0.0`, Matplotlib `>=3.10.0`, `python-docx` `>=1.0.0`, `python-pptx` `>=0.6.21`, `latex2mathml` `>=3.80.0`, `mathml2omml` `>=0.0.2`, `openpyxl` `>=3.1.0`, `pillow` `>=13.0.0`, `google-genai` `>=0.1.0`, `openai` `>=1.50.0`, `httpx` `>=0.27.0`, `python-dotenv` `>=1.0.0`, `python-multipart` `>=0.0.9`, `packaging` `>=25.0`, security floors `certifi>=2026.10.18`, `pyasn1>=0.6.5`, `urllib3>=2.8.0`. Exact pins: `app/backend/requirements-lock.txt`.
 - **Frontend (`app/frontend/package.json`):** React `^19.0.0`, Vite `^6.0.0`, `@vitejs/plugin-react` `^4.3.4`, Tailwind CSS `^3.4.15`, PostCSS `^8.4.49`, Autoprefixer `^10.4.20`, Three.js `^0.170.0`, MathLive `0.111.4`, KaTeX `^0.18.10`, Lucide React `^0.460.0`. Exact pins: `app/frontend/package-lock.json`.
 - **Testing:** `pytest` `>=8.0.0`, Node native test runner (`node --test`), Playwright `1.64.1`.
-- **Storage:** browser `IndexedDB` (`lessonai-projects`, `schema_version: 2`) plus JSON backup files; server side holds owner session/copilot state **in memory** (see Gotchas) and a local filesystem corpus (`app/backend/data` or `LESSONAI_DATA_DIR`).
+- **Storage:** browser `IndexedDB` (`lessonai-projects`) holding `schema_version: 2` projects of the old studio and `schema_version: 3` Bài giảng of the Bàn làm việc, plus JSON backup files; server side holds owner session/copilot state **in memory** (see Gotchas) and a local filesystem corpus (`app/backend/data` or `LESSONAI_DATA_DIR`).
 
 ## 5. Directory Structure
 ```text
@@ -76,10 +76,10 @@ Single-context layout with root `GLOSSARY.md` and `docs/adr/`. Before exploring 
 │   │   └── tests/                  # Pytest suite + `fixtures/api_contract.json`
 │   └── frontend/
 │       ├── src/App.jsx             # Top-level studio state container and screen router
-│       ├── src/features/           # dashboard, generation, lesson-plan, slide-editor, presentation, geometry, chat, analytics, exports
-│       ├── src/shared/             # api/client.js, storage/projectStore.js, math/, validation/, components/
+│       ├── src/features/           # dashboard, generation, lesson-plan, slide-editor, presentation, geometry, chat, analytics, exports, workbench (Bàn làm việc, packaged fonts)
+│       ├── src/shared/             # api/client.js, storage/projectStore.js (v2 + IndexedDB), storage/lessonProject.js (Bài giảng bản 3), math/, validation/, components/
 │       ├── tests/                  # Node unit/contract tests (`*.test.js`)
-│       └── e2e/                    # Playwright real-backend tests (`workflows.spec.js`)
+│       └── e2e/                    # Playwright real-backend tests (`workflows.spec.js`, `ban-lam-viec.spec.js`)
 ├── docs/                           # Multi-role decisions under architecture/ and math gate ADR under adr/
 ├── project-management/             # PROGRESS.md and archived update log
 ├── quality/                        # audits/, issue-registries/, acceptance/, test-reports/
@@ -111,7 +111,7 @@ Run from the repository root. For PowerShell, use `app/backend/venv/Scripts/pyth
   GEMINI_API_KEY= GROQ_API_KEY= OPENROUTER_API_KEY= LESSONAI_CONFIG_DIR="$(mktemp -d)" PYTHONPATH=app/backend/src app/backend/venv/bin/python -m pytest -c app/backend/pyproject.toml app/backend/tests -m 'not corpus_integration'
   npm --prefix app/frontend run build
   ```
-- Four unmarked tests in `test_phase3_pedagogical_rag.py` still require the local corpus even with the portable marker filter. Set `LESSONAI_DATA_DIR` to a test copy of that corpus when running those cases. The **full local backend** suite uses the same pytest command without `-m 'not corpus_integration'` and requires local tests and corpus. For **critical backend** use `-m critical_regressions`. Frontend commands are `npm --prefix app/frontend test`, `npm --prefix app/frontend run test:critical`, and `npm --prefix app/frontend run test:e2e`. Frontend tests and Playwright configuration require the corresponding local files. Prefix the E2E command with `LESSONAI_CONFIG_DIR="$(mktemp -d)"` so its backend signs with a throwaway key, and with `LESSONAI_TEST_PORT=18080` when the port is busy.
+- Four unmarked tests in `test_phase3_pedagogical_rag.py` still require the local corpus even with the portable marker filter. Set `LESSONAI_DATA_DIR` to a test copy of that corpus when running those cases. The **full local backend** suite uses the same pytest command without `-m 'not corpus_integration'` and requires local tests and corpus. For **critical backend** use `-m critical_regressions`. Frontend commands are `npm --prefix app/frontend test`, `npm --prefix app/frontend run test:critical`, and `npm --prefix app/frontend run test:e2e`. Frontend tests and Playwright configuration require the corresponding local files. Prefix the E2E command with `LESSONAI_CONFIG_DIR="$(mktemp -d)"` so its backend signs with a throwaway key, and with `LESSONAI_TEST_PORT=18080` when the port is busy. The E2E backend serves `app/frontend/dist`, so run the frontend build first. `playwright.config.js` launches the local Google Chrome when it is installed; Playwright's own browser (Chromium build 1248 for Playwright 1.64.1) installs with `npm --prefix app/frontend exec -- playwright install chromium`.
 - **Math 12 benchmark (15 cases)**. Use a fresh output path for each run.
   ```bash
   GEMINI_API_KEY= GROQ_API_KEY= OPENROUTER_API_KEY= LESSONAI_CONFIG_DIR="$(mktemp -d)" PYTHONPATH=app/backend/src app/backend/venv/bin/python scripts/quality/run_benchmark_suite.py --output /tmp/lessonai-math12-UNIQUE.json
@@ -119,7 +119,7 @@ Run from the repository root. For PowerShell, use `app/backend/venv/Scripts/pyth
   Replace `UNIQUE` with a run identifier before using the command.
 - **Local Makefile** is ignored on this branch. Inspect the file in the active workspace before using targets. The copy inspected for this baseline defines `backend`, `frontend`, `test`, `test-backend`, `test-frontend`, `test-critical`, `test-critical-backend`, `test-critical-frontend`, `build`, `inventory`, `lint-data`, `audit-baseline`, and `audit-acceptance`. Run portable tests, E2E, and the benchmark with the commands above. For source review use `PYTHONPATH=app/backend/src app/backend/venv/bin/python scripts/quality/prepare-source-review.py --output /tmp/lessonai-source-review-UNIQUE.json` with a fresh path and the local corpus.
 - **Pre-PR verification** covers the available portable, critical, frontend, build, and E2E checks. Record unavailable suites and their missing inputs.
-- **Database migrations:** none server side. Client projects use `IndexedDB` (`schema_version: 2`) with a one-time migration from `sessionStorage` (`lessonai_slide_deck_json_v1`) in `app/frontend/src/shared/storage/projectStore.js`.
+- **Database migrations:** none server side. Client projects use `IndexedDB` (`schema_version: 2`) with a one-time migration from `sessionStorage` (`lessonai_slide_deck_json_v1`) in `app/frontend/src/shared/storage/projectStore.js`. Bài giảng bản 3 are validated by `normalizeLesson()` in `app/frontend/src/shared/storage/lessonProject.js`; converting v2 projects to v3 is not built yet (#58).
 
 ## 7. Code Conventions
 - **Imports:** import backend modules as `lessonai.*`. Never mutate `sys.path` in application code or `scripts/`.
@@ -177,6 +177,8 @@ When you resolve an item, update or remove it here.
 - **Slide field fingerprinting and math scanning.** When adding a field to `SlideSchema` or `SlideDeckSchema`: (a) if it is a derived/ephemeral render field, add it to the ignore list in both `content_snapshot()` in `services/content_quality.py` and `mutateDeck()` in `app/frontend/src/shared/storage/projectStore.js`; (b) if it is authored math/problem text, add it to `math_fields()` in `content_quality.py` and `SOURCE_FIELDS` in `services/visual_requirements.py`.
 - **3D limits.** `geometry_scene.py` supports only `cube`, `square_pyramid_regular`, `square_pyramid_at_a`; other solids are rejected. PPTX 3D images are static Matplotlib renders at fixed `elev=30`, `azim=-60`, not synchronized with the WebGL view in `ThreeCanvas.jsx`.
 - **Frontend storage and build.** `projectStore.js` checks storage revisions during writes. Record evidence for quota exhaustion, concurrent tabs, and migration with real legacy teacher projects before closing M2. Previous builds reported a large `mathlive` chunk.
+- **Bàn làm việc behind a switch.** The old studio stays the default until #59. The `Bàn làm việc` switch (per browser, `localStorage` key `lessonai-workbench`) shows `src/features/workbench/`, which opens only Bài giảng bản 3. The old studio refuses v3 with "Phiên bản chưa hỗ trợ" (`assertLegacyProject()`), and `saveProject()` refuses to overwrite a record that has a newer `schema_version`. While the Bàn làm việc is shown, the old keyboard shortcuts are off (`usePresentationControls({ enabled })`). The tag "Đã xác nhận chuyên môn" reflects the stored `deck.review_token`; the browser cannot check the signature, so the server verifies it when it is used.
+- **Packaged fonts.** `src/features/workbench/fonts/` holds unmodified WOFF wrappers of the upstream Google Fonts TTFs (provenance and licence in `OFL.txt`). Do not subset or otherwise modify Source Serif 4: its copyright record reserves the font name "Source", so a modified copy could not keep that name.
 - **RAG runtime is empty until a human approves sources.** `reviewed_sources.json` has `"sources": []`; `approved_units()` quarantines unapproved units, so `/api/v1/curriculum/math12` and RAG return empty context. This is expected until the reviewer finishes a batch with `hash_version: 2`.
 
 ## 11. Keeping This File Honest
