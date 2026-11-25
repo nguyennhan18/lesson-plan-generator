@@ -245,7 +245,7 @@ Cập nhật mỗi khi một phép kiểm được thêm. Ô chưa có phép ki�
 
 ### O7.1 — Quy trình đặt ngưỡng thời gian (đã chốt quy trình, chưa có giá trị)
 
-- Chưa chốt con số. Hiện repo chỉ có số đo độ trễ truy hồi RAG (`docs/rag-performance-investigation.md`), chưa có số đo thời gian tạo bài hay độ trễ khi kéo tham số.
+- Chưa chốt con số. Hiện repo chỉ có số đo độ trễ truy hồi RAG (`docs/rag/rag-performance-investigation.md`), chưa có số đo thời gian tạo bài hay độ trễ khi kéo tham số.
 - Đo nền trước trên ca D11: thời gian tạo bài (tách thời gian các vòng sửa theo D1/D10) và độ trễ cập nhật khi kéo tham số (theo D6). Sau đó chủ dự án chốt ngưỡng dựa trên số đo.
 - Tham chiếu duy nhất hiện có là SRS ("P95 tạo bản nháp dưới 60 giây; preview dưới 5 giây"). Đây chỉ là tham chiếu, không phải ngưỡng nghiệm thu của demo, và chưa tính vòng tạo lại tối đa hai lần.
 
