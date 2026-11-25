@@ -87,6 +87,10 @@
 
 [Nhật ký trước 2026-11-14](PROGRESS-before-2026-11-14.md) được lưu riêng.
 
+- `2026-11-26 — Khôi phục hồ sơ nghiệm thu và sửa tham chiếu hỏng trong AGENTS.md`:
+  - `project-management/release-gates/remediation-acceptance-2026-11-03.md` (64 dòng) không còn trong checkout nào dù [AGENTS.md](../AGENTS.md) mục 2 và Current Status ở đây đều coi nó là căn cứ đóng M1–M5. Khôi phục nguyên văn từ lịch sử (`f7d0b61`), không sửa một chữ; từ nay được Git theo dõi theo ADR 0012.
+  - AGENTS.md: bỏ tham chiếu tới nhánh `feat/multi-role-orchestrator` đã xóa, sửa `docs/adr/0001-verified-chi-do-may-chung-minh.md` thành `0008-...` (tệp đã được đánh lại số), và bỏ `project-review-probes.py` khỏi mục Gotchas — tệp này cũng mất khỏi đĩa và nó import `services/chat.py`, `services/geometry.py` vừa được xóa, nên không khôi phục.
+
 - `2026-11-26 — Xóa chín tệp frontend mồ côi từ 05/11 (1.886 dòng)`:
   - `492d723` (05/11) viết lại `PresentationStage.jsx` và bỏ các import tới `PresentationFloatingBar.jsx` (603 dòng), `InteractiveQuizCard.jsx` (408) và `geometryClient.js` (8). Thẻ trắc nghiệm kéo theo `DetailedSolutionModal.jsx` (207), `MisconceptionModal.jsx` (230), `canvasConfetti.js` (131), `quizAudioFeedback.js` (132), `misconceptionClassifier.js` (116) và `solutionStepFormatter.js` (51); cả cụm không còn đường tới từ `main.jsx`.
   - Xóa cả chín tệp. `#47` (Bỏ phiếu trắc nghiệm khi chiếu) dựng lại tính năng này trong Bàn làm việc theo thiết kế khác: giáo viên đếm tay giơ bằng nút +/−, học sinh không cần thiết bị. Mã cũ vẫn tra được trong lịch sử Git tại `492d723^`.
