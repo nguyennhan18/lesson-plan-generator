@@ -1,6 +1,6 @@
 # PROGRESS.md — Project Progress & Remediation Tracker (`LessonAI-5512`)
 
-> Mốc mã hiện tại ngày 2026-11-26 trên nhánh `feature/ban-lam-viec` (sau khi hoàn thiện khung cơ bản Bàn làm việc `#36–#43, #46` và Cổng toán `#20–#24`, kế thừa mốc `3927e92` và `46e4ed2`).
+> Mốc mã hiện tại ngày 2026-11-26 trên nhánh `feature/ban-lam-viec` (sau khi hoàn thiện và đóng trên GitHub các ticket khung cơ bản Bàn làm việc `#37–#43, #46` cùng loạt Cổng toán `#20–#24`; spec cha `#36` giữ `OPEN` cho tới khi hoàn tất `#44, #45, #47–#59`).
 
 ## Current Status (Trạng thái hiện tại)
 
@@ -44,17 +44,18 @@
   - Refactored `workbench_outline.py`, `outline.py`, `lesson_plan.py`, and `slides.py` into role-based prompt chains enforcing ADR 0001 (Zero-Fallback), ADR 0002 (Outline as common source), `outline_contract.py`, `KINDS` 3D validation, `block_errors`, and RAG `source_refs` SHA-256 verification.
 - **Cổng toán ký hiệu đầy đủ (`#20–#24`, `2026-11-26`):**
   - Hoàn thiện 8 phép kiểm ký hiệu trong worker `spawn` qua `POST /api/v1/math-spec/verify` (`lessonai/services/math_spec.py`, `lessonai/services/math_worker.py`): đồng nhất thức đạo hàm đa thức (`#20`), nghiệm thực và tính đầy đủ theo từng miền `a < 0`, `a = 0`, `a > 0` (`#21`), điểm dừng, dấu đạo hàm và phân loại cực trị kèm tọa độ (`#22`), khoảng tham số an toàn và tính đầy đủ của danh sách điều kiện loại trừ kể cả rỗng từ AST (`#23`), cùng kiểm chứng riêng từng bước giải có cấu trúc không lan sang văn xuôi (`#24`). Đạt `16/16` ca kiểm thử trong `app/backend/tests/test_math_spec_verify.py`.
-- **Khung cơ bản Bàn làm việc bản 3 (`#36–#43, #46`, `2026-11-26`):**
-  - Hoàn thiện khóa ký lâu dài không hết hạn `signing.key` (`#37`), lớp lưu Bài giảng bản 3 (`schema_version: 3`) và khung Bàn làm việc 3 cột đóng gói 4 font WOFF offline (`#38`), nhận diện bài SGK, lập và chỉnh sửa Dàn ý bản 3 theo 4 Hoạt động (`#39`).
-  - Hoàn thiện API dựng Bộ slide từ Dàn ý đã duyệt qua danh mục 9 Bố cục mẫu với ngân sách prompt 12.000 ký tự (`POST /api/v1/workbench/slides`, `#40`), API sinh lại slide của một Mục Cần xem lại (`POST /api/v1/workbench/slides/item`, `#43`), Canvas 16:9 (`1600 × 900`) trên nền giấy ô li kèm Dải slide và cây slide thu nhỏ (`#40`), kéo thả & đổi cỡ phần tử bám lưới 20 đơn vị kèm tự thu nhỏ chữ xuống 24pt và đánh dấu `Tràn chữ` (`#42`), chế độ Trình chiếu toàn màn hình hiện dần từng bước có bút chú thích, bảng phụ ô li, tối màn hình (`#41`), cùng Menu phụ chứa Cài đặt nhà cung cấp/model AI và Phân tích lớp học điền sẵn trình độ lớp (`#46`). Đạt `101/101` Node tests, `23/23` Workbench API tests và `13/13` Playwright E2E tests.
+- **Khung cơ bản Bàn làm việc bản 3 (`#37–#43, #46` thuộc spec cha `#36`, `2026-11-26`):**
+  - Đã gộp Glossary và ADR 0001–0009 cho spec cha `#36` (`47bd791`; `#36` là issue cha của `#37–#59` nên giữ trạng thái `OPEN` trên GitHub cho tới khi hoàn tất 15 ticket con còn lại).
+  - Hoàn thiện và đóng trên GitHub 8 ticket con khung cơ bản: khóa ký lâu dài không hết hạn `signing.key` (`#37`), lớp lưu Bài giảng bản 3 (`schema_version: 3`) và khung Bàn làm việc 3 cột đóng gói 4 font WOFF offline (`#38`), nhận diện bài SGK, lập và chỉnh sửa Dàn ý bản 3 theo 4 Hoạt động (`#39`), API dựng Bộ slide từ Dàn ý đã duyệt qua danh mục 9 Bố cục mẫu với ngân sách prompt 12.000 ký tự và xem trên Canvas 16:9 kèm Dải slide (`#40`), chế độ Trình chiếu toàn màn hình hiện dần từng bước có bút chú thích, bảng phụ ô li, tối màn hình (`#41`), kéo thả & đổi cỡ phần tử bám lưới 20 đơn vị kèm tự thu nhỏ chữ xuống 24pt và đánh dấu `Tràn chữ` (`#42`), sinh lại slide của một Mục Cần xem lại (`#43`), cùng Menu phụ chứa Cài đặt nhà cung cấp/model AI và Phân tích lớp học điền sẵn trình độ lớp (`#46`). Đạt `101/101` Node tests, `23/23` Workbench API tests và `13/13` Playwright E2E tests.
 
-## Ticket Status Summary on `feature/ban-lam-viec` (Tổng hợp trạng thái Ticket)
+## Ticket Status Summary on `feature/ban-lam-viec` & GitHub Issues (Tổng hợp trạng thái 58 Ticket: 14 `CLOSED` / 44 `OPEN`)
 
-| Loạt Ticket | Đã hoàn thành trên `feature/ban-lam-viec` | Còn mở (tiếp theo sau khung cơ bản) |
+| Loạt Ticket | Đã hoàn thành & `CLOSED` trên GitHub (`14/58`) | Còn `OPEN` trên GitHub (`44/58`) |
 |---|---|---|
-| **Loạt Cổng toán (`#20–#24`)** | **`#20`, `#21`, `#22`, `#23`, `#24`** (5/5 hoàn tất mã nguồn, bảng phạm vi công bố và kiểm thử `16/16`) | *(Đã hoàn tất toàn bộ 5 ticket mã nguồn trên nhánh)* |
-| **Loạt Bàn làm việc (`#36–#59`)** | **`#36`, `#37`, `#38`, `#39`, `#40`, `#41`, `#42`, `#43`, `#46`** (9 ticket khung cơ bản hoàn tất mã nguồn, khóa OpenAPI và kiểm thử Backend/Node/E2E) | `#44` (Xuất PPTX), `#45` (Trợ giảng AI), `#47` (Bỏ phiếu trắc nghiệm), `#48` (Sửa nội dung phần tử), `#49` (Kiểm tra bài & Xác nhận chuyên môn), `#50` (KHBD từ Dàn ý), `#51–#57` (Đồ thị, Khối đa diện, Hình Oxyz, BBT, Tô miền diện tích, Điểm đặc biệt qua Cổng toán), `#58` (Chuyển bản 2 sang bản 3), `#59` (Bỏ giao diện/endpoint cũ) |
-| **Loạt Orchestrator (`#25–#35`) & Demo đầu (`#2–#18`)** | **`#3`** (đo nền 15 ca benchmark), **`#19`** (duyệt hợp đồng API), **`#20–#24`** (nền Cổng toán), chuỗi prompt theo vai trò kèm Langfuse v5 (`9e026b2`) | Các ticket `#25–#35` (`TRIAGE`) và `#2–#18` đã được thay thế hoặc gộp định hướng bởi spec `#36` và ADR 0001–0010 (xem [role-orchestrator-design.md](../docs/architecture/role-orchestrator-design.md) và [multi-role-generation-decisions.md](../docs/architecture/multi-role-generation-decisions.md)) |
+| **Loạt Cổng toán (`#20–#24`, 5 ticket)** | **`#20`, `#21`, `#22`, `#23`, `#24`** (`5/5 CLOSED` — hoàn tất mã nguồn, bảng phạm vi công bố và kiểm thử `16/16`) | *(0 ticket mở — đã đóng đủ 5/5 trên GitHub)* |
+| **Loạt Bàn làm việc (`#36–#59`, 1 spec cha + 23 ticket con)** | **`#37`, `#38`, `#39`, `#40`, `#41`, `#42`, `#43`, `#46`** (`8/23` ticket con `CLOSED` — hoàn tất khung cơ bản, khóa OpenAPI và kiểm thử Backend/Node/E2E) | **`#36`** (Spec cha — giữ `OPEN`, đã gộp Glossary/ADR ở `47bd791`) + **15 ticket con (`RFA`)**: `#44` (Xuất PPTX), `#45` (Trợ giảng AI), `#47` (Bỏ phiếu trắc nghiệm), `#48` (Sửa nội dung phần tử), `#49` (Kiểm tra bài & Xác nhận chuyên môn), `#50` (KHBD từ Dàn ý), `#51–#57` (Đồ thị, Khối đa diện, Hình Oxyz, BBT, Tô miền diện tích, Điểm đặc biệt qua Cổng toán), `#58` (Chuyển bản 2 sang bản 3), `#59` (Bỏ giao diện/endpoint cũ) |
+| **Hợp đồng API & Orchestrator (`#19`, `#25–#35`, 12 ticket)** | **`#19`** (`1/12 CLOSED` — chủ dự án duyệt mở rộng hợp đồng API) | **11 ticket (`#25–#35`, nhãn `TRIAGE`)**: đang mở trên GitHub ở trạng thái `needs-triage` sau khi spec `#36` và ADR 0001–0010 thay thế chuỗi 6 vai trò cũ |
+| **Loạt Demo Toán 12 ban đầu (`#2–#18`, 17 ticket)** | *(0 ticket đóng — `#3` đã có báo cáo đo nền 15 ca benchmark tại `7868f16` nhưng còn chờ chữ ký giáo viên Toán 12)* | **17 ticket (`#2–#18`)**: `#18` (`TRIAGE`, đã bị spec `#36` thay thế) và `#2–#17` (thuộc luồng demo `f_a(x)` cũ) |
 
 ## In Progress (Đang làm dở)
 
