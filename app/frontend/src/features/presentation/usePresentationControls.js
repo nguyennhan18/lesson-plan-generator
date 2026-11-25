@@ -17,7 +17,8 @@ export function usePresentationControls({
   setIsBlackout,
   setCurrentSlide,
   setIsLeftOpen,
-  setIsRightOpen
+  setIsRightOpen,
+  enabled = true // false while the Bàn làm việc is shown: its keys must not reach the old studio
 }) {
   useEffect(() => {
     const unsub = onFullscreenChange((active) => {
@@ -31,6 +32,7 @@ export function usePresentationControls({
 
   // Keyboard Shortcuts Handler (Task 15.3: ArrowLeft, ArrowRight, Space, PageUp, PageDown, Home, End, Escape, B, F5)
   useEffect(() => {
+    if (!enabled) return undefined;
     const handleKeyDown = (e) => {
       if (['INPUT', 'TEXTAREA', 'SELECT', 'MATH-FIELD'].includes(e.target.tagName)) return;
 
@@ -113,7 +115,7 @@ export function usePresentationControls({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [slideDeck, isPresentationMode, isBlackout, activeScreen]);
+  }, [slideDeck, isPresentationMode, isBlackout, activeScreen, enabled]);
 
   // Task 15.1: Xử lý kích hoạt Chế độ Trình Chiếu Toàn Màn Hình (Start Presentation)
   const handleStartPresentation = async () => {

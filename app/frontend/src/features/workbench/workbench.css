@@ -1,0 +1,245 @@
+/*! Be Vietnam Pro and Source Serif 4: SIL Open Font License 1.1. Copyright notices and license: fonts/OFL.txt */
+
+/*
+ * Bàn làm việc (spec #36, variant B of the prototype): black on white, one accent for math objects.
+ * Fonts are packaged with the app and never loaded from the Internet. See fonts/OFL.txt for their
+ * source; the files must stay unmodified WOFF wrappers (Source Serif 4 reserves the name "Source").
+ */
+@font-face {
+  font-family: 'Be Vietnam Pro';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/BeVietnamPro-Regular.woff') format('woff');
+}
+@font-face {
+  font-family: 'Be Vietnam Pro';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/BeVietnamPro-Medium.woff') format('woff');
+}
+@font-face {
+  font-family: 'Be Vietnam Pro';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fonts/BeVietnamPro-SemiBold.woff') format('woff');
+}
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url('./fonts/SourceSerif4-Variable.woff') format('woff');
+}
+
+.wb {
+  /* Giấy, mực, chì, đường kẻ, nền ô li. */
+  --paper: #ffffff;
+  --ink: #000000;
+  --pencil: #6e6e6e;
+  --rule: #d9d9d9;
+  --grid-paper: #f7f7f7;
+  --grid-line: #e8e8e8;
+  --grid-li: #f0f0f0;
+  /* Mực tím: only for math objects (figure marks, graph curves, Hình Oxyz, Bảng biến thiên arrows),
+     never for buttons or decoration. */
+  --math-ink: #4f2bd9;
+  /* Content of the lesson is set in a serif that suits KaTeX; tools use Be Vietnam Pro. */
+  --font-content: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+  --font-tool: 'Be Vietnam Pro', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 14px/1.5 var(--font-tool);
+  letter-spacing: 0;
+  -webkit-font-smoothing: antialiased;
+}
+.wb *, .wb *::before, .wb *::after { box-sizing: border-box; }
+.wb :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.wb .katex { font-size: 1.05em; }
+
+/* Chữ */
+.wb-wordmark { font: 600 17px/1 var(--font-tool); letter-spacing: -0.02em; white-space: nowrap; }
+.wb-meta { color: var(--pencil); font-size: 13px; }
+.wb-label { margin: 0; color: var(--pencil); font: 600 12px/1.3 var(--font-tool); }
+.wb-h3 { margin: 0; font: 600 17px/1.3 var(--font-content); }
+.wb-link {
+  padding: 0; border: none; background: none; color: var(--ink);
+  font: 500 14px/1.4 var(--font-tool); text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
+}
+
+/* Điều khiển */
+.wb-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 34px; padding: 0 14px; border: 1px solid var(--ink); border-radius: 6px;
+  background: var(--paper); color: var(--ink); font: 500 14px/1 var(--font-tool);
+  white-space: nowrap; cursor: pointer; transition: background-color 0.15s ease;
+}
+.wb-btn:hover:not(:disabled) { background: #efefef; }
+.wb-btn--primary { background: var(--ink); color: var(--paper); }
+.wb-btn--primary:hover:not(:disabled) { background: #2e2e2e; }
+.wb-btn--quiet { border-color: transparent; }
+.wb-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.wb-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
+
+/* Trạng thái: nét đứt là chưa xác nhận (Bản nháp, hình đề xuất), nét liền là đã xác nhận. */
+.wb-tag {
+  display: inline-flex; align-items: center; flex-shrink: 0; height: 24px; padding: 0 10px;
+  border: 1.5px dashed var(--ink); border-radius: 999px; font: 500 12px/1 var(--font-tool); white-space: nowrap;
+}
+.wb-tag.is-confirmed { border-style: solid; background: var(--ink); color: var(--paper); }
+.wb-vmark { display: inline-block; flex-shrink: 0; width: 10px; height: 10px; border: 1.5px dashed var(--math-ink); border-radius: 50%; }
+.wb-vmark.is-confirmed { border-style: solid; background: var(--math-ink); }
+.wb-glyphs { display: inline-flex; gap: 3px; }
+.wb-glyphs i { display: block; width: 14px; height: 8px; border: 1.5px solid var(--ink); border-radius: 1.5px; }
+.wb-review-mark { padding-left: 6px; border-left: 2px solid var(--ink); font: 500 12px/1.2 var(--font-tool); white-space: nowrap; }
+
+/* Thanh trên */
+.wb-top { display: flex; align-items: center; gap: 16px; min-height: 52px; padding: 8px 16px; border-bottom: 1px solid var(--ink); }
+.wb-crumbs { display: flex; align-items: baseline; gap: 10px; min-width: 0; font: 500 14px/1.3 var(--font-tool); }
+.wb-crumb-sep { color: var(--pencil); }
+.wb-crumb-title { overflow: hidden; min-width: 0; font: 600 16px/1.3 var(--font-content); white-space: nowrap; text-overflow: ellipsis; }
+.wb-unsaved { flex-shrink: 0; font: 600 12px/1 var(--font-tool); white-space: nowrap; }
+.wb-top-end { display: flex; align-items: center; gap: 14px; margin-left: auto; }
+.wb-menu { position: relative; }
+.wb-menu-list {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 30; display: flex; flex-direction: column;
+  min-width: 230px; padding: 6px; border: 1px solid var(--ink); border-radius: 8px;
+  background: var(--paper); box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+}
+.wb-menu-list button {
+  padding: 9px 10px; border: none; border-radius: 4px; background: none; color: var(--ink);
+  font: 400 14px/1.3 var(--font-tool); text-align: left; cursor: pointer;
+}
+.wb-menu-list button:hover:not(:disabled) { background: #f0f0f0; }
+.wb-menu-list button:disabled { color: var(--pencil); cursor: not-allowed; }
+.wb-switch { display: inline-flex; align-items: center; gap: 8px; font: 500 13px/1 var(--font-tool); white-space: nowrap; cursor: pointer; }
+.wb-switch input {
+  appearance: none; position: relative; flex-shrink: 0; width: 34px; height: 20px; margin: 0;
+  border: 1.5px solid var(--ink); border-radius: 999px; background: var(--paper); cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.wb-switch input::after {
+  content: ''; position: absolute; top: 2px; left: 2px; width: 13px; height: 13px; border-radius: 50%;
+  background: var(--ink); transition: transform 0.15s ease;
+}
+.wb-switch input:checked { background: var(--ink); }
+.wb-switch input:checked::after { background: var(--paper); transform: translateX(14px); }
+
+/* Thông báo lỗi: Bản soạn luôn được giữ, thông báo nói rõ vì sao và cách xử lý. */
+.wb-notice { display: flex; align-items: center; gap: 16px; padding: 10px 16px; border-bottom: 1px solid var(--ink); box-shadow: inset 4px 0 0 var(--ink); }
+.wb-notice p { flex: 1; max-width: 100ch; margin: 0; font-size: 14px; }
+.wb-notice-actions { display: flex; flex-shrink: 0; flex-wrap: wrap; gap: 8px; }
+
+/* Khung ba cột; màn soạn dành cho màn hình rộng từ 1280 px. */
+.wb-body { display: grid; flex: 1; grid-template-columns: 320px minmax(0, 1fr) 300px; min-height: 0; }
+.wb-left { overflow: auto; border-right: 1px solid var(--rule); }
+.wb-center {
+  overflow: auto; min-width: 0;
+  /* Giấy ô li: kẻ dọc và ngang mỗi ô, kẻ nhạt mỗi dòng li. */
+  background-color: var(--grid-paper);
+  background-image:
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(var(--grid-li) 1px, transparent 1px);
+  background-size: 32px 32px, 32px 32px, 32px 8px;
+}
+.wb-right { overflow: auto; border-left: 1px solid var(--rule); }
+.wb-column-title { margin: 0; padding: 14px 16px 10px; border-bottom: 1px solid var(--rule); font: 600 13px/1 var(--font-tool); }
+.wb-panel { display: flex; flex-direction: column; gap: 12px; padding: 16px; }
+.wb-panel > p { margin: 0; }
+
+/* Danh sách Bài giảng */
+.wb-lessons { margin: 0; padding: 0; border-top: 1px solid var(--ink); list-style: none; }
+.wb-lesson {
+  display: flex; flex-direction: column; gap: 4px; width: 100%; padding: 12px 4px;
+  border: none; border-bottom: 1px solid var(--rule); background: none; color: var(--ink); text-align: left; cursor: pointer;
+}
+.wb-lesson:hover { background: #f6f6f6; }
+.wb-lesson-title { font: 600 15px/1.35 var(--font-content); overflow-wrap: anywhere; }
+.wb-lesson-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.wb-legacy { padding-left: 10px; border-left: 2px solid var(--rule); }
+
+/* Thời lượng tiết theo bốn Hoạt động, so với 45 phút */
+.wb-budget { display: flex; flex-direction: column; gap: 8px; }
+.wb-budget-bar { display: flex; gap: 2px; width: 100%; height: 10px; }
+.wb-budget.is-compact .wb-budget-bar { height: 8px; }
+.wb-budget-seg, .wb-budget-free { display: block; min-width: 4px; }
+.wb-budget-seg--0 { background: var(--ink); }
+.wb-budget-seg--1 { background: #4d4d4d; }
+.wb-budget-seg--2 { background: #8f8f8f; }
+.wb-budget-seg--3 { background: #c4c4c4; }
+.wb-budget-free { border: 1.5px dashed var(--pencil); }
+.wb-budget-text { font-size: 13px; font-variant-numeric: tabular-nums; }
+.wb-budget-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0; padding: 0; color: var(--pencil); font-size: 12px; list-style: none; }
+.wb-budget-legend li { display: inline-flex; align-items: center; gap: 6px; }
+.wb-budget-legend .wb-budget-seg { width: 10px; height: 10px; min-width: 0; }
+
+/* Cây Dàn ý */
+.wb-tree-head { padding: 14px 16px 12px; border-bottom: 1px solid var(--rule); }
+.wb-act { padding: 6px 0; }
+.wb-act-title { display: flex; justify-content: space-between; margin: 0; padding: 8px 16px 4px; color: var(--pencil); font: 600 12px/1.3 var(--font-tool); }
+.wb-act-empty { margin: 2px 16px 6px; }
+.wb-items { margin: 0; padding: 0 8px; list-style: none; }
+.wb-item {
+  display: flex; gap: 10px; width: 100%; padding: 7px 8px 8px; border: none; border-radius: 4px;
+  background: none; color: var(--ink); text-align: left; cursor: pointer;
+}
+.wb-item:hover { background: #f6f6f6; }
+.wb-item[aria-current='true'] { background: #ececec; }
+.wb-item-n { flex-shrink: 0; width: 18px; font: 600 15px/1.4 var(--font-content); font-variant-numeric: tabular-nums; }
+.wb-item-body { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.wb-item-title { font: 500 14px/1.35 var(--font-content); overflow-wrap: anywhere; }
+.wb-item-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
+/* Phiếu Dàn ý (chỉ xem) */
+.wb-sheet, .wb-empty {
+  display: flex; flex-direction: column; gap: 18px; width: min(720px, calc(100% - 48px));
+  margin: 40px auto; padding: 32px 36px; border: 1px solid var(--ink); background: var(--paper);
+}
+.wb-sheet { user-select: text; }
+.wb-sheet > p, .wb-empty > p { margin: 0; }
+.wb-sheet-title { margin: 0; font: 600 32px/1.15 var(--font-content); letter-spacing: -0.015em; overflow-wrap: anywhere; }
+.wb-facts { display: flex; flex-wrap: wrap; gap: 6px 28px; margin: 0; font-size: 13px; }
+.wb-facts div { display: flex; gap: 6px; }
+.wb-facts dt { color: var(--pencil); }
+.wb-facts dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.wb-visuals { display: flex; flex-direction: column; gap: 8px; }
+.wb-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+/* A chip wraps between its parts in a narrow column, never inside its formula. */
+.wb-chip {
+  display: inline-flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; max-width: 100%; padding: 5px 12px 5px 8px;
+  border: 1.5px dashed var(--ink); border-radius: 14px; background: var(--paper); color: var(--ink);
+  font: 400 13px/1.3 var(--font-tool); text-align: left;
+}
+button.wb-chip { cursor: pointer; }
+button.wb-chip:hover { background: #f0f0f0; }
+.wb-chip.is-confirmed { border-style: solid; }
+.wb-chip .katex { white-space: nowrap; }
+.wb-chip-kind { font-weight: 600; white-space: nowrap; }
+.wb-chip-state { color: var(--pencil); }
+
+/* Cột phải: thuộc tính của Mục đang chọn */
+.wb-props { display: grid; grid-template-columns: auto 1fr; gap: 8px 14px; align-items: center; margin: 0; font-size: 13px; }
+.wb-props dt { color: var(--pencil); }
+.wb-props dd { display: flex; align-items: center; gap: 8px; margin: 0; font-variant-numeric: tabular-nums; }
+.wb-points { margin: 0; padding-left: 18px; font: 400 15px/1.55 var(--font-content); }
+.wb-points li + li { margin-top: 4px; }
+
+/* Chuyển động: chỉ đáp lại thao tác, và tắt hẳn khi máy bật giảm chuyển động. */
+@keyframes wb-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes wb-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.wb-fade { animation: wb-fade 0.28s ease-out both; }
+.wb-notice { animation: wb-rise 0.24s ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .wb *, .wb *::before, .wb *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}

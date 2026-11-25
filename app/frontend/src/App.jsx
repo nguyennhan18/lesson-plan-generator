@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import {restoreProject,saveProject,listProjects,loadProject,blankProject,normalizeDeck,mutateDeck,mutatePlan} from './shared/storage/projectStore.js';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import {restoreProject,saveProject,listProjects,loadProject,blankProject,normalizeDeck,mutateDeck,mutatePlan,assertLegacyProject} from './shared/storage/projectStore.js';
 import HeaderNav from './shared/components/HeaderNav';
 import PresentationDashboard from './features/dashboard/PresentationDashboard';
 import OutlineWorkspace from './features/generation/OutlineWorkspace';
@@ -14,6 +14,14 @@ import {
 } from './features/generation/lessonGenerationActions.js';
 import { createDocumentExportActions } from './features/exports/documentExportActions.js';
 import { usePresentationControls } from './features/presentation/usePresentationControls.js';
+import Workbench from './features/workbench/Workbench.jsx';
+import { createWorkbenchActions, emptyWorkbench } from './features/workbench/workbenchActions.js';
+
+// The Bàn làm việc switch is a per-browser preference; the old studio stays the default until #59.
+const WORKBENCH_SWITCH = 'lessonai-workbench';
+const workbenchPreferred = () => {
+  try { return localStorage.getItem(WORKBENCH_SWITCH) === 'on'; } catch { return false; }
+};
 
 // ==============================================================================
 // LessonAI-5512: Hệ Thống Sinh Giáo Án & Slide Động Bằng AI
@@ -22,6 +30,12 @@ import { usePresentationControls } from './features/presentation/usePresentation
 export default function App() {
   const [activeScreen, setActiveScreen] = useState('dashboard'); // 'dashboard' | 'outline' | 'presentation' | 'lesson-plan' | 'slide-editor' | 'analytics'
   const [currentSlide, setCurrentSlide] = useState(0);
+
+  // Bàn làm việc (#38): its Bài giảng bản 3 session is shared state, so it lives here as well.
+  const [workbenchOn, setWorkbenchOn] = useState(workbenchPreferred);
+  const [workbench, setWorkbench] = useState(emptyWorkbench);
+  const workbenchRef = useRef(workbench); workbenchRef.current = workbench;
+  const workbenchActions = useMemo(() => createWorkbenchActions({ getSession: () => workbenchRef.current, setSession: setWorkbench }), []);
 
   // Workflow Trạm 1 & Trạm 2 theo FRONTEND_ARCHITECTURE.md
   const [outline, setOutline] = useState(null);
@@ -88,11 +102,15 @@ export default function App() {
     setProjectId(project.project_id);setDeckState(project.deck?normalizeDeck(project.deck):null);setPlanState(project.plan||null);setOutline(project.outline||null);
     setPresentationConfig(project.config||{});setClassProficiency(project.classProficiency||'standard');setRecommendedOutcome(project.recommendedOutcome||'');setAnalyticsData(project.analytics||null);setCurrentSlide(0);setPolyhedronType(null);setGeoHeight(null);setGeoBaseEdge(null);setSaveError(project.migration_review||'');
   };
+  // The old studio loads its project the first time it is shown, so a session that starts in the
+  // Bàn làm việc never creates an empty v2 project.
+  const legacyLoaded=useRef(false);
   useEffect(()=>{
+    if(workbenchOn||legacyLoaded.current)return;
     let active=true;
-    restoreProject().then(project=>{if(active)restore(project);}).catch(e=>{if(active){setStorageReady(false);setSaveError(`Không nạp được dự án: ${e.message}. Tự lưu đang tạm dừng; hãy phục hồi JSON hoặc chọn tạo dự án mới.`);}});
+    restoreProject().then(project=>{if(active){legacyLoaded.current=true;restore(project);}}).catch(e=>{if(active){legacyLoaded.current=true;setStorageReady(false);setSaveError(`Không nạp được dự án: ${e.message}. Tự lưu đang tạm dừng; hãy phục hồi JSON hoặc chọn tạo dự án mới.`);}});
     return ()=>{active=false;};
-  },[]);
+  },[workbenchOn]);
 
   // State đồng bộ Phân tích Bảng điểm Z-Score -> Soạn Giáo Án 5512
   const [analyticsData, setAnalyticsData] = useState(null);
@@ -113,8 +131,21 @@ export default function App() {
       return listProjects();
     }).then(setProjects).catch(e=>{saveFailure.current=e;setSaveError(`Chưa lưu: ${e.message}. Hãy tải JSON dự phòng.`);});
   },[storageReady,projectId,slideDeck,lessonPlan,outline,presentationConfig,analyticsData,classProficiency,recommendedOutcome]);
-  const switchProject=async id=>{if(editorDirty){setSaveError("Hãy lưu slide đang sửa trước khi đổi dự án.");return;}try{await saveQueue.current;if(saveFailure.current)throw saveFailure.current;const project=id?await loadProject(id):blankProject();restore(project);setActiveScreen('dashboard');}catch(e){setSaveError(e.message);}};
+  const switchProject=async id=>{if(editorDirty){setSaveError("Hãy lưu slide đang sửa trước khi đổi dự án.");return;}try{await saveQueue.current;if(saveFailure.current)throw saveFailure.current;const project=id?assertLegacyProject(await loadProject(id)):blankProject();restore(project);setActiveScreen('dashboard');}catch(e){setSaveError(e.message);}};
   const downloadProject=()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(currentProject,null,2)],{type:'application/json'}));const link=document.createElement('a');link.href=url;link.download='lesson-project.json';link.click();URL.revokeObjectURL(url);};
+
+  useEffect(()=>{if(workbenchOn)workbenchActions.refreshLessons();},[workbenchOn,workbenchActions]);
+  useEffect(()=>{
+    if(workbench.saveState==='saved')return;
+    const handler=event=>{event.preventDefault();event.returnValue='';};
+    window.addEventListener('beforeunload',handler);
+    return()=>window.removeEventListener('beforeunload',handler);
+  },[workbench.saveState]);
+  const switchWorkbench=on=>{
+    if(on&&editorDirty){setSaveError('Hãy lưu slide đang sửa trước khi bật Bàn làm việc.');return;}
+    setWorkbenchOn(on);
+    try{localStorage.setItem(WORKBENCH_SWITCH,on?'on':'off');}catch{/* preference only: the switch still works for this visit */}
+  };
 
 
   const handleClassificationSuccess = (result) => {
@@ -144,7 +175,8 @@ export default function App() {
       setIsBlackout,
       setCurrentSlide,
       setIsLeftOpen,
-      setIsRightOpen
+      setIsRightOpen,
+      enabled: !workbenchOn
     });
 
   const { handleGenerateOutline, handleGenerateFromOutline, handleGenerateFromAi } =
@@ -179,15 +211,17 @@ export default function App() {
     if(deckRef.current?.deck_id!==base.deck_id||deckRef.current?.revision!==base.revision)return false;
     const next=normalizeDeck(updated);deckRef.current=next;setDeckState(next);return true;
   };
+  if(workbenchOn)return <Workbench session={workbench} actions={workbenchActions} onSwitchOff={()=>switchWorkbench(false)}/>;
   if(!storageReady&&!saveError)return <p className="p-8">Đang nạp dự án…</p>;
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#ffffff] text-[#141414] select-none">
       {!isPresentationMode&&<div className="flex gap-3 p-2 items-center border-b text-sm">
         <button disabled={isAiGenerating||isGeneratingOutline} onClick={()=>switchProject(null)}>Dự án mới</button>
-        <select aria-label="Chọn dự án" value={projectId||''} disabled={isAiGenerating||isGeneratingOutline} onChange={e=>switchProject(e.target.value)}><option value={projectId||''}>{currentProject.title||'Dự án chưa đặt tên'}</option>{projects.filter(p=>p.project_id!==projectId).map(p=><option key={p.project_id} value={p.project_id}>{p.title||'Dự án chưa đặt tên'}</option>)}</select>
+        <select aria-label="Chọn dự án" value={projectId||''} disabled={isAiGenerating||isGeneratingOutline} onChange={e=>switchProject(e.target.value)}><option value={projectId||''}>{currentProject.title||'Dự án chưa đặt tên'}</option>{projects.filter(p=>p.project_id!==projectId).map(p=><option key={p.project_id} value={p.project_id}>{p.title||'Dự án chưa đặt tên'}{p.schema_version===3?' (Bài giảng bản 3)':''}</option>)}</select>
         <button onClick={downloadProject}>Tải JSON dự phòng</button>
-        <label>Phục hồi JSON <input type="file" accept=".json" className="w-48" onChange={async e=>{try{const file=e.target.files?.[0];if(!file)return;const p=JSON.parse(await file.text());if(p.schema_version!==2||!p.project_id)throw new Error('Dự án không đúng định dạng');if(p.deck)p.deck=normalizeDeck(p.deck);await saveQueue.current;if(saveFailure.current)throw saveFailure.current;restore(p);}catch(e){setSaveError(e.message);}}}/></label>
+        <label>Phục hồi JSON <input type="file" accept=".json" className="w-48" onChange={async e=>{try{const file=e.target.files?.[0];if(!file)return;const p=assertLegacyProject(JSON.parse(await file.text()));if(p.deck)p.deck=normalizeDeck(p.deck);await saveQueue.current;if(saveFailure.current)throw saveFailure.current;restore(p);}catch(e){setSaveError(e.message);}}}/></label>
+        <label className="flex items-center gap-1"><input type="checkbox" role="switch" checked={false} disabled={isAiGenerating||isGeneratingOutline} onChange={e=>switchWorkbench(e.target.checked)}/>Bàn làm việc</label>
         {saveError&&<span role="alert" className="text-red-700">{saveError}</span>}
       </div>}
       {/* 1. Header Navigation (Tự động ẩn hoàn toàn khi vào Chế độ Trình Chiếu Toàn Màn Hình - Task 15.2) */}
