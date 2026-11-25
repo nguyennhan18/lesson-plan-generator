@@ -87,6 +87,12 @@
 
 [Nhật ký trước 2026-11-14](PROGRESS-before-2026-11-14.md) được lưu riêng.
 
+- `2026-11-26 — Xóa chín tệp frontend mồ côi từ 05/11 (1.886 dòng)`:
+  - `492d723` (05/11) viết lại `PresentationStage.jsx` và bỏ các import tới `PresentationFloatingBar.jsx` (603 dòng), `InteractiveQuizCard.jsx` (408) và `geometryClient.js` (8). Thẻ trắc nghiệm kéo theo `DetailedSolutionModal.jsx` (207), `MisconceptionModal.jsx` (230), `canvasConfetti.js` (131), `quizAudioFeedback.js` (132), `misconceptionClassifier.js` (116) và `solutionStepFormatter.js` (51); cả cụm không còn đường tới từ `main.jsx`.
+  - Xóa cả chín tệp. `#47` (Bỏ phiếu trắc nghiệm khi chiếu) dựng lại tính năng này trong Bàn làm việc theo thiết kế khác: giáo viên đếm tay giơ bằng nút +/−, học sinh không cần thiết bị. Mã cũ vẫn tra được trong lịch sử Git tại `492d723^`.
+  - Sau khi xóa, không còn tệp frontend nào mồ côi (đo theo chuỗi import từ `main.jsx`).
+  - Kiểm thử: frontend `101/101`; `make build` đạt; E2E Bàn làm việc `13/13`; backend không bị ảnh hưởng.
+
 - `2026-11-26 — Xóa mã chết lúc chạy trên main (1.921 dòng + khung template)`:
   - Xóa sáu tệp không tới được từ `lessonai.main` và không nơi nào ngoài `src` nhắc tới: `services/chat.py` (292 dòng), `services/geometry.py` (993), `rag/provenance.py` (460), `schemas/chat_schema.py` (149), `prompts/chat.py` (27) và `templates/manifest.json`. Năm endpoint `/api/v1/chat/*` vẫn do `services/copilot.py` phục vụ; sáu endpoint `/api/v1/geometry/*` vẫn là chặn 410.
   - Bỏ khung chọn template PPTX đã chết: `load_manifest_config()` và `select_template_presentation()` trong `exporters/slide_exporter.py` không có nơi gọi, hàm sau dựng `Presentation()` trắng và không mở tệp nào, nên `TEMPLATES_DIR` trong `core/config.py` cũng được bỏ. Bộ slide dựng bằng mã từ Dàn ý (ADR 0002, ADR 0009). Các tệp `template_*.pptx` chưa từng vào Git và vẫn nằm ở máy.
