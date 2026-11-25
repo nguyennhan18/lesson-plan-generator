@@ -19,6 +19,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 
 from lessonai.core.config import BACKEND_DIR
+from lessonai.llm import tracing
 
 # Nạp OpenAI Client cho Groq và OpenRouter
 try:
@@ -273,8 +274,8 @@ class LLMGateway:
                 if f"groq:{m}" not in self._dead_models
             ]
 
-        if task_type == "lesson_plan":
-            # 1. Soạn Kế hoạch bài dạy 5512 (Ưu tiên OpenRouter nếu có, sau đó Google, Groq)
+        if task_type in ("lesson_plan", "lesson_architect", "lesson_author", "lesson_repair"):
+            # 1. Soạn Kế hoạch bài dạy 5512 & các vai trò trong chuỗi Giáo án
             if self.openrouter_key and "openrouter:deepseek/deepseek-chat" not in self._dead_models:
                 routes.append(ProviderRoute("openrouter", "deepseek/deepseek-chat", "https://openrouter.ai/api/v1", self.openrouter_key))
             if self.gemini_key:
@@ -286,8 +287,8 @@ class LLMGateway:
             if self.openrouter_key and "openrouter:meta-llama/llama-3.3-70b-instruct" not in self._dead_models:
                 routes.append(ProviderRoute("openrouter", "meta-llama/llama-3.3-70b-instruct", "https://openrouter.ai/api/v1", self.openrouter_key))
 
-        elif task_type == "slide":
-            # 2. Sinh cấu trúc Slide bài giảng (Ưu tiên OpenRouter nếu có, sau đó Groq LPU, Google)
+        elif task_type in ("slide", "slide_narrative", "slide_visual_quiz", "slide_repair", "outline"):
+            # 2. Sinh cấu trúc Slide bài giảng & các vai trò trong chuỗi Slide/Outline
             if self.openrouter_key and "openrouter:deepseek/deepseek-chat" not in self._dead_models:
                 routes.append(ProviderRoute("openrouter", "deepseek/deepseek-chat", "https://openrouter.ai/api/v1", self.openrouter_key))
             if self.groq_key:
@@ -321,6 +322,8 @@ class LLMGateway:
 
         else:
             # Tuyến mặc định an toàn
+            if self.openrouter_key and "openrouter:deepseek/deepseek-chat" not in self._dead_models:
+                routes.append(ProviderRoute("openrouter", "deepseek/deepseek-chat", "https://openrouter.ai/api/v1", self.openrouter_key))
             if self.gemini_key and google_models:
                 routes.append(ProviderRoute("google", google_models[0], api_key=self.gemini_key))
             if self.groq_key and groq_models:
@@ -334,12 +337,17 @@ class LLMGateway:
         system_prompt: str,
         response_schema: Type[T],
         task_type: str = "lesson_plan",
-        temperature: float = 0.7
+        temperature: float = 0.7,
+        *,
+        role_name: Optional[str] = None,
+        prompt_name: Optional[str] = None,
+        prompt_version: Optional[str] = None,
     ) -> T:
         """
         Thực thi sinh dữ liệu có cấu trúc Pydantic Schema qua chuỗi Fallback thông minh.
         Tích hợp Exponential Backoff 4s -> 8s khi gặp lỗi 429/RESOURCE_EXHAUSTED.
         Tự động chuyển mạch tức thời sang Provider tiếp theo (Google -> Groq -> OpenRouter).
+        Ghi nhận đầy đủ Langfuse Generation, Token Usage (input/output/total) và metadata vai trò.
         """
         routes = self.get_active_routes(task_type)
         if not routes:
@@ -349,6 +357,7 @@ class LLMGateway:
 
         last_error = None
         start_time = time.time()
+        gen_name = role_name or prompt_name or task_type
 
         for idx, route in enumerate(routes):
             attempt_start = time.time()
@@ -357,8 +366,19 @@ class LLMGateway:
             max_route_attempts = 2 if route.provider_id == "google" else 1
 
             for route_attempt in range(max_route_attempts):
+                gen = tracing.start_generation(
+                    name=gen_name,
+                    provider=route.provider_id,
+                    model=route.model_name,
+                    system_prompt=system_prompt,
+                    prompt=prompt,
+                    temperature=temperature,
+                    role_name=role_name,
+                    prompt_name=prompt_name,
+                    prompt_version=prompt_version,
+                )
                 try:
-                    print(f"[LLM Gateway] Đang định tuyến tới [{route.provider_id.upper()}]: Model '{route.model_name}' (Tác vụ: '{task_type}' | Lần {route_attempt + 1})...")
+                    print(f"[LLM Gateway] Đang định tuyến tới [{route.provider_id.upper()}]: Model '{route.model_name}' (Tác vụ: '{gen_name}' | Lần {route_attempt + 1})...")
 
                     # ================= 1. XỬ LÝ QUA GOOGLE GENAI SDK =================
                     if route.provider_id == "google" and self.google_client is not None and genai_types is not None:
@@ -377,6 +397,8 @@ class LLMGateway:
                         raw_text = res.text or ""
                         clean_text = strip_markdown_json_fence(fix_latex_backslashes(raw_text))
                         result = response_schema.model_validate_json(clean_text)
+                        usage = tracing.extract_usage_details(res, route.provider_id)
+                        gen.finish(output=raw_text, usage_details=usage)
 
                         latency = round(time.time() - attempt_start, 2)
                         self.transition_history.append({
@@ -428,6 +450,8 @@ class LLMGateway:
 
                         clean_text = strip_markdown_json_fence(fix_latex_backslashes(raw_text))
                         result = response_schema.model_validate_json(clean_text)
+                        usage = tracing.extract_usage_details(completion, route.provider_id)
+                        gen.finish(output=raw_text, usage_details=usage)
 
                         latency = round(time.time() - attempt_start, 2)
                         self.transition_history.append({
@@ -464,6 +488,8 @@ class LLMGateway:
                         raw_text = completion.choices[0].message.content or "{}"
                         clean_text = strip_markdown_json_fence(fix_latex_backslashes(raw_text))
                         result = response_schema.model_validate_json(clean_text)
+                        usage = tracing.extract_usage_details(completion, route.provider_id)
+                        gen.finish(output=raw_text, usage_details=usage)
 
                         latency = round(time.time() - attempt_start, 2)
                         self.transition_history.append({
@@ -478,6 +504,7 @@ class LLMGateway:
                 except Exception as e:
                     last_error = e
                     err_str = str(e)
+                    gen.fail(e)
                     err_lower = err_str.lower()
                     is_rate_limit = any(term in err_lower for term in ["429", "resource_exhausted", "ratelimit", "quota"])
                     is_dead_model = any(
@@ -524,7 +551,11 @@ class LLMGateway:
         prompt: str,
         system_prompt: str,
         task_type: str = "chat",
-        temperature: float = 0.6
+        temperature: float = 0.6,
+        *,
+        role_name: Optional[str] = None,
+        prompt_name: Optional[str] = None,
+        prompt_version: Optional[str] = None,
     ) -> str:
         """
         Thực thi sinh văn bản tự do (Conversational / Co-pilot) qua chuỗi Fallback đa nhà cung cấp.
@@ -535,84 +566,104 @@ class LLMGateway:
             raise ValueError("Không tìm thấy tuyến LLM khả dụng cho tác vụ sinh văn bản.")
 
         last_error = None
-        for route in routes:
-            attempt_start = time.time()
-            try:
-                if route.provider_id == "google" and self.google_client is not None and genai_types is not None:
-                    config = genai_types.GenerateContentConfig(
-                        system_instruction=system_prompt,
-                        temperature=temperature,
-                        max_output_tokens=1000
-                    )
-                    res = self.google_client.models.generate_content(
-                        model=route.model_name,
-                        contents=prompt,
-                        config=config
-                    )
-                    if res and res.text:
-                        latency = round(time.time() - attempt_start, 2)
-                        self.transition_history.append({
-                            "provider": route.provider_id,
-                            "model": route.model_name,
-                            "status": "success",
-                            "latency_sec": latency
-                        })
-                        return res.text.strip()
+        gen_name = role_name or prompt_name or task_type
+        with tracing.trace_span(f"generate_text:{gen_name}"):
+            for route in routes:
+                attempt_start = time.time()
+                gen = tracing.start_generation(
+                    name=gen_name,
+                    provider=route.provider_id,
+                    model=route.model_name,
+                    system_prompt=system_prompt,
+                    prompt=prompt,
+                    temperature=temperature,
+                    role_name=role_name,
+                    prompt_name=prompt_name,
+                    prompt_version=prompt_version,
+                )
+                try:
+                    if route.provider_id == "google" and self.google_client is not None and genai_types is not None:
+                        config = genai_types.GenerateContentConfig(
+                            system_instruction=system_prompt,
+                            temperature=temperature,
+                            max_output_tokens=1000
+                        )
+                        res = self.google_client.models.generate_content(
+                            model=route.model_name,
+                            contents=prompt,
+                            config=config
+                        )
+                        if res and res.text:
+                            latency = round(time.time() - attempt_start, 2)
+                            self.transition_history.append({
+                                "provider": route.provider_id,
+                                "model": route.model_name,
+                                "status": "success",
+                                "latency_sec": latency
+                            })
+                            usage = tracing.extract_usage_details(res, route.provider_id)
+                            gen.finish(output=res.text, usage_details=usage)
+                            return res.text.strip()
 
-                elif route.provider_id == "groq" and self.groq_client is not None:
-                    completion = self.groq_client.chat.completions.create(
-                        model=route.model_name,
-                        messages=[
-                            {"role": "system", "content": system_prompt},
-                            {"role": "user", "content": prompt}
-                        ],
-                        temperature=temperature,
-                        max_tokens=1000
-                    )
-                    text = completion.choices[0].message.content
-                    if text:
-                        latency = round(time.time() - attempt_start, 2)
-                        self.transition_history.append({
-                            "provider": route.provider_id,
-                            "model": route.model_name,
-                            "status": "success",
-                            "latency_sec": latency
-                        })
-                        return text.strip()
+                    elif route.provider_id == "groq" and self.groq_client is not None:
+                        completion = self.groq_client.chat.completions.create(
+                            model=route.model_name,
+                            messages=[
+                                {"role": "system", "content": system_prompt},
+                                {"role": "user", "content": prompt}
+                            ],
+                            temperature=temperature,
+                            max_tokens=1000
+                        )
+                        text = completion.choices[0].message.content
+                        if text:
+                            latency = round(time.time() - attempt_start, 2)
+                            self.transition_history.append({
+                                "provider": route.provider_id,
+                                "model": route.model_name,
+                                "status": "success",
+                                "latency_sec": latency
+                            })
+                            usage = tracing.extract_usage_details(completion, route.provider_id)
+                            gen.finish(output=text, usage_details=usage)
+                            return text.strip()
 
-                elif route.provider_id == "openrouter" and self.openrouter_client is not None:
-                    completion = self.openrouter_client.chat.completions.create(
-                        model=route.model_name,
-                        messages=[
-                            {"role": "system", "content": system_prompt},
-                            {"role": "user", "content": prompt}
-                        ],
-                        temperature=temperature,
-                        max_tokens=1000
-                    )
-                    text = completion.choices[0].message.content
-                    if text:
-                        latency = round(time.time() - attempt_start, 2)
-                        self.transition_history.append({
-                            "provider": route.provider_id,
-                            "model": route.model_name,
-                            "status": "success",
-                            "latency_sec": latency
-                        })
-                        return text.strip()
-            except Exception as e:
-                last_error = e
-                latency = round(time.time() - attempt_start, 2)
-                self.transition_history.append({
-                    "provider": route.provider_id,
-                    "model": route.model_name,
-                    "status": "failed",
-                    "error": str(e)[:120],
-                    "latency_sec": latency
-                })
-                continue
+                    elif route.provider_id == "openrouter" and self.openrouter_client is not None:
+                        completion = self.openrouter_client.chat.completions.create(
+                            model=route.model_name,
+                            messages=[
+                                {"role": "system", "content": system_prompt},
+                                {"role": "user", "content": prompt}
+                            ],
+                            temperature=temperature,
+                            max_tokens=1000
+                        )
+                        text = completion.choices[0].message.content
+                        if text:
+                            latency = round(time.time() - attempt_start, 2)
+                            self.transition_history.append({
+                                "provider": route.provider_id,
+                                "model": route.model_name,
+                                "status": "success",
+                                "latency_sec": latency
+                            })
+                            usage = tracing.extract_usage_details(completion, route.provider_id)
+                            gen.finish(output=text, usage_details=usage)
+                            return text.strip()
+                except Exception as e:
+                    last_error = e
+                    gen.fail(e)
+                    latency = round(time.time() - attempt_start, 2)
+                    self.transition_history.append({
+                        "provider": route.provider_id,
+                        "model": route.model_name,
+                        "status": "failed",
+                        "error": str(e)[:120],
+                        "latency_sec": latency
+                    })
+                    continue
 
-        raise RuntimeError(f"Không thể sinh văn bản phản hồi từ các tuyến LLM: {last_error}")
+            raise RuntimeError(f"Không thể sinh văn bản phản hồi từ các tuyến LLM: {last_error}")
 
 
 # Khởi tạo Singleton Gateway dùng chung cho toàn bộ ứng dụng

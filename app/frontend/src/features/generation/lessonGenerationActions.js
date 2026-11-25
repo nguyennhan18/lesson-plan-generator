@@ -160,9 +160,12 @@ export function createLessonGenerationActions({
   setPolyhedronType
 }) {
   // ================= TRẠM 1 -> TRẠM 2: KHỞI TẠO DÀN Ý BÀI GIẢNG =================
+  const createSessionId = () => `lesson-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
   const handleGenerateOutline = async (config) => {
     setIsGeneratingOutline(true);
     setPresentationConfig(config);
+    const sessionId = config.session_id || createSessionId();
     try {
       const res = await postJson('/api/v1/presentation/outline', {
           topic: config.topic,
@@ -176,7 +179,8 @@ export function createLessonGenerationActions({
           model_id: config.model_id || 'gemini-2.5-flash',
           tone: config.tone || 'academic',
           text_content: config.text_content || 'concise',
-          aspect_ratio: config.aspect_ratio || '16:9'
+          aspect_ratio: config.aspect_ratio || '16:9',
+          session_id: sessionId
         });
 
       if (!res.ok) {
@@ -192,6 +196,7 @@ export function createLessonGenerationActions({
       }));
       setOutline({
         ...data,
+        session_id: data.session_id || sessionId,
         outline_slides: normalizedSlides
       });
       setActiveScreen('outline');
@@ -204,6 +209,7 @@ export function createLessonGenerationActions({
         subject: config.subject || 'Toán học',
         grade: parseInt(config.grade, 10) || 12,
         lesson_id: config.lesson_id || 'OUTLINE-LOCAL',
+        session_id: sessionId,
         total_slides: 6,
         outline_slides: [
           {
@@ -356,7 +362,9 @@ export function createLessonGenerationActions({
       lesson_id: outline?.lesson_id || presentationConfig.lesson_id,
       use_rag: presentationConfig.use_rag,
       proficiency: presentationConfig.class_proficiency || classProficiency || 'standard',
-      outcome: recommendedOutcome
+      outcome: recommendedOutcome,
+      outline_slides: outline?.outline_slides || [],
+      session_id: outline?.session_id || presentationConfig?.session_id
     };
     await handleGenerateFromAi(params);
   };
@@ -365,10 +373,12 @@ export function createLessonGenerationActions({
   const handleGenerateFromAi = async (params) => {
     setIsAiGenerating(true);
     setGenerationStep('Đang gửi yêu cầu và kết nối Gemini AI...');
+    const sessionId = params.session_id || outline?.session_id || createSessionId();
+    const approvedOutlineSlides = params.outline_slides || outline?.outline_slides || undefined;
 
     try {
-      // 1. Gọi API sinh Kế hoạch bài dạy 5512 thật
-      setGenerationStep('Gemini đang phân tích sư phạm và soạn Kế hoạch 5512...');
+      // 1. Gọi API sinh Kế hoạch bài dạy 5512 thật (Role-Based Prompt Chain)
+      setGenerationStep('AI đang phân tích Khung sư phạm & soạn Kế hoạch 5512...');
       const planRes = await postJson('/api/v1/lesson-plan/generate', {
           topic: params.topic,
           subject: params.subject,
@@ -376,15 +386,17 @@ export function createLessonGenerationActions({
           lesson_id: params.lesson_id || undefined,
           use_rag: params.use_rag !== undefined ? params.use_rag : true,
           class_proficiency: params.proficiency || 'standard',
-          target_outcome: params.outcome || ''
+          target_outcome: params.outcome || '',
+          outline_slides: approvedOutlineSlides,
+          session_id: sessionId
         });
 
       if (!planRes.ok) throw new Error(`Lỗi sinh giáo án: HTTP ${planRes.status}`);
       const planData = await planRes.json();
       setLessonPlan(planData.plan);
 
-      // 2. Gọi API sinh SlideDeck đồng bộ với Kế hoạch vừa sinh
-      setGenerationStep('Gemini đang thiết kế bộ Slide bài giảng tương ứng...');
+      // 2. Gọi API sinh SlideDeck đồng bộ với Kế hoạch & Dàn ý đã duyệt (Role-Based Prompt Chain)
+      setGenerationStep('AI đang thiết kế Kịch bản Slide, Đồ thị & Trắc nghiệm...');
       const slideRes = await postJson('/api/v1/slide/generate', {
           topic: params.topic,
           subject: params.subject,
@@ -393,7 +405,9 @@ export function createLessonGenerationActions({
           use_rag: params.use_rag !== undefined ? params.use_rag : true,
           class_proficiency: params.proficiency || 'standard',
           target_outcome: params.outcome || '',
-          plan: planData.plan
+          plan: planData.plan,
+          outline_slides: approvedOutlineSlides,
+          session_id: sessionId
         });
 
       if (!slideRes.ok) throw new Error(`Lỗi sinh slide: HTTP ${slideRes.status}`);

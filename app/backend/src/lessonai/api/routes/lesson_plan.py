@@ -16,7 +16,9 @@ def generate_lesson_plan_endpoint(req: LessonRequest):
             grade=req.grade,
             lesson_id=req.lesson_id,
             use_rag=req.use_rag,
-            proficiency=req.class_proficiency.value if req.class_proficiency else "standard"
+            proficiency=req.class_proficiency.value if req.class_proficiency else "standard",
+            outline_slides=req.outline_slides,
+            session_id=req.session_id
         )
         return {
             "is_valid": val_result.is_valid,

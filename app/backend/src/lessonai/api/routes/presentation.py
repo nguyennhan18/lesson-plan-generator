@@ -25,7 +25,8 @@ def generate_outline_endpoint(req: OutlineRequest):
             model_provider=req.model_provider,
             model_id=req.model_id,
             tone=req.tone,
-            language=req.language
+            language=req.language,
+            session_id=req.session_id
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Lỗi khi tạo dàn ý bài giảng: {str(e)}")

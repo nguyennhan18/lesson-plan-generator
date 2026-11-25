@@ -25,7 +25,9 @@ def generate_slide_endpoint(req: LessonRequest):
             use_rag=req.use_rag,
             plan=req.plan,
             class_proficiency=req.class_proficiency,
-            target_outcome=req.target_outcome
+            target_outcome=req.target_outcome,
+            outline_slides=req.outline_slides,
+            session_id=req.session_id
         )
         deck_dict = slide_deck.model_dump()
         return enrich_slide_deck_with_renders(deck_dict)
