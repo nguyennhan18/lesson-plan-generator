@@ -1453,21 +1453,3 @@ export_slide_to_pptx = export_slide_deck_to_pptx_file
 def render_math_plot(chart_spec: dict) -> io.BytesIO:
     """Vẽ đồ thị toán học từ cấu hình chart_spec và trả về buffer ảnh (BytesIO)."""
     return io.BytesIO(generate_math_plot(chart_spec))
-
-
-def load_manifest_config() -> dict:
-    """Đọc file manifest.json trong thư mục templates/ (giữ cho tương thích ngược)"""
-    from lessonai.core.config import TEMPLATES_DIR
-    manifest_path = TEMPLATES_DIR / "manifest.json"
-    if os.path.exists(manifest_path):
-        with open(manifest_path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {}
-
-
-def select_template_presentation(theme_id: str = "math_academic") -> tuple[Any, dict]:
-    """Tạo Presentation 16:9 widescreen đồng bộ với giao diện web"""
-    prs = Presentation()
-    prs.slide_width = Inches(10.0)
-    prs.slide_height = Inches(5.625)
-    return prs, {}
