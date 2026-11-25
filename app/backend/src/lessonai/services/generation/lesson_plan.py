@@ -211,6 +211,9 @@ def generate_lesson_plan(
     use_rag: bool = True,
     proficiency: str = "standard",
     max_retries: int = 2,
+    approved_outline: Optional[dict] = None,
+    model_provider: Optional[str] = None,
+    model_id: Optional[str] = None,
     outline_slides: Optional[List[Any]] = None,
     session_id: Optional[str] = None,
 ) -> tuple[LessonPlanSchema, ValidationResult]:
@@ -220,7 +223,8 @@ def generate_lesson_plan(
       - Step 1 [agent]     : `role.pedagogical_architect` -> `LessonBlueprintSchema`
       - Gate 1 [evaluator] : `gate.blueprint_5512` (kiểm tra & chuẩn hóa khung 45 phút)
       - Step 2 [agent]     : `role.lesson_activity_author` -> `LessonActivitiesPayload`
-      - Gate 2 [evaluator] : `gate.validate_5512` (`validate_5512_lesson_plan`)
+      - Gate 2 [evaluator] : `gate.validate_5512` (`validate_5512_lesson_plan`, cộng thêm
+        `validate_plan_outline` nếu có `approved_outline` đã được giáo viên duyệt)
       - Step 3 [agent]     : `role.lesson_repair_reviewer` (chỉ chạy khi Gate 2 phát hiện lỗi)
     Tích hợp Graceful Partial Fallback (bảo toàn kết quả mắt xích trước nếu mắt xích sau hết quota).
     """
@@ -234,6 +238,16 @@ def generate_lesson_plan(
             resolved_lid = infer_lesson_id(topic)
         except Exception:
             resolved_lid = None
+
+    approved_outline_section = ""
+    if approved_outline:
+        import json
+
+        approved_outline_section = (
+            "\nDàn ý giáo viên đã duyệt: giữ nguyên văn tiêu đề, các ý, math_focus theo thứ tự trong goal "
+            "hoặc execution của đúng hoạt động 1 khởi động, 2 hình thành kiến thức, 3 luyện tập, "
+            "4 vận dụng/tổng kết. Không bỏ nội dung:\n" + json.dumps(approved_outline, ensure_ascii=False)
+        )
 
     with tracing.trace_chain(
         "chain.lesson_plan_generation",
@@ -288,6 +302,7 @@ def generate_lesson_plan(
                 "1. Đề xuất đầy đủ knowledge_goals, competency_goals, skills_goals, character_goals và teaching_equipment.\n"
                 "2. Thiết kế `activity_blueprints` gồm ĐÚNG 4 hoạt động (activity_number = 1, 2, 3, 4) với tổng `time_minutes` đúng bằng 45 phút."
                 f"{outline_section}"
+                f"{approved_outline_section}"
                 f"{rag_instruction}"
             )
             with tracing.observe_role(
@@ -301,6 +316,8 @@ def generate_lesson_plan(
                     system_prompt=PEDAGOGICAL_ARCHITECT_PROMPT.system_prompt,
                     response_schema=LessonBlueprintSchema,
                     task_type="lesson_plan",
+                    model_provider=model_provider,
+                    model_id=model_id,
                     role_name=PEDAGOGICAL_ARCHITECT_PROMPT.name,
                     prompt_name=PEDAGOGICAL_ARCHITECT_PROMPT.name,
                     prompt_version=PEDAGOGICAL_ARCHITECT_PROMPT.version,
@@ -339,6 +356,7 @@ def generate_lesson_plan(
                         "1. Mảng `activities` phải có ĐÚNG 4 phần tử (`activity_number` = 1, 2, 3, 4) giữ đúng `time_minutes` trong Blueprint (tổng 45 phút).\n"
                         "2. Mỗi hoạt động phải có đầy đủ `goal`, `expected_product` và 4 bước `execution` (`step_1_assign`, `step_2_excute`, `step_3_report`, `step_4_conclusion`)."
                         f"{outline_section}"
+                        f"{approved_outline_section}"
                         f"{rag_instruction}"
                     )
                     with tracing.observe_role(
@@ -352,6 +370,8 @@ def generate_lesson_plan(
                             system_prompt=LESSON_ACTIVITY_AUTHOR_PROMPT.system_prompt,
                             response_schema=LessonActivitiesPayload,
                             task_type="lesson_plan",
+                            model_provider=model_provider,
+                            model_id=model_id,
                             role_name=LESSON_ACTIVITY_AUTHOR_PROMPT.name,
                             prompt_name=LESSON_ACTIVITY_AUTHOR_PROMPT.name,
                             prompt_version=LESSON_ACTIVITY_AUTHOR_PROMPT.version,
@@ -389,12 +409,27 @@ def generate_lesson_plan(
                     tracing.record_trace_score("fallback_used", 0.5, comment="partial_fallback_role2")
                     return plan, val_result
 
+            # ================= KIỂM ĐỊNH HỢP ĐỒNG DÀN Ý ĐÃ DUYỆT (NẾU CÓ) =================
+            import copy
+
+            plan.approved_outline = copy.deepcopy(approved_outline)
+            plan.review_token = None
+            plan.quality_report = None
+            outline_contract_warnings: List[str] = []
+            if approved_outline:
+                from lessonai.services.generation.outline_contract import validate_plan_outline
+
+                outline_contract_warnings = validate_plan_outline(plan, approved_outline) or []
+
             # ================= GATE 2: KIỂM ĐỊNH CHUẨN CÔNG VĂN 5512 =================
             with tracing.observe_evaluator(
                 "gate.validate_5512",
                 input_data={"lesson_title": plan.lesson_title, "activities_count": len(plan.activities)},
             ) as gate2_obs:
                 val_result = validate_5512_lesson_plan(plan)
+                for w in outline_contract_warnings:
+                    if w not in val_result.warnings:
+                        val_result.warnings.append(w)
                 gate2_obs.set_output(
                     {"is_valid": val_result.is_valid, "errors": val_result.errors, "warnings": val_result.warnings}
                 )
@@ -462,7 +497,7 @@ def generate_lesson_plan(
             # GRACEFUL FALLBACK: Nếu đã có bản kế hoạch ở mắt xích trước (khi bước Repair gặp lỗi 429/mạng),
             # bảo toàn và hoàn trả ngay bản kế hoạch đó kèm cảnh báo!
             if last_successful_plan is not None:
-                print("[AI Service] Kích hoạt Graceful Fallback: Trả về bản giáo án gần nhất đã kiểm duyệt!")
+                print("[AI Service] Kích hoạt Graceful Fallback: Trả về bản nháp gần nhất kèm kết quả kiểm tra!")
                 res = last_validation_result or ValidationResult(is_valid=True, errors=[], warnings=[])
                 res.warnings.append(
                     "Hệ thống đã tự động bảo toàn bản kế hoạch thành công gần nhất do mạng/quota gián đoạn."

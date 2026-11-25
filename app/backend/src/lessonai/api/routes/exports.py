@@ -54,6 +54,8 @@ def export_docx_endpoint(payload: Union[Dict[str, Any], LessonPlanSchema]):
         raise
     except ValidationError as error:
         raise HTTPException(status_code=422, detail=error.errors(include_context=False)) from error
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
     except Exception as error:
         raise HTTPException(status_code=500, detail="Không thể xuất Word. Nội dung bản soạn được giữ nguyên.") from error
 
@@ -79,6 +81,8 @@ def export_slide_endpoint(deck: SlideDeckSchema):
         )
     except HTTPException:
         raise
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
     except Exception as error:
         raise HTTPException(status_code=500, detail="Không thể xuất PowerPoint. Nội dung bản soạn được giữ nguyên.") from error
     finally:
@@ -124,4 +128,3 @@ def export_dual_package_endpoint(payload: Dict[str, Any]):
         raise HTTPException(status_code=500, detail=f"Lỗi khi xuất trọn bộ Dual-Package ZIP: {str(e)}")
     finally:
         cleanup_memory_and_figures()
-

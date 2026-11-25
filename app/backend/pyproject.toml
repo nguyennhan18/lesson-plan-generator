@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lessonai-backend"
-version = "0.1.0"
+version = "0.2.0"
 description = "LessonAI-5512 lesson planning and presentation API"
 requires-python = ">=3.11"
 dynamic = ["dependencies"]
@@ -27,4 +27,4 @@ dependencies = {file = ["requirements.txt"]}
 pythonpath = ["src"]
 testpaths = ["tests"]
 
-markers = ["critical_regressions: release-blocking containment and behavior checks"]
+markers = ["critical_regressions: release-blocking containment and behavior checks", "corpus_integration: requires the local untracked curriculum/corpus and historical artifacts"]

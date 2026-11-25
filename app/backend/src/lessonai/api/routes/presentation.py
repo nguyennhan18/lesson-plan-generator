@@ -1,6 +1,7 @@
 from fastapi import HTTPException
 from lessonai.schemas.schemas import OutlineRequest, OutlineResponse
 from lessonai.services.generation import generate_presentation_outline
+from lessonai.llm.gateway import classify_generation_error
 from fastapi import APIRouter
 
 router = APIRouter()
@@ -29,5 +30,4 @@ def generate_outline_endpoint(req: OutlineRequest):
             session_id=req.session_id
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Lỗi khi tạo dàn ý bài giảng: {str(e)}")
-
+        raise HTTPException(status_code=503, detail=classify_generation_error(e, "dàn ý")) from e

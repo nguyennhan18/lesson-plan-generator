@@ -14,7 +14,7 @@ def generate_presentation_outline(
     class_proficiency: Optional[str] = "standard",
     use_rag: bool = True,
     model_provider: Optional[str] = "gemini",
-    model_id: Optional[str] = "gemini-2.5-flash",
+    model_id: Optional[str] = None,
     tone: Optional[str] = "academic",
     language: Optional[str] = "vi",
     session_id: Optional[str] = None,
@@ -54,8 +54,13 @@ def generate_presentation_outline(
             f"- Cấu trúc đúng 5 bước sư phạm (Khởi động -> Khái niệm -> Ví dụ/3D -> Luyện tập trắc nghiệm -> Tổng kết)\n"
             f"- Mỗi slide có 2-4 gạch đầu dòng ý chính trọng tâm.\n"
             f"- Đánh dấu loại trực quan (visual_type): '3D Geometry', '2D Function Plot', 'Interactive Quiz', 'Concept Highlight', hoặc 'Text & Formula'.\n"
-            f"- Nếu chủ đề là hình học không gian, ghi rõ has_3d=True và polyhedron_type (cube, pyramid_square, pyramid_triangle, prism_triangle)."
+            f"- Nếu chủ đề là hình học không gian, ghi rõ has_3d=True và polyhedron_type (cube, square_pyramid_regular, square_pyramid_at_a; trường hợp khác ghi chưa hỗ trợ)."
         )
+
+        if use_rag and resolved_lid:
+            from lessonai.rag.context_builder import PedagogicalContextBuilder
+            context, _ = PedagogicalContextBuilder.build_slide_deck_context(resolved_lid, topic=topic, proficiency=class_proficiency)
+            prompt += "\nNguồn tham khảo; thiếu dữ kiện phải ghi rõ, không thêm hình để lấp chỗ trống:\n" + context
 
         try:
             with tracing.observe_role(
@@ -69,21 +74,26 @@ def generate_presentation_outline(
                     system_prompt=OUTLINE_PLANNER_PROMPT.system_prompt,
                     response_schema=OutlineResponse,
                     task_type="outline",
+                    model_provider=model_provider,
+                    model_id=model_id,
                     role_name=OUTLINE_PLANNER_PROMPT.name,
                     prompt_name=OUTLINE_PLANNER_PROMPT.name,
                     prompt_version=OUTLINE_PLANNER_PROMPT.version,
                 )
-                if outline_obj and outline_obj.outline_slides:
-                    for idx, s in enumerate(outline_obj.outline_slides):
-                        if not s.id:
-                            s.id = f"outline-slide-{idx + 1}"
-                        s.slide_index = idx + 1
-                    outline_obj.session_id = session_id
-                    role_obs.set_output({"num_slides": len(outline_obj.outline_slides)})
-                    chain_obs.set_output({"title": outline_obj.title, "num_slides": len(outline_obj.outline_slides)})
-                    tracing.record_trace_score("outline_generated", 1.0)
-                    tracing.record_trace_score("fallback_used", 0.0)
-                    return outline_obj
+                if not outline_obj or len(outline_obj.outline_slides) != num_slides:
+                    raise ValueError("Dàn ý chưa đủ đúng số mục được yêu cầu")
+
+                from uuid import uuid4
+                for idx, slide in enumerate(outline_obj.outline_slides, 1):
+                    slide.id = str(uuid4())
+                    slide.slide_index = slide.slide_number = idx
+                outline_obj.topic = topic
+                outline_obj.session_id = session_id
+                role_obs.set_output({"num_slides": len(outline_obj.outline_slides)})
+                chain_obs.set_output({"title": outline_obj.title, "num_slides": len(outline_obj.outline_slides)})
+                tracing.record_trace_score("outline_generated", 1.0)
+                tracing.record_trace_score("fallback_used", 0.0)
+                return outline_obj
         except Exception as e:
             print(f"[AI Service] LLM outline exception ({e}), kích hoạt Curated Outline Fallback...")
             chain_obs.mark_warning(f"Curated Outline Fallback: {str(e)[:120]}")

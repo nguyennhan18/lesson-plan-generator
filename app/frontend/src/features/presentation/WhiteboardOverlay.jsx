@@ -35,6 +35,7 @@ export default function WhiteboardOverlay({
   onSelectColor,
   strokes = [],
   onStrokesChange,
+  onEraseStroke,
   canUndo = false,
   canRedo = false,
   onUndo,
@@ -257,6 +258,7 @@ export default function WhiteboardOverlay({
           slideIndex="whiteboard"
           strokes={strokes}
           onStrokesChange={onStrokesChange}
+          onEraseStroke={onEraseStroke}
           isPresentationMode={true}
         />
       </div>

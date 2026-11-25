@@ -1,3 +1,7 @@
+import { MathfieldElement } from 'mathlive';
+import 'mathlive/fonts.css';
+MathfieldElement.fontsDirectory = null;
+MathfieldElement.soundsDirectory = null;
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { X, Check, Sparkles, Keyboard, Eye, Code2, CheckCircle2, AlertTriangle } from 'lucide-react';
 import katex from 'katex';
@@ -744,7 +748,7 @@ export default function MathLiveModal({
                 type="text"
                 value={currentLatex}
                 onChange={handleRawLatexInputChange}
-                placeholder="Chuỗi LaTeX tự động sinh ra tại đây..."
+                aria-label="Chuỗi LaTeX" placeholder="Chuỗi LaTeX tự động sinh ra tại đây..."
                 className="flex-1 bg-[#ffffff] border border-[#e0e0e0] focus:border-[#141414] rounded-full px-3 py-1.5 text-[11px] font-mono text-[#141414] focus:outline-none"
               />
             </div>

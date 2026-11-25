@@ -49,7 +49,7 @@ export default function HeaderNav({
             <h1 className="text-xs font-bold text-[#141414] flex items-center gap-1.5 leading-tight">
               QUANTUM STUDIO
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#e0e0e0] text-[#141414] font-medium">
-                React 19 & Three.js
+                Bản soạn của giáo viên
               </span>
             </h1>
             <p className="text-[11px] text-[#707070] leading-tight">Chuẩn CV 5512 • Trợ Giảng AI Co-pilot</p>
@@ -93,11 +93,6 @@ export default function HeaderNav({
             </span>
           </button>
 
-          {/* Timer Pill */}
-          <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#ffffff] border border-[#e0e0e0] text-[#141414] font-mono text-xs">
-            <Clock size={13} className="text-[#141414]" />
-            <span>45:20</span>
-          </div>
 
           {/* Export Dropdown Pill */}
           <div className="relative" ref={exportMenuRef}>

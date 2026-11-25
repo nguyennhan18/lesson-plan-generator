@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import {restoreProject,saveProject,listProjects,loadProject,blankProject,normalizeDeck,mutateDeck,mutatePlan} from './shared/storage/projectStore.js';
 import HeaderNav from './shared/components/HeaderNav';
 import PresentationDashboard from './features/dashboard/PresentationDashboard';
 import OutlineWorkspace from './features/generation/OutlineWorkspace';
@@ -9,14 +10,9 @@ import LessonPlanScreen from './features/lesson-plan/LessonPlanScreen';
 import SlideEditorScreen from './features/slide-editor/SlideEditorScreen';
 import AnalyticsScreen from './features/analytics/AnalyticsScreen';
 import {
-  createLessonGenerationActions,
-  defaultInitialOutline
+  createLessonGenerationActions
 } from './features/generation/lessonGenerationActions.js';
 import { createDocumentExportActions } from './features/exports/documentExportActions.js';
-import {
-  loadSlideDeckFromBrowserMemory,
-  saveSlideDeckToBrowserMemory
-} from './shared/storage/slideDeckStorage.js';
 import { usePresentationControls } from './features/presentation/usePresentationControls.js';
 
 // ==============================================================================
@@ -28,18 +24,18 @@ export default function App() {
   const [currentSlide, setCurrentSlide] = useState(0);
 
   // Workflow Trạm 1 & Trạm 2 theo FRONTEND_ARCHITECTURE.md
-  const [outline, setOutline] = useState(defaultInitialOutline);
+  const [outline, setOutline] = useState(null);
   const [isGeneratingOutline, setIsGeneratingOutline] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState('gallery_monochrome');
   const [presentationConfig, setPresentationConfig] = useState({
-    topic: 'Hệ trục tọa độ trong không gian Oxyz',
+    topic: '',
     subject: 'Toán học',
     grade: 12,
     num_slides: 8,
     class_proficiency: 'standard',
     use_rag: true,
     model_provider: 'gemini',
-    model_id: 'gemini-2.5-flash',
+    model_id: null,
     tone: 'academic',
     text_content: 'concise',
     aspect_ratio: '16:9'
@@ -50,10 +46,10 @@ export default function App() {
   const [isRightOpen, setIsRightOpen] = useState(false);
 
   // 3D Geometry Shared Parameters & Parametric Modeling (Task 12.1)
-  const [polyhedronType, setPolyhedronType] = useState('cube');
-  const [edgeLength, setEdgeLength] = useState(4.0);
-  const [geoHeight, setGeoHeight] = useState(4.0);      // Task 12.1: Chiều cao h (1 đến 10)
-  const [geoBaseEdge, setGeoBaseEdge] = useState(4.0);  // Task 12.1: Cạnh đáy a (1 đến 8)
+  const [polyhedronType, setPolyhedronType] = useState(null);
+  const [edgeLength, setEdgeLength] = useState(null);
+  const [geoHeight, setGeoHeight] = useState(null);      // Task 12.1: Chiều cao h (1 đến 10)
+  const [geoBaseEdge, setGeoBaseEdge] = useState(null);  // Task 12.1: Cạnh đáy a (1 đến 8)
   const [showHiddenLines, setShowHiddenLines] = useState(true);
   const [showVertexLabels, setShowVertexLabels] = useState(true);
   const [showAxes, setShowAxes] = useState(true);
@@ -70,15 +66,33 @@ export default function App() {
   const [isBlackout, setIsBlackout] = useState(false);
 
   // ================= CENTRAL STATE (ĐỒNG BỘ 2 CHIỀU VỚI BỘ NHỚ TRÌNH DUYỆT - TASK 9.2) =================
-  const [slideDeck, setSlideDeck] = useState(() =>
-    loadSlideDeckFromBrowserMemory(null)
-  );
-  const [lessonPlan, setLessonPlan] = useState(null);
-
-  // Task 9.2: Tự động đồng bộ cấu trúc Slide JSON vào bộ nhớ trình duyệt (sessionStorage) mỗi khi cập nhật
-  useEffect(() => {
-    saveSlideDeckToBrowserMemory(slideDeck);
-  }, [slideDeck]);
+  const [slideDeck, setDeckState] = useState(null);
+  const [lessonPlan, setPlanState] = useState(null);
+  const setLessonPlan = update => setPlanState(previous => mutatePlan(previous, typeof update === 'function' ? update(previous) : update));
+  const [editorDirty,setEditorDirty]=useState(false);
+  useEffect(()=>{
+    if(!editorDirty)return;
+    const handler=event=>{event.preventDefault();event.returnValue='';};
+    window.addEventListener('beforeunload',handler);
+    return()=>window.removeEventListener('beforeunload',handler);
+  },[editorDirty]);
+  const [projectId,setProjectId]=useState(null), [projects,setProjects]=useState([]), [storageReady,setStorageReady]=useState(false), [saveError,setSaveError]=useState('');
+  const projectMeta=useRef({});
+  const generationEpoch=useRef(0), saveQueue=useRef(Promise.resolve()), saveFailure=useRef(null);
+  const deckRef=useRef(slideDeck);deckRef.current=slideDeck;
+  const setSlideDeck=update=>setDeckState(previous=>{const value=typeof update==='function'?update(previous):update;return mutateDeck(previous,value?{...value,project_id:projectId||value.project_id}:value);});
+  const restore=project=>{
+    projectMeta.current=project;
+    setStorageReady(true);
+    generationEpoch.current++;
+    setProjectId(project.project_id);setDeckState(project.deck?normalizeDeck(project.deck):null);setPlanState(project.plan||null);setOutline(project.outline||null);
+    setPresentationConfig(project.config||{});setClassProficiency(project.classProficiency||'standard');setRecommendedOutcome(project.recommendedOutcome||'');setAnalyticsData(project.analytics||null);setCurrentSlide(0);setPolyhedronType(null);setGeoHeight(null);setGeoBaseEdge(null);setSaveError(project.migration_review||'');
+  };
+  useEffect(()=>{
+    let active=true;
+    restoreProject().then(project=>{if(active)restore(project);}).catch(e=>{if(active){setStorageReady(false);setSaveError(`Không nạp được dự án: ${e.message}. Tự lưu đang tạm dừng; hãy phục hồi JSON hoặc chọn tạo dự án mới.`);}});
+    return ()=>{active=false;};
+  },[]);
 
   // State đồng bộ Phân tích Bảng điểm Z-Score -> Soạn Giáo Án 5512
   const [analyticsData, setAnalyticsData] = useState(null);
@@ -88,6 +102,20 @@ export default function App() {
   // 3. Trạng thái Loading khi gọi Gemini AI
   const [isAiGenerating, setIsAiGenerating] = useState(false);
   const [generationStep, setGenerationStep] = useState('');
+  const currentProject={...projectMeta.current,schema_version:2,project_id:projectId,title:slideDeck?.presentation_title||outline?.title||presentationConfig.topic||'',deck:slideDeck,plan:lessonPlan,outline,config:presentationConfig,analytics:analyticsData,classProficiency,recommendedOutcome};
+  const currentProjectRef=useRef(currentProject);currentProjectRef.current=currentProject;
+  useEffect(()=>{
+    if(!storageReady||!projectId)return;
+    const snapshot=structuredClone(currentProject);
+    saveQueue.current=saveQueue.current.catch(()=>{}).then(()=>saveProject(snapshot)).then(()=>{
+      saveFailure.current=null;
+      if(currentProjectRef.current.project_id===snapshot.project_id){localStorage.setItem('lessonai-active-project',snapshot.project_id);setSaveError(snapshot.migration_review||'');}
+      return listProjects();
+    }).then(setProjects).catch(e=>{saveFailure.current=e;setSaveError(`Chưa lưu: ${e.message}. Hãy tải JSON dự phòng.`);});
+  },[storageReady,projectId,slideDeck,lessonPlan,outline,presentationConfig,analyticsData,classProficiency,recommendedOutcome]);
+  const switchProject=async id=>{if(editorDirty){setSaveError("Hãy lưu slide đang sửa trước khi đổi dự án.");return;}try{await saveQueue.current;if(saveFailure.current)throw saveFailure.current;const project=id?await loadProject(id):blankProject();restore(project);setActiveScreen('dashboard');}catch(e){setSaveError(e.message);}};
+  const downloadProject=()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(currentProject,null,2)],{type:'application/json'}));const link=document.createElement('a');link.href=url;link.download='lesson-project.json';link.click();URL.revokeObjectURL(url);};
+
 
   const handleClassificationSuccess = (result) => {
     setAnalyticsData(result);
@@ -134,91 +162,45 @@ export default function App() {
       setLessonPlan,
       setSlideDeck,
       setCurrentSlide,
-      setPolyhedronType
+      setPolyhedronType,
+      projectId, generationEpoch
     });
 
   const { handleExportDocx, handleExportPptx, handleExportDualPackage } =
     createDocumentExportActions({
       lessonPlan,
+      hasPendingEdits:editorDirty,
       slideDeck,
       currentSlide,
       threeCanvasCaptureRef
     });
 
-  // Áp dụng Live Patch từ Trợ giảng AI vào Slide hiện tại (Hỗ trợ cả chuẩn SlidePatchProposal của Backend & mẫu cũ)
-  const handleApplySlidePatch = (patch) => {
-    if (!patch) return false;
-    const targetIdx =
-      patch.target_slide_index !== undefined && patch.target_slide_index !== null
-        ? patch.target_slide_index
-        : currentSlide;
-    const updatedSlides = [...(slideDeck.slides || [])];
-
-    if (updatedSlides[targetIdx]) {
-      const target = { ...updatedSlides[targetIdx] };
-
-      const newTitle = patch.title || patch.updated_title;
-      if (newTitle) target.title = newTitle;
-
-      const newBullets = patch.bullet_points || patch.updated_bullet_points;
-      if (Array.isArray(newBullets) && newBullets.length > 0) {
-        target.bullet_points = newBullets;
-      }
-
-      const newLatex = patch.main_definition_latex || patch.updated_latex;
-      if (newLatex) target.main_definition_latex = newLatex;
-
-      const newTeacherNote = patch.teacher_note || patch.updated_teacher_note;
-      if (newTeacherNote) target.teacher_note = newTeacherNote;
-
-      // Xử lý khi bản vá bổ sung Câu hỏi Trắc nghiệm (QuizData từ Backend)
-      if (patch.quiz) {
-        target.layout = 'QUIZ_OPTION';
-        if (patch.quiz.question) {
-          target.bullet_points = [patch.quiz.question];
-        }
-        if (Array.isArray(patch.quiz.options) && patch.quiz.options.length > 0) {
-          const correctLetter = String(patch.quiz.correct_answer || 'A').trim().toUpperCase();
-          target.quiz_options = patch.quiz.options.map((optStr, idx) => {
-            const labels = ['A', 'B', 'C', 'D'];
-            const label = labels[idx] || String(idx + 1);
-            const cleanText = String(optStr).replace(/^[A-D]\.\s*/, '');
-            const isCorrect = label === correctLetter;
-            return {
-              label,
-              text: cleanText,
-              is_correct: isCorrect,
-              distractor_rationale: isCorrect
-                ? (patch.quiz.explanation || 'Đáp án chính xác.')
-                : 'Phương án gây nhiễu, học sinh cần kiểm tra lại công thức.'
-            };
-          });
-        }
-      } else if (patch.new_quiz_option) {
-        target.quiz_options = [...(target.quiz_options || []), patch.new_quiz_option];
-      }
-
-      updatedSlides[targetIdx] = target;
-      setSlideDeck({ ...slideDeck, slides: updatedSlides });
-      setCurrentSlide(targetIdx);
-      return true;
-    }
-    return false;
+  const handleApplySlidePatch=(updated,base)=>{
+    if(deckRef.current?.deck_id!==base.deck_id||deckRef.current?.revision!==base.revision)return false;
+    const next=normalizeDeck(updated);deckRef.current=next;setDeckState(next);return true;
   };
+  if(!storageReady&&!saveError)return <p className="p-8">Đang nạp dự án…</p>;
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-[#ffffff] text-[#141414] select-none">
+      {!isPresentationMode&&<div className="flex gap-3 p-2 items-center border-b text-sm">
+        <button disabled={isAiGenerating||isGeneratingOutline} onClick={()=>switchProject(null)}>Dự án mới</button>
+        <select aria-label="Chọn dự án" value={projectId||''} disabled={isAiGenerating||isGeneratingOutline} onChange={e=>switchProject(e.target.value)}><option value={projectId||''}>{currentProject.title||'Dự án chưa đặt tên'}</option>{projects.filter(p=>p.project_id!==projectId).map(p=><option key={p.project_id} value={p.project_id}>{p.title||'Dự án chưa đặt tên'}</option>)}</select>
+        <button onClick={downloadProject}>Tải JSON dự phòng</button>
+        <label>Phục hồi JSON <input type="file" accept=".json" className="w-48" onChange={async e=>{try{const file=e.target.files?.[0];if(!file)return;const p=JSON.parse(await file.text());if(p.schema_version!==2||!p.project_id)throw new Error('Dự án không đúng định dạng');if(p.deck)p.deck=normalizeDeck(p.deck);await saveQueue.current;if(saveFailure.current)throw saveFailure.current;restore(p);}catch(e){setSaveError(e.message);}}}/></label>
+        {saveError&&<span role="alert" className="text-red-700">{saveError}</span>}
+      </div>}
       {/* 1. Header Navigation (Tự động ẩn hoàn toàn khi vào Chế độ Trình Chiếu Toàn Màn Hình - Task 15.2) */}
       {!isPresentationMode && (
         <HeaderNav
           activeScreen={activeScreen}
-          setActiveScreen={setActiveScreen}
+          setActiveScreen={screen=>{if(editorDirty){setSaveError("Hãy lưu slide đang sửa trước khi chuyển màn hình.");return;}setActiveScreen(screen);}}
           isLeftOpen={isLeftOpen}
           setIsLeftOpen={setIsLeftOpen}
           isRightOpen={isRightOpen}
           setIsRightOpen={setIsRightOpen}
           onToggleFullscreen={toggleFullscreen}
-          onStartPresentation={handleStartPresentation}
+          onStartPresentation={()=>{if(editorDirty){setSaveError("Hãy lưu slide đang sửa trước khi trình chiếu.");return;}handleStartPresentation();}}
           isPresentationMode={isPresentationMode}
           onExportDocx={handleExportDocx}
           onExportPptx={handleExportPptx}
@@ -231,7 +213,7 @@ export default function App() {
         <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center gap-4">
           <div className="w-14 h-14 border-4 border-[#141414] border-t-transparent rounded-full animate-spin"></div>
           <div className="text-center space-y-1">
-            <h3 className="text-lg font-bold text-[#141414]">Gemini AI Đang Xử Lý Sư Phạm Chuyên Sâu</h3>
+            <h3 className="text-lg font-bold text-[#141414]">Đang xử lý yêu cầu bài giảng</h3>
             <p className="text-sm text-[#0066ff] font-mono animate-pulse">{generationStep}</p>
             <p className="text-xs text-[#707070]">Đang tạo Kế hoạch 5512, đồng bộ SlideDeck và kết xuất Đồ thị Matplotlib...</p>
           </div>
@@ -270,6 +252,7 @@ export default function App() {
             {/* Ẩn bong bóng chat và dock trợ giảng AI khi trình chiếu - Task 15.2 */}
             {!isPresentationMode && (
               <TeacherChatDock
+                key={slideDeck?.deck_id||projectId}
                 isOpen={isLeftOpen}
                 onToggle={() => setIsLeftOpen(false)}
                 currentSlide={currentSlide}
@@ -279,6 +262,7 @@ export default function App() {
             )}
 
             <PresentationStage
+              key={slideDeck?.deck_id||projectId}
               theme={selectedTheme}
               slideDeck={slideDeck}
               setSlideDeck={setSlideDeck}
@@ -346,7 +330,9 @@ export default function App() {
         {/* MÀN HÌNH 2: SOẠN KẾ HOẠCH BÀI DẠY 5512 (Kèm Danh mục Bài SGK & Nút Gọi AI Thật) */}
         {activeScreen === 'lesson-plan' && (
           <LessonPlanScreen
+            key={projectId}
             lessonPlan={lessonPlan}
+            onChangePlan={(next, expected) => setLessonPlan(previous => currentProjectRef.current.project_id === projectId && JSON.stringify(previous) === JSON.stringify(expected) ? next : previous)}
             isGenerating={isAiGenerating}
             onGenerateFromAi={handleGenerateFromAi}
             onExportDocx={handleExportDocx}
@@ -360,6 +346,7 @@ export default function App() {
         {/* MÀN HÌNH 3: XƯỞNG BIÊN TẬP SLIDE (Kết nối SlideDeck thật & Xuất PPTX thật) */}
         {activeScreen === 'slide-editor' && (
           <SlideEditorScreen
+            onDirtyChange={setEditorDirty}
             slideDeck={slideDeck}
             setSlideDeck={setSlideDeck}
             onExportPptx={handleExportPptx}

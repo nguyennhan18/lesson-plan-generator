@@ -24,10 +24,11 @@ venv/
 env/
 project/
 
-# Secrets
+# Secrets & Environment
 .env
 *.env
 !.env.example
+!infra/env.example
 
 # Editor / IDE
 *.swp
@@ -36,21 +37,42 @@ project/
 *.code-workspace
 ~$*
 
-# Documents, Reports & Planning files
-docs/
-reports/
-plan_*.md
+# Binary documents & presentation archives
 *.docx
 *.pptx
 *.pdf
 
-# Data directories (Root and Backend)
+# Data directories (Root and Backend runtime corpus)
 data/
 app/backend/data/
 
-# Generated output files
+# Generated runtime output files
 app/backend/output/
 *.log
 
 # Python packaging and build metadata
 app/backend/dist/
+
+# Browser evidence & test artifacts
+app/frontend/test-results/
+app/frontend/playwright-report/
+
+# Documents, Reports & Planning files (local-only, not pushed to Git)
+docs/
+reports/
+project-management/
+quality/
+PROGRESS.md
+DECISIONS.md
+SKILL.md
+AGENTS.md
+CONTRIBUTING.md
+Makefile
+.claude/
+.github/
+
+# Test suites & verification scripts (local-only, not pushed to Git)
+app/backend/tests/
+app/frontend/tests/
+app/frontend/e2e/
+scripts/

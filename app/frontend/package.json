@@ -5,19 +5,22 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "test": "node --test",
+    "test": "node --test tests/*.test.js",
     "build": "vite build",
     "preview": "vite preview",
-    "test:critical": "node --test tests/critical-regressions.test.js"
+    "test:critical": "node --test tests/critical-regressions.test.js",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "katex": "^0.18.10",
     "lucide-react": "^0.460.0",
+    "mathlive": "0.111.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "three": "^0.170.0"
   },
   "devDependencies": {
+    "@playwright/test": "1.64.1",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@types/three": "^0.170.0",

@@ -71,6 +71,125 @@ def strip_markdown_json_fence(text: str) -> str:
     return text.strip()
 
 
+def _clean_gemini_schema_node(node: Any) -> Any:
+    if isinstance(node, list):
+        return [_clean_gemini_schema_node(item) for item in node]
+    if not isinstance(node, dict):
+        return node
+    cleaned: Dict[str, Any] = {}
+    for key, value in node.items():
+        if key in ("additionalProperties", "additional_properties", "discriminator"):
+            continue
+        if key == "oneOf":
+            cleaned_one_of = _clean_gemini_schema_node(value)
+            if "anyOf" in cleaned and isinstance(cleaned["anyOf"], list) and isinstance(cleaned_one_of, list):
+                cleaned["anyOf"] = cleaned["anyOf"] + cleaned_one_of
+            else:
+                cleaned["anyOf"] = cleaned_one_of
+        elif key == "anyOf":
+            cleaned_any_of = _clean_gemini_schema_node(value)
+            if "anyOf" in cleaned and isinstance(cleaned["anyOf"], list) and isinstance(cleaned_any_of, list):
+                cleaned["anyOf"] = cleaned_any_of + cleaned["anyOf"]
+            else:
+                cleaned["anyOf"] = cleaned_any_of
+        else:
+            cleaned[key] = _clean_gemini_schema_node(value)
+    return cleaned
+
+
+def to_gemini_response_schema(schema_or_model: Any) -> Any:
+    """
+    Chuyển đổi JSON Schema sang định dạng tương thích với Gemini Developer API (mldev):
+    - Loại bỏ đệ quy `additionalProperties` / `additional_properties` và `discriminator`.
+    - Chuyển đổi đệ quy `oneOf` sang `anyOf`.
+    - Không làm thay đổi lớp Pydantic gốc dùng để hậu kiểm dữ liệu nội bộ.
+    """
+    if isinstance(schema_or_model, type) and issubclass(schema_or_model, BaseModel):
+        raw_schema = schema_or_model.model_json_schema()
+        return _clean_gemini_schema_node(raw_schema)
+    if isinstance(schema_or_model, dict):
+        return _clean_gemini_schema_node(schema_or_model)
+    return schema_or_model
+
+
+def _collect_exception_chain(error: BaseException) -> List[BaseException]:
+    chain: List[BaseException] = []
+    seen: set[int] = set()
+    queue: List[Optional[BaseException]] = [error]
+    while queue:
+        current = queue.pop(0)
+        if current is None or id(current) in seen:
+            continue
+        seen.add(id(current))
+        chain.append(current)
+        if current.__cause__ is not None:
+            queue.append(current.__cause__)
+        if current.__context__ is not None:
+            queue.append(current.__context__)
+    return chain
+
+
+def classify_generation_error(error: BaseException, target: str) -> Dict[str, str]:
+    """
+    Phân loại lỗi sinh nội dung theo thứ tự ưu tiên nghiêm ngặt trên toàn chuỗi nhân quả:
+    1. Kiểm tra `isinstance(exc, (ValidationError, json.JSONDecodeError))` trên toàn chuỗi trước tiên -> `invalid_ai_output`.
+    2. Kiểm tra các điều kiện của `llm_configuration_error` (không có tuyến khả dụng, 401/403/API key, lỗi SDK từ chối schema).
+    3. Kiểm tra `ValueError` do lệch hợp đồng dàn ý/slide/block/RAG -> `invalid_ai_output`.
+    4. Fallback mặc định về `generation_unavailable`.
+    """
+    from pydantic import ValidationError
+
+    chain = _collect_exception_chain(error)
+
+    # Bước 1: Kiểm tra ValidationError hoặc JSONDecodeError trên toàn chuỗi trước tiên
+    for exc in chain:
+        if isinstance(exc, json.JSONDecodeError):
+            return {
+                "code": "invalid_ai_output",
+                "message": f"Đầu ra AI không đúng định dạng JSON khi tạo {target}. Bản soạn được giữ nguyên; cần thử lại hoặc điều chỉnh dàn ý.",
+            }
+        if isinstance(exc, ValidationError):
+            return {
+                "code": "invalid_ai_output",
+                "message": f"Đầu ra AI không khớp cấu trúc dữ liệu khi tạo {target}. Bản soạn được giữ nguyên; cần thử lại hoặc điều chỉnh dàn ý.",
+            }
+
+    # Bước 2: Kiểm tra các dấu hiệu lỗi cấu hình / khóa API / không có tuyến LLM / lỗi SDK từ chối schema
+    config_markers = (
+        "không tìm thấy tuyến llm khả dụng",
+        "additionalproperties is only supported",
+        "unsupported schema",
+        "api_key_invalid",
+        "invalid api key",
+        "permission_denied",
+        "401",
+        "403",
+        "unauthorized",
+    )
+    for exc in chain:
+        msg_lower = str(exc).lower()
+        if any(marker in msg_lower for marker in config_markers):
+            return {
+                "code": "llm_configuration_error",
+                "message": f"Lỗi cấu hình hoặc schema kết nối AI khi tạo {target}. Bản soạn được giữ nguyên; hãy kiểm tra khóa API và cấu hình model.",
+            }
+
+    # Bước 3: Kiểm tra ValueError sinh ra từ các hàm hậu kiểm hợp đồng dàn ý / slide / block / nguồn RAG
+    for exc in chain:
+        if isinstance(exc, ValueError):
+            return {
+                "code": "invalid_ai_output",
+                "message": f"Đầu ra AI không đúng định dạng hoặc lệch dàn ý khi tạo {target}. Bản soạn được giữ nguyên; cần thử lại hoặc điều chỉnh dàn ý.",
+            }
+
+    # Bước 4: Các lỗi mạng, timeout, 429, 5xx và lỗi runtime còn lại
+    return {
+        "code": "generation_unavailable",
+        "message": f"Không tạo được {target} do dịch vụ AI tạm thời gián đoạn. Bản soạn được giữ nguyên; hãy kiểm tra nhà cung cấp và thử lại.",
+    }
+
+
+
 class ProviderRoute:
     """
     Đại diện cho một tuyến gọi LLM cụ thể (Provider + Model + Endpoint).
@@ -105,7 +224,7 @@ class LLMGateway:
         self.openrouter_key = os.getenv("OPENROUTER_API_KEY")
 
         # Lưu lại lịch sử chuyển mạch để phục vụ log và kiểm thử Chaos Testing
-        self.transition_history: List[Dict[str, Any]] = []
+        self.transition_history = __import__("collections").deque(maxlen=256)
         self._cached_groq_models: Optional[List[str]] = None
         self._cached_google_models: Optional[List[str]] = None
         # Danh sách đen (Blacklist) chứa các model đã bị ngừng hỗ trợ (404) hoặc không tương thích trong phiên chạy
@@ -115,7 +234,7 @@ class LLMGateway:
         self.google_client: Any = None
         if self.gemini_key and genai is not None:
             try:
-                self.google_client = genai.Client(api_key=self.gemini_key)
+                self.google_client = genai.Client(api_key=self.gemini_key, http_options={"timeout":20000})
             except Exception as e:
                 print(f"[LLM Gateway] Cảnh báo khởi tạo Google GenAI Client: {e}")
 
@@ -126,7 +245,7 @@ class LLMGateway:
                 self.groq_client = OpenAI(
                     base_url="https://api.groq.com/openai/v1",
                     api_key=self.groq_key,
-                    timeout=20.0
+                    timeout=20.0, max_retries=0
                 )
             except Exception as e:
                 print(f"[LLM Gateway] Cảnh báo khởi tạo Groq Client: {e}")
@@ -138,7 +257,7 @@ class LLMGateway:
                 self.openrouter_client = OpenAI(
                     base_url="https://openrouter.ai/api/v1",
                     api_key=self.openrouter_key,
-                    timeout=25.0
+                    timeout=25.0, max_retries=0
                 )
             except Exception as e:
                 print(f"[LLM Gateway] Cảnh báo khởi tạo OpenRouter Client: {e}")
@@ -151,19 +270,19 @@ class LLMGateway:
 
         if self.gemini_key and genai is not None and not self.google_client:
             try:
-                self.google_client = genai.Client(api_key=self.gemini_key)
+                self.google_client = genai.Client(api_key=self.gemini_key, http_options={"timeout":20000})
             except Exception:
                 pass
 
         if self.groq_key and OpenAI is not None and not self.groq_client:
             try:
-                self.groq_client = OpenAI(base_url="https://api.groq.com/openai/v1", api_key=self.groq_key, timeout=20.0)
+                self.groq_client = OpenAI(base_url="https://api.groq.com/openai/v1", api_key=self.groq_key, timeout=20.0, max_retries=0)
             except Exception:
                 pass
 
         if self.openrouter_key and OpenAI is not None and not self.openrouter_client:
             try:
-                self.openrouter_client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=self.openrouter_key, timeout=25.0)
+                self.openrouter_client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=self.openrouter_key, timeout=25.0, max_retries=0)
             except Exception:
                 pass
 
@@ -224,7 +343,9 @@ class LLMGateway:
             for m in self.google_client.models.list():
                 raw = getattr(m, "name", "")
                 clean = raw.replace("models/", "")
-                if "gemini" in clean.lower() and not any(kw in clean.lower() for kw in excluded_keywords):
+                if ("gemini" in clean.lower()
+                        and "generateContent" in (getattr(m, "supported_actions", None) or [])
+                        and not any(kw in clean.lower() for kw in excluded_keywords)):
                     models.append(clean)
 
             def _google_priority(model_id: str) -> int:
@@ -262,7 +383,7 @@ class LLMGateway:
         google_models = self.get_available_google_models()
         if not google_models:
             google_models = [
-                m for m in ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"]
+                m for m in ["gemini-flash-latest"]
                 if f"google:{m}" not in self._dead_models
             ]
 
@@ -325,7 +446,7 @@ class LLMGateway:
             if self.openrouter_key and "openrouter:deepseek/deepseek-chat" not in self._dead_models:
                 routes.append(ProviderRoute("openrouter", "deepseek/deepseek-chat", "https://openrouter.ai/api/v1", self.openrouter_key))
             if self.gemini_key and google_models:
-                routes.append(ProviderRoute("google", google_models[0], api_key=self.gemini_key))
+                routes.extend(ProviderRoute("google", m, api_key=self.gemini_key) for m in google_models[:3])
             if self.groq_key and groq_models:
                 routes.append(ProviderRoute("groq", groq_models[0], "https://api.groq.com/openai/v1", self.groq_key))
 
@@ -338,6 +459,8 @@ class LLMGateway:
         response_schema: Type[T],
         task_type: str = "lesson_plan",
         temperature: float = 0.7,
+        model_provider: Optional[str] = None,
+        model_id: Optional[str] = None,
         *,
         role_name: Optional[str] = None,
         prompt_name: Optional[str] = None,
@@ -349,10 +472,21 @@ class LLMGateway:
         Tự động chuyển mạch tức thời sang Provider tiếp theo (Google -> Groq -> OpenRouter).
         Ghi nhận đầy đủ Langfuse Generation, Token Usage (input/output/total) và metadata vai trò.
         """
+        deadline = time.monotonic() + 45
         routes = self.get_active_routes(task_type)
+        provider = {"gemini": "google"}.get(model_provider, model_provider)
+        if provider:
+            routes = [route for route in routes if route.provider_id == provider]
+        if model_id:
+            key = {"google": self.gemini_key, "groq": self.groq_key,
+                   "openrouter": self.openrouter_key}.get(provider)
+            if key and f"{provider}:{model_id}" not in self._dead_models:
+                routes = [ProviderRoute(provider, model_id, api_key=key)] + [
+                    route for route in routes if route.model_name != model_id
+                ]
         if not routes:
             raise ValueError(
-                "Không tìm thấy API Key nào khả dụng! Vui lòng cấu hình ít nhất GEMINI_API_KEY hoặc GROQ_API_KEY trong tệp .env"
+                "Không tìm thấy tuyến LLM khả dụng. Kiểm tra API key, quyền truy cập và danh sách model."
             )
 
         last_error = None
@@ -366,6 +500,8 @@ class LLMGateway:
             max_route_attempts = 2 if route.provider_id == "google" else 1
 
             for route_attempt in range(max_route_attempts):
+                remaining=deadline-time.monotonic()
+                if remaining<=0:raise TimeoutError("Tác vụ AI vượt thời hạn 45 giây")
                 gen = tracing.start_generation(
                     name=gen_name,
                     provider=route.provider_id,
@@ -385,7 +521,8 @@ class LLMGateway:
                         config = genai_types.GenerateContentConfig(
                             system_instruction=system_prompt,
                             response_mime_type="application/json",
-                            response_schema=response_schema,
+                            http_options={"timeout":int(min(20,remaining)*1000)},
+                            response_schema=to_gemini_response_schema(response_schema),
                             temperature=temperature,
                             automatic_function_calling=genai_types.AutomaticFunctionCallingConfig.model_validate({"disable": True})
                         )
@@ -408,6 +545,20 @@ class LLMGateway:
                             "latency_sec": latency
                         })
                         print(f"[LLM Gateway] Thành công với [{route.provider_id.upper()}]: '{route.model_name}' trong {latency}s")
+                        # Bind provenance to this result, never to shared transition_history.
+                        if result.model_config.get("extra") == "allow":
+                            import hashlib
+                            metadata = {
+                                "provider": route.provider_id, "model": route.model_name,
+                                "task": task_type, "generated_at": int(time.time()),
+                                "prompt_sha256": hashlib.sha256((system_prompt + "\n" + prompt).encode()).hexdigest(),
+                                "status": "unverified_draft",
+                            }
+                            if "generation_metadata" in type(result).model_fields:
+                                from lessonai.schemas.provenance import GenerationMetadata
+                                result.generation_metadata = GenerationMetadata.model_validate(metadata)
+                            else:
+                                result.generation_metadata = metadata
                         return result
 
                     # ================= 2. XỬ LÝ QUA GROQ CLOUD LPU =================
@@ -428,7 +579,7 @@ class LLMGateway:
                             }
                         ]
                         try:
-                            completion = self.groq_client.chat.completions.create(
+                            completion = self.groq_client.with_options(timeout=min(20,remaining),max_retries=0).chat.completions.create(
                                 model=route.model_name,
                                 messages=messages,
                                 response_format={"type": "json_object"},
@@ -439,7 +590,7 @@ class LLMGateway:
                             err_text = str(groq_err).lower()
                             if "failed to generate json" in err_text or "failed_generation" in err_text or "json_validate_failed" in err_text:
                                 print(f"[LLM Gateway] Groq json_object bị từ chối do thẻ suy luận/cú pháp, đang thử lại chế độ tự làm sạch JSON trên '{route.model_name}'...")
-                                completion = self.groq_client.chat.completions.create(
+                                completion = self.groq_client.with_options(timeout=min(20,remaining),max_retries=0).chat.completions.create(
                                     model=route.model_name,
                                     messages=messages,
                                     temperature=temperature
@@ -461,6 +612,20 @@ class LLMGateway:
                             "latency_sec": latency
                         })
                         print(f"[LLM Gateway] Thành công với [{route.provider_id.upper()}]: '{route.model_name}' trong {latency}s")
+                        # Bind provenance to this result, never to shared transition_history.
+                        if result.model_config.get("extra") == "allow":
+                            import hashlib
+                            metadata = {
+                                "provider": route.provider_id, "model": route.model_name,
+                                "task": task_type, "generated_at": int(time.time()),
+                                "prompt_sha256": hashlib.sha256((system_prompt + "\n" + prompt).encode()).hexdigest(),
+                                "status": "unverified_draft",
+                            }
+                            if "generation_metadata" in type(result).model_fields:
+                                from lessonai.schemas.provenance import GenerationMetadata
+                                result.generation_metadata = GenerationMetadata.model_validate(metadata)
+                            else:
+                                result.generation_metadata = metadata
                         return result
 
                     # ================= 3. XỬ LÝ QUA OPENROUTER =================
@@ -479,7 +644,7 @@ class LLMGateway:
                                 "content": prompt
                             }
                         ]
-                        completion = self.openrouter_client.chat.completions.create(
+                        completion = self.openrouter_client.with_options(timeout=min(20,remaining),max_retries=0).chat.completions.create(
                             model=route.model_name,
                             messages=messages,
                             response_format={"type": "json_object"},
@@ -499,6 +664,20 @@ class LLMGateway:
                             "latency_sec": latency
                         })
                         print(f"[LLM Gateway] Thành công với [{route.provider_id.upper()}]: '{route.model_name}' trong {latency}s")
+                        # Bind provenance to this result, never to shared transition_history.
+                        if result.model_config.get("extra") == "allow":
+                            import hashlib
+                            metadata = {
+                                "provider": route.provider_id, "model": route.model_name,
+                                "task": task_type, "generated_at": int(time.time()),
+                                "prompt_sha256": hashlib.sha256((system_prompt + "\n" + prompt).encode()).hexdigest(),
+                                "status": "unverified_draft",
+                            }
+                            if "generation_metadata" in type(result).model_fields:
+                                from lessonai.schemas.provenance import GenerationMetadata
+                                result.generation_metadata = GenerationMetadata.model_validate(metadata)
+                            else:
+                                result.generation_metadata = metadata
                         return result
 
                 except Exception as e:
@@ -512,19 +691,18 @@ class LLMGateway:
                         for term in [
                             "404", "not_found", "no longer available", "does not exist",
                             "not a valid model", "decommissioned", "model_not_found",
-                            "reduce the length of the messages"
                         ]
                     )
 
                     if is_dead_model:
                         self._dead_models.add(f"{route.provider_id}:{route.model_name}")
-                        print(f"[LLM Gateway] Đã loại bỏ vĩnh viễn model không khả dụng [{route.provider_id.upper()}: {route.model_name}] khỏi danh sách định tuyến.")
+                        print(f"[LLM Gateway] Đã tạm loại model không khả dụng trong phiên chạy [{route.provider_id.upper()}: {route.model_name}] khỏi danh sách định tuyến.")
 
                     # NẾU GẶP 429 TRÊN GOOGLE: THỰC HIỆN EXPONENTIAL BACKOFF (4s -> 8s)
                     if is_rate_limit and not is_dead_model and route.provider_id == "google" and route_attempt < max_route_attempts - 1:
                         backoff_sec = 4.0 if route_attempt == 0 else 8.0
                         print(f"[LLM Gateway] Phát hiện Quota Limit 429 trên [{route.model_name}]. Đang thực hiện Exponential Backoff ({backoff_sec}s)...")
-                        time.sleep(backoff_sec)
+                        time.sleep(min(backoff_sec,max(0,deadline-time.monotonic())))
                         continue  # Thử lại trên chính model này sau khi đợi
 
                     # Nếu lỗi khác hoặc đã hết lần thử backoff: Ghi log và nhảy sang route tiếp theo
@@ -533,18 +711,20 @@ class LLMGateway:
                         "provider": route.provider_id,
                         "model": route.model_name,
                         "status": "failed",
-                        "error": err_str[:120],
+                        "error": type(e).__name__,
                         "latency_sec": latency
                     })
-                    print(f"[LLM Gateway] Tuyến [{route.provider_id.upper()}: {route.model_name}] gặp lỗi: {err_str[:120]}")
-                    print("[LLM Gateway] Đang tự động chuyển mạch sang tuyến dự phòng kế tiếp...")
-                    time.sleep(0.3)
+                    print(f"[LLM Gateway] Tuyến [{route.provider_id.upper()}: {route.model_name}] gặp lỗi: {type(e).__name__}")
+                    if idx + 1 < len(routes):
+                        print("[LLM Gateway] Đang tự động chuyển mạch sang tuyến dự phòng kế tiếp...")
+                    else:
+                        print("[LLM Gateway] Đã hết tuyến khả dụng.")
                     break
 
         total_elapsed = round(time.time() - start_time, 2)
         raise RuntimeError(
             f"Toàn bộ {len(routes)} tuyến LLM đều không phản hồi sau {total_elapsed}s. Lỗi cuối cùng: {last_error}"
-        )
+        ) from last_error
 
     def generate_text(
         self,
@@ -668,4 +848,3 @@ class LLMGateway:
 
 # Khởi tạo Singleton Gateway dùng chung cho toàn bộ ứng dụng
 llm_gateway = LLMGateway()
-

@@ -1,240 +1,36 @@
-import { postJson } from '../../shared/api/client.js';
-import React, { useState, useRef, useEffect } from 'react';
-import { Bot, Send, Trash2, ChevronLeft, Sparkles, Check } from 'lucide-react';
+import React,{useEffect,useRef,useState} from 'react';
 import MathText from '../../shared/math/MathText';
-
-export default function TeacherChatDock({
-  isOpen,
-  onToggle,
-  currentSlide = 0,
-  slideDeck,
-  onApplyPatch
-}) {
-  const [messages, setMessages] = useState([
-    {
-      role: 'assistant',
-      text: `Chào Thầy/Cô! Em là Trợ Giảng AI Co-pilot, đang đồng hành cùng Thầy/Cô tại **Slide ${currentSlide + 1}**.\nThầy/Cô có thể yêu cầu em giải thích bài, đổi số liệu hoặc thêm câu hỏi trắc nghiệm bất cứ lúc nào!`,
-      time: '08:00'
-    }
-  ]);
-  const [inputText, setInputText] = useState('');
-  const [isThinking, setIsThinking] = useState(false);
-  const messagesEndRef = useRef(null);
-
-  const quickChips = [
-    'Giải thích slide này đơn giản hơn',
-    'Gợi ý 2 câu hỏi gợi mở cho học sinh',
-    'Thêm 1 câu hỏi trắc nghiệm củng cố',
-    'Đổi bài toán sang ví dụ thực tế'
-  ];
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+import {postJson,ensureOwner} from '../../shared/api/client.js';
+export default function TeacherChatDock({isOpen,onToggle,currentSlide,slideDeck,onApplyPatch}) {
+  const [messages,setMessages]=useState([]),[input,setInput]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false),[proposal,setProposal]=useState(null),[ack,setAck]=useState(false);
+  const session=useRef(null), epoch=useRef(0), current=useRef(slideDeck);current.current=slideDeck;
+  useEffect(()=>{
+    if(!slideDeck?.deck_id)return;
+    const key='lessonai-chat-'+slideDeck.deck_id,stored=sessionStorage.getItem(key);let active=true;
+    if(stored){setBusy(true);ensureOwner().then(()=>fetch(`/api/v1/chat/history/${stored}`)).then(async response=>{if(!response.ok){sessionStorage.removeItem(key);return;}const data=await response.json();if(active){session.current=stored;setMessages(data.history||[]);}}).catch(error=>{if(active)setError(error.message);}).finally(()=>{if(active)setBusy(false);});}
+    return()=>{active=false;epoch.current++;};
+  },[slideDeck?.deck_id]);
+  const labels={title:'Tiêu đề',subtitle:'Phụ đề',bullet_points:'Nội dung',worked_solution_steps:'Các bước giải',main_definition_latex:'Công thức chính',math_formulas:'Công thức',teacher_note:'Ghi chú giáo viên',quiz_options:'Phương án trả lời',layout:'Bố cục'};
+  const readable=value=>Array.isArray(value)?value.map(item=>typeof item==='string'?item:`${item.label||''}. ${item.text||''}${item.is_correct?' (được đánh dấu đúng)':''} ${item.distractor_rationale||''}`).join('\n'):String(value??'');
+  const send=async()=>{
+    if(!input.trim()||busy||!slideDeck?.slides?.[currentSlide])return;
+    const version=epoch.current, base=structuredClone(slideDeck), text=input;setBusy(true);setError('');setInput('');setProposal(null);setAck(false);
+    setMessages(v=>[...v,{role:'user',text}]);
+    try{
+      if(!session.current){const r=await postJson('/api/v1/chat/sessions',{slide_deck:base}),d=await r.json();if(!r.ok)throw new Error(d.detail?.message||d.detail);if(version!==epoch.current){await fetch(`/api/v1/chat/session/${d.session_id}`,{method:'DELETE'});return;}session.current=d.session_id;sessionStorage.setItem('lessonai-chat-'+base.deck_id,d.session_id);}
+      const r=await postJson('/api/v1/chat/interact',{session_id:session.current,slide_id:base.slides[currentSlide].slide_id,slide_deck:base,user_message:text}),d=await r.json();
+      if(!r.ok)throw new Error(d.detail?.message||d.detail||'Không nhận được phản hồi');
+      if(version===epoch.current){setMessages(v=>[...v,{role:'assistant',text:d.ai_response}]);setProposal(d.suggested_patch?{...d.suggested_patch,base}:null);}
+    }catch(e){if(version===epoch.current)setError(e.message);}finally{if(version===epoch.current)setBusy(false);}
   };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, isThinking]);
-
-  const sendMessage = async (textToSend) => {
-    const text = textToSend || inputText.trim();
-    if (!text || isThinking) return;
-
-    const userTime = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-    const newMessages = [...messages, { role: 'user', text, time: userTime }];
-    setMessages(newMessages);
-    if (!textToSend) setInputText('');
-    setIsThinking(true);
-
-    try {
-      const res = await postJson('/api/v1/chat/interact', {
-          session_id: 'session_teacher_dock',
-          user_message: text,
-          current_slide_index: currentSlide,
-          slide_deck: slideDeck
-        });
-
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      const aiTime = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-
-      setMessages([
-        ...newMessages,
-        {
-          role: 'assistant',
-          text: data.ai_response || 'Dạ Thầy/Cô, em đã ghi nhận yêu cầu!',
-          time: aiTime,
-          patchProposal: data.suggested_patch || data.patch_proposal || null
-        }
-      ]);
-    } catch (err) {
-      const aiTime = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-      setMessages([
-        ...newMessages,
-        {
-          role: 'assistant',
-          text: `Dạ Thầy/Cô, tại Slide ${currentSlide + 1}, Thầy/Cô nên lưu ý học sinh áp dụng đúng công thức định lý và quan sát kỹ góc chiếu của mô hình 3D.`,
-          time: aiTime
-        }
-      ]);
-    } finally {
-      setIsThinking(false);
-    }
-  };
-
-  const handleApplyPatchClick = (patch, msgIdx) => {
-    if (onApplyPatch && patch) {
-      const success = onApplyPatch(patch);
-      if (success) {
-        const updated = [...messages];
-        updated[msgIdx].isPatched = true;
-        setMessages(updated);
-        alert(`Đã áp dụng thành công bản vá vào Slide ${(patch.target_slide_index ?? currentSlide) + 1}!`);
-      }
-    }
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <aside className="w-80 bg-[#ffffff] border-r border-[#e0e0e0] flex flex-col justify-between h-full transition-all duration-300 z-10 shrink-0">
-      {/* Header */}
-      <div className="p-3 border-b border-[#e0e0e0] flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-[30%] bg-[#141414] text-white flex items-center justify-center shrink-0">
-            <Bot size={17} />
-          </div>
-          <div>
-            <h3 className="text-xs font-bold text-[#141414] flex items-center gap-1.5 leading-tight">
-              Trợ Giảng AI Co-pilot
-              <span className="w-2 h-2 rounded-full bg-[#10b981]"></span>
-            </h3>
-            <p className="text-[11px] text-[#707070] leading-tight">Đang theo dõi • Slide {currentSlide + 1}</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => setMessages([{
-              role: 'assistant',
-              text: `Đã làm mới phiên hỗ trợ! Em đang sẵn sàng cùng Thầy/Cô tại Slide ${currentSlide + 1}.`,
-              time: '08:00'
-            }])}
-            className="p-1.5 rounded-full text-[#707070] hover:text-[#141414] hover:bg-[#f3f3f3] transition cursor-pointer"
-            title="Làm mới chat"
-          >
-            <Trash2 size={15} />
-          </button>
-          <button
-            onClick={onToggle}
-            className="p-1.5 rounded-full text-[#707070] hover:text-[#141414] hover:bg-[#f3f3f3] transition cursor-pointer"
-            title="Thu gọn khung chat (Phím C)"
-          >
-            <ChevronLeft size={16} />
-          </button>
-        </div>
-      </div>
-
-      {/* Quick Chips - Stadium Pills */}
-      <div className="p-2.5 border-b border-[#f0f0f0] bg-[#ffffff] space-y-1.5">
-        {quickChips.map((chip, idx) => (
-          <button
-            key={idx}
-            onClick={() => sendMessage(chip)}
-            className="w-full text-left text-[11px] px-3 py-1.5 rounded-full bg-[#f3f3f3] hover:bg-[#e0e0e0] text-[#141414] font-medium transition flex items-center gap-1.5 truncate cursor-pointer"
-          >
-            <Sparkles size={11} className="text-[#141414] shrink-0" />
-            <span className="truncate">{chip}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* Messages Stream */}
-      <div className="flex-1 p-3 overflow-y-auto space-y-3 text-xs bg-[#ffffff]">
-        {messages.map((m, idx) => (
-          <div
-            key={idx}
-            className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}
-          >
-            <div className="text-[10px] text-[#707070] mb-0.5 px-1">
-              {m.role === 'user' ? 'Giáo viên' : 'Trợ giảng AI'} • {m.time}
-            </div>
-            <div
-              className={`max-w-[92%] p-3 rounded-2xl leading-relaxed whitespace-pre-wrap ${
-                m.role === 'user'
-                  ? 'bg-[#141414] text-white rounded-br-sm'
-                  : 'bg-[#f3f3f3] text-[#141414] border border-[#e0e0e0] rounded-bl-sm'
-              }`}
-            >
-              <MathText text={m.text} />
-
-              {/* HỘP ĐỀ XUẤT BẢN VÁ LIVE PATCH */}
-              {m.patchProposal && (
-                <div className="mt-2.5 pt-2 border-t border-[#e0e0e0] space-y-1.5">
-                  <div className="text-[10px] font-bold text-[#141414] flex items-center gap-1">
-                    <span>Đề xuất cập nhật nội dung Slide:</span>
-                  </div>
-                  {m.patchProposal.preview_explanation && (
-                    <div className="text-[10px] text-[#707070] italic">
-                      {m.patchProposal.preview_explanation}
-                    </div>
-                  )}
-                  <button
-                    onClick={() => handleApplyPatchClick(m.patchProposal, idx)}
-                    disabled={m.isPatched}
-                    className={`w-full py-2 px-3 rounded-full text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer ${
-                      m.isPatched
-                        ? 'bg-[#f3f3f3] text-[#707070] border border-[#e0e0e0] opacity-90'
-                        : 'bg-[#141414] hover:bg-[#262626] text-white'
-                    }`}
-                  >
-                    {m.isPatched ? (
-                      <>
-                        <Check size={13} /> Đã áp dụng vào Slide {(m.patchProposal.target_slide_index ?? currentSlide) + 1}
-                      </>
-                    ) : (
-                      <>
-                        <span>Áp dụng vào Slide {(m.patchProposal.target_slide_index ?? currentSlide) + 1}</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
-
-        {isThinking && (
-          <div className="flex items-center gap-2 text-xs text-[#707070] p-2">
-            <span className="w-2 h-2 rounded-full bg-[#141414] animate-ping"></span>
-            <span>Trợ giảng AI đang suy nghĩ...</span>
-          </div>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Input */}
-      <form
-        onSubmit={(e) => { e.preventDefault(); sendMessage(); }}
-        className="p-3 border-t border-[#e0e0e0] bg-[#ffffff]"
-      >
-        <div className="flex items-center gap-2 bg-[#f0f0f0] rounded-full px-3 py-1 focus-within:ring-2 focus-within:ring-[#141414] focus-within:bg-[#ffffff] border border-transparent transition">
-          <input
-            type="text"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            placeholder="Nhắn cho trợ giảng (Enter)..."
-            className="flex-1 bg-transparent text-xs text-[#141414] placeholder-[#adadad] focus:outline-none py-1.5"
-          />
-          <button
-            type="submit"
-            disabled={!inputText.trim() || isThinking}
-            className="p-1.5 rounded-full bg-[#141414] hover:bg-[#262626] text-white disabled:opacity-30 transition cursor-pointer"
-          >
-            <Send size={13} />
-          </button>
-        </div>
-      </form>
-    </aside>
-  );
+  const reset=async()=>{epoch.current++;setBusy(false);setError('');try{if(session.current){const r=await fetch(`/api/v1/chat/session/${session.current}`,{method:'DELETE'});if(!r.ok)throw new Error('Không xóa được phiên cũ');}session.current=null;sessionStorage.removeItem('lessonai-chat-'+slideDeck.deck_id);setMessages([]);setProposal(null);}catch(e){setError(e.message);}};
+  const apply=async()=>{const version=epoch.current;setBusy(true);setError('');const base=structuredClone(current.current);try{const r=await postJson('/api/v1/chat/apply-patch',{proposal_id:proposal.proposal_id,slide_deck:base,acknowledged:ack}),d=await r.json();if(!r.ok)throw new Error(d.detail?.message||d.detail);if(version!==epoch.current)return;if(!onApplyPatch(d.slide_deck,base))throw new Error('Bài đã thay đổi trong khi áp dụng; giữ bản soạn hiện tại.');setProposal(null);}catch(e){setError(e.message);}finally{setBusy(false);}};
+  if(!isOpen)return null;
+  return <aside className="w-80 shrink-0 border-r p-3 flex flex-col gap-3 overflow-auto"><div className="flex justify-between"><strong>Trợ giảng</strong><button onClick={onToggle}>Đóng</button><button onClick={reset}>Làm mới</button></div>
+    {!messages.length&&<p className="text-sm">Nhập yêu cầu về slide đang mở. Đề xuất cần được duyệt trước khi áp dụng.</p>}
+    {messages.map((m,i)=><div key={i} className="border rounded p-2 text-sm"><strong>{m.role==='user'?'Giáo viên':'AI'}: </strong><MathText text={m.text}/></div>)}
+    {error&&<p role="alert" className="text-red-700">{error}</p>}
+    {proposal&&<div className="text-sm space-y-2"><p>Đề xuất cần rà soát:</p>{Object.keys(proposal.changes).map(k=><div key={k}><strong>{labels[k]||k}</strong><p className="whitespace-pre-wrap">Trước: <MathText text={readable(proposal.before[k])}/></p><p className="whitespace-pre-wrap">Sau: <MathText text={readable(proposal.changes[k])}/></p></div>)}<label><input type="checkbox" checked={ack} onChange={e=>setAck(e.target.checked)}/> Tôi đã đối chiếu nội dung trước/sau với yêu cầu.</label><button disabled={!ack||busy} onClick={apply}>Áp dụng đề xuất</button></div>}
+    <textarea aria-label="Yêu cầu trợ giảng" value={input} onChange={e=>setInput(e.target.value)} className="border p-2 rounded"/><button onClick={send} disabled={busy||!input.trim()||!slideDeck}>Gửi</button>
+  </aside>;
 }

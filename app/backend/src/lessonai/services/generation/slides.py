@@ -296,6 +296,9 @@ def generate_slide_deck(
     use_rag: bool = True,
     class_proficiency: Optional[ClassProficiency] = ClassProficiency.STANDARD,
     target_outcome: Optional[str] = None,
+    approved_outline: Optional[dict] = None,
+    model_provider: Optional[str] = None,
+    model_id: Optional[str] = None,
     plan: Optional[LessonPlanSchema] = None,
     outline_slides: Optional[List[Any]] = None,
     session_id: Optional[str] = None,
@@ -308,6 +311,8 @@ def generate_slide_deck(
       - Gate 3 [evaluator] : `gate.audit_slide_deck_and_charts` (SymPy + Định lý SGK + `is_plottable`)
       - Step 3 [agent]     : `role.slide_repair_reviewer` (chỉ chạy khi Gate 3 phát hiện slide lỗi)
     Tích hợp Graceful Partial Fallback bảo toàn kịch bản của Vai trò 1 nếu Vai trò 2 hết quota.
+    Nếu có `approved_outline` (dàn ý đã duyệt), bản dựng cuối được kiểm định khớp đúng số trang/
+    thứ tự/tiêu đề, đồng thời `source_refs` được xác thực sha256 khớp ngữ cảnh RAG để chống bịa nguồn.
     """
     if isinstance(class_proficiency, ClassProficiency):
         proficiency_enum = class_proficiency
@@ -320,6 +325,22 @@ def generate_slide_deck(
             proficiency_enum = ClassProficiency.STANDARD
 
     target_str = f"\nMục tiêu chuẩn đầu ra cần đạt: {target_outcome}" if target_outcome else ""
+
+    approved_outline_section = ""
+    if approved_outline:
+        import json
+
+        approved_items = approved_outline.get("outline_slides", [])
+        if (
+            not approved_items
+            or len({item.get("id") for item in approved_items}) != len(approved_items)
+            or any(not item.get("id") for item in approved_items)
+        ):
+            raise ValueError("Dàn ý đã duyệt thiếu ID hoặc có ID trùng")
+        approved_outline_section = (
+            "\nDÀN Ý ĐÃ DUYỆT (bắt buộc đúng số trang, thứ tự, tiêu đề và các ý; mỗi slide ghi source_outline_id):\n"
+            + json.dumps(approved_outline, ensure_ascii=False)
+        )
 
     rag_slide_context = ""
     source_refs: List[Any] = []
@@ -383,6 +404,7 @@ def generate_slide_deck(
                 f"'{topic}', Môn {subject}, Lớp {grade}.\n"
                 f"Trình độ học lực lớp mục tiêu: '{proficiency_str}'.{target_str}"
                 f"{outline_section}"
+                f"{approved_outline_section}"
                 f"{rag_instruction}"
             )
             with tracing.observe_role(
@@ -401,6 +423,8 @@ def generate_slide_deck(
                     system_prompt=SLIDE_NARRATIVE_DESIGNER_PROMPT.system_prompt,
                     response_schema=SlideNarrativeDeckSchema,
                     task_type="slide",
+                    model_provider=model_provider,
+                    model_id=model_id,
                     role_name=SLIDE_NARRATIVE_DESIGNER_PROMPT.name,
                     prompt_name=SLIDE_NARRATIVE_DESIGNER_PROMPT.name,
                     prompt_version=SLIDE_NARRATIVE_DESIGNER_PROMPT.version,
@@ -451,6 +475,8 @@ def generate_slide_deck(
                             system_prompt=VISUAL_AND_QUIZ_SPECIALIST_PROMPT.system_prompt,
                             response_schema=SlideVisualQuizBatchSchema,
                             task_type="slide",
+                            model_provider=model_provider,
+                            model_id=model_id,
                             role_name=VISUAL_AND_QUIZ_SPECIALIST_PROMPT.name,
                             prompt_name=VISUAL_AND_QUIZ_SPECIALIST_PROMPT.name,
                             prompt_version=VISUAL_AND_QUIZ_SPECIALIST_PROMPT.version,
@@ -514,6 +540,51 @@ def generate_slide_deck(
                     if source_refs and not s.source_refs:
                         s.source_refs = source_refs[:2]
 
+            # ================= CHUẨN HÓA & KIỂM ĐỊNH HỢP ĐỒNG DÀN Ý/NGUỒN =================
+            for field in ("review_token", "quality_report"):
+                if slide_deck.model_extra:
+                    slide_deck.model_extra.pop(field, None)
+
+            from lessonai.services.generation.outline_contract import normalize_polyhedron_type, validate_slide_outline_item
+            from lessonai.services.geometry_scene import KINDS
+
+            for s in slide_deck.slides:
+                s.polyhedron_type = normalize_polyhedron_type(s.polyhedron_type)
+                if not s.has_3d:
+                    s.polyhedron_type = None
+                elif s.polyhedron_type is not None and s.polyhedron_type not in KINDS:
+                    raise ValueError("Loại khối 3D không thuộc tập chuẩn được hỗ trợ")
+
+            outline_contract_warnings = []
+            if approved_outline:
+                approved_items = approved_outline["outline_slides"]
+                if len(slide_deck.slides) != len(approved_items):
+                    raise ValueError("Số slide không khớp dàn ý đã duyệt; cần sinh lại")
+                for s, item in zip(slide_deck.slides, approved_items):
+                    outline_contract_warnings.extend(validate_slide_outline_item(s, item))
+            if outline_contract_warnings:
+                slide_deck.outline_warnings = outline_contract_warnings
+
+            from lessonai.services.content_blocks import block_errors
+
+            for s in slide_deck.slides:
+                block_err = list(block_errors(s.model_dump(mode="json")))
+                if block_err:
+                    raise ValueError(block_err[0][1])
+
+            allowed_refs = {(ref.get("source_type"), ref.get("id")): ref for ref in source_refs}
+            for s in slide_deck.slides:
+                for ref in s.source_refs or []:
+                    canonical = allowed_refs.get((ref.source_type, ref.id))
+                    if canonical is None:
+                        raise ValueError("AI gắn nguồn không được cung cấp trong ngữ cảnh")
+                    supplied_hash = ref.model_dump().get("sha256")
+                    if supplied_hash and supplied_hash != canonical.get("sha256"):
+                        raise ValueError("AI gắn phiên bản nguồn không khớp ngữ cảnh")
+                    # Bind attribution to the exact source version actually supplied.
+                    if canonical.get("sha256"):
+                        ref.sha256 = canonical["sha256"]
+
             # ================= GATE 3: KIỂM ĐỊNH ĐỊNH LÝ SGK, SYMPY & CHART PLOTTABLE =================
             with tracing.observe_evaluator(
                 "gate.audit_slide_deck_and_charts",
@@ -561,6 +632,8 @@ def generate_slide_deck(
                             system_prompt=SLIDE_REPAIR_REVIEWER_PROMPT.system_prompt,
                             response_schema=SlideRepairBatchSchema,
                             task_type="slide",
+                            model_provider=model_provider,
+                            model_id=model_id,
                             role_name=SLIDE_REPAIR_REVIEWER_PROMPT.name,
                             prompt_name=SLIDE_REPAIR_REVIEWER_PROMPT.name,
                             prompt_version=SLIDE_REPAIR_REVIEWER_PROMPT.version,

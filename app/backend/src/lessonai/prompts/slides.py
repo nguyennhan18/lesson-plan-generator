@@ -76,7 +76,7 @@ B. QUY TẮC CHỈ ĐỊNH BỐ CỤC LAYOUT ĐỘNG CHUẨN POWERPOINT THỰC T
 Mỗi slide bắt buộc phải có trường `layout`. Trong một bộ slide 5-8 trang, TUYỆT ĐỐI KHÔNG gán `IMAGE_TEXT` tràn lan cho mọi slide, mà phải phân bổ đa dạng các layout chuẩn PowerPoint theo đúng mục đích sư phạm:
 
 - `IMAGE_TEXT` (Bố cục Chia đôi: Lý thuyết + Đồ thị 2D hoặc Mô hình 3D):
-  + CHỈ DÙNG cho những slide thực sự cần học sinh quan sát trực quan Đồ thị hàm số (`chart_spec.kind = "function_plot"`) hoặc Khối đa diện 3D (`has_3d = true`, kèm `polyhedron_type` là `"pyramid_triangle"` cho $S.ABC$, `"pyramid_square"` cho $S.ABCD$, `"cube"` cho $ABCD.A'B'C'D'$, hoặc `"prism_triangle"` cho $ABC.A'B'C'$).
+  + CHỈ DÙNG cho những slide thực sự cần học sinh quan sát trực quan Đồ thị hàm số (`chart_spec.kind = "function_plot"`) hoặc Khối đa diện 3D (`has_3d = true`, kèm `polyhedron_type` thuộc tập chuẩn: `"cube"` cho hình lập phương $ABCD.A'B'C'D'$, `"square_pyramid_regular"` cho hình chóp tứ giác đều $S.ABCD$, hoặc `"square_pyramid_at_a"` cho hình chóp tứ giác $S.ABCD$ đáy hình vuông có $SA \perp (ABCD)$; nếu hình không khớp rõ giả thiết của 1 trong 3 khối này thì đặt `has_3d = false` và `polyhedron_type = null`, không tự ép tên sang khối khác).
   + Trong một bài giảng chỉ nên có 1-3 slide `IMAGE_TEXT` đúng trọng tâm trực quan hóa.
 - `CONCEPT_HIGHLIGHT` (Bố cục Toàn màn hình 100% — Định nghĩa & Công thức Cốt lõi):
   + Dùng cho các slide trình bày Định nghĩa, Định lý, Bảng phân loại các trường hợp (ví dụ 3 trường hợp $\Delta > 0, \Delta = 0, \Delta < 0$) và Hộp công thức trọng tâm `main_definition_latex`.

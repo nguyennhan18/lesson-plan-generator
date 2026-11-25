@@ -147,7 +147,7 @@ body {
 
 /* KaTeX light theme */
 .katex {
-  color: #141414 !important;
+  color: inherit;
 }
 
 /* Minimal neutral scrollbars */
