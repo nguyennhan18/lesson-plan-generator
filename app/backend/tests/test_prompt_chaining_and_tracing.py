@@ -1,8 +1,9 @@
 """Bộ kiểm thử toàn diện cho kiến trúc Role-Based Prompt Chaining & Langfuse v5 Observability.
 
 Viết cho `main` (fda9680), điều chỉnh khi gộp `feature/ban-lam-viec`: chuỗi bản 2 không còn nhận
-`outline_slides`, không bù nội dung mẫu khi một vai trò lỗi (ADR 0001), và Gate 3 của Slide là
-`gate.slide_contracts` (khối 3D `KINDS`, `block_errors`, trích dẫn) thay cho kiểm tra định lý SGK.
+`outline_slides` (Dàn ý đã duyệt đi qua `approved_outline`), không bù nội dung mẫu khi một vai trò lỗi
+(ADR 0001), và Gate 3 của Bộ slide là `gate.slide_contracts` (khối 3D `KINDS`, `block_errors`, trích dẫn)
+thay cho kiểm tra định lý SGK.
 """
 
 from contextlib import contextmanager
@@ -39,6 +40,7 @@ from lessonai.schemas.slide_schema import (
     SlideLayout,
     SlideSchema,
     SlideType,
+    SourceRef,
     ThemeType,
 )
 from lessonai.services.generation import (
@@ -169,6 +171,45 @@ def test_lesson_plan_role_chain_happy_path(monkeypatch):
     assert sum(a.time_minutes for a in plan.activities) == 45
 
 
+def test_lesson_plan_forwards_approved_outline_to_every_role(monkeypatch):
+    """Dàn ý đã duyệt (ADR 0002) đi vào prompt của cả hai vai trò; Kế hoạch bài dạy bỏ qua Dàn ý bị Gate 2 từ chối."""
+    captured_prompts: List[str] = []
+
+    def mock_generate_structured(prompt, system_prompt, response_schema, task_type="lesson_plan", **kwargs):
+        captured_prompts.append(prompt)
+        if response_schema is LessonBlueprintSchema:
+            return _make_sample_blueprint()
+        if response_schema is LessonActivitiesPayload:
+            # Các Hoạt động không nhắc tới Mục nào của Dàn ý nên Gate 2 phải từ chối.
+            return LessonActivitiesPayload(activities=_make_valid_activities())
+        raise AssertionError(f"Unexpected schema: {response_schema}")
+
+    monkeypatch.setattr("lessonai.llm.gateway.llm_gateway.generate_structured", mock_generate_structured)
+
+    approved_outline = {
+        "outline_slides": [
+            {
+                "id": "outline-slide-1",
+                "title": "Khởi động: Tàu lượn siêu tốc và đạo hàm",
+                "activity_type": "Khởi động",
+                "bullet_points": ["Quan sát độ dốc đường ray theo đạo hàm f'(x)"],
+            }
+        ]
+    }
+
+    with pytest.raises(ValueError, match="bỏ hoặc đổi thứ tự nội dung dàn ý đã duyệt"):
+        generate_lesson_plan(
+            topic="Tính đơn điệu và cực trị của hàm số",
+            subject="Toán học",
+            grade=12,
+            lesson_id="M12-C1-B1",
+            approved_outline=approved_outline,
+        )
+
+    assert len(captured_prompts) == 2
+    assert all("Tàu lượn siêu tốc và đạo hàm" in p for p in captured_prompts)
+
+
 def test_lesson_plan_conditional_role3_repair_triggered_on_gate2_failure(monkeypatch):
     """Kiểm tra Vai trò 3 (`role.lesson_repair_reviewer`) chỉ chạy khi Gate 2 phát hiện lỗi 5512."""
     called_roles: List[str] = []
@@ -204,12 +245,10 @@ def test_lesson_plan_conditional_role3_repair_triggered_on_gate2_failure(monkeyp
 
 
 def test_lesson_plan_role2_failure_raises_without_sample_content(monkeypatch):
-    """ADR 0001: Vai trò 2 hết quota thì báo lỗi và giữ Bản soạn, không ghép nội dung mẫu vào giáo án."""
+    """ADR 0001: Vai trò 2 hết quota thì báo lỗi và giữ Bản soạn, không ghép nội dung mẫu vào Kế hoạch bài dạy."""
     def mock_generate_structured(prompt, system_prompt, response_schema, task_type="lesson_plan", **kwargs):
         if response_schema is LessonBlueprintSchema:
-            bp = _make_sample_blueprint()
-            bp.knowledge_goals = ["Mục tiêu độc quyền từ Kiến trúc sư Sư phạm Vai trò 1"]
-            return bp
+            return _make_sample_blueprint()
         if response_schema is LessonActivitiesPayload:
             raise RuntimeError("429 Quota limit reached on Role 2")
         raise AssertionError(f"Unexpected schema: {response_schema}")
@@ -230,7 +269,7 @@ def test_slide_deck_role_chain_and_targeted_repair(monkeypatch):
     Kiểm tra chuỗi Slide chạy tuần tự:
       Vai trò 1 (`role.slide_narrative_designer`)
       -> Vai trò 2 (`role.visual_and_quiz_specialist`)
-      -> Gate 3 (`gate.slide_contracts`) từ chối khối 3D ngoài tập `KINDS`
+      -> Gate 3 (`gate.slide_contracts`) từ chối trích dẫn nguồn khi RAG tạm ngừng
       -> Vai trò 3 (`role.slide_repair_reviewer`) nhận lỗi hợp đồng và chỉ vá đúng slide đó.
     """
     called_roles: List[str] = []
@@ -254,8 +293,9 @@ def test_slide_deck_role_chain_and_targeted_repair(monkeypatch):
                         main_definition_latex=r"\Delta = b^2 - 4ac",
                         teacher_note="GV nhấn mạnh dấu của biệt thức Delta.",
                         needs_chart=False,
-                        needs_3d=True,
                         needs_quiz=False,
+                        # Cố tình gắn trích dẫn nguồn trong lúc RAG tạm ngừng để Gate 3 kích hoạt Vai trò 3.
+                        source_refs=[SourceRef(source_type="slide_kntt12", id="kntt12-c1-b1", title="SGK Toán 12 KNTT")],
                     ),
                     SlideNarrativeItem(
                         slide_index=2,
@@ -280,8 +320,6 @@ def test_slide_deck_role_chain_and_targeted_repair(monkeypatch):
         if response_schema is SlideVisualQuizBatchSchema:
             return SlideVisualQuizBatchSchema(
                 items=[
-                    # Cố tình đề xuất khối trụ, ngoài tập `KINDS`, để Gate 3 kích hoạt Vai trò 3.
-                    SlideVisualQuizItem(slide_index=1, has_3d=True, polyhedron_type="hinh_tru"),
                     SlideVisualQuizItem(
                         slide_index=2,
                         chart_spec=ChartSpec(
@@ -332,8 +370,6 @@ def test_slide_deck_role_chain_and_targeted_repair(monkeypatch):
                         bullet_points=["Xét phương trình $ax^2 + bx + c = 0$ ($a \\neq 0$)."],
                         main_definition_latex=r"\Delta = b^2 - 4ac",
                         teacher_note="GV nhấn mạnh dấu của biệt thức Delta.",
-                        has_3d=True,
-                        polyhedron_type="cube",
                     )
                 ]
             )
@@ -356,15 +392,15 @@ def test_slide_deck_role_chain_and_targeted_repair(monkeypatch):
         "role.slide_repair_reviewer",
     ]
     assert len(repair_prompt_captured) == 1
-    assert "Loại khối 3D không thuộc tập chuẩn" in repair_prompt_captured[0]
-    assert deck.slides[0].polyhedron_type == "cube"
+    assert "Không chấp nhận trích dẫn nguồn" in repair_prompt_captured[0]
+    assert not deck.slides[0].source_refs
     assert deck.slides[1].chart_spec is not None
     assert deck.slides[1].chart_spec.expression == "x**2 - 4"
     assert len(deck.slides[2].quiz_options) == 4
 
 
 def test_slide_deck_role2_failure_raises_without_sample_content(monkeypatch):
-    """ADR 0001: Vai trò 2 của Slide hết quota thì lỗi được báo ra, không bù câu hỏi mẫu cho slide trắc nghiệm."""
+    """ADR 0001: Vai trò 2 của chuỗi Bộ slide hết quota thì lỗi được báo ra, không bù câu hỏi mẫu cho slide trắc nghiệm."""
     def mock_generate_structured(prompt, system_prompt, response_schema, task_type="slide", **kwargs):
         if response_schema is SlideNarrativeDeckSchema:
             return SlideNarrativeDeckSchema(
