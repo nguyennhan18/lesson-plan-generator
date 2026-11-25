@@ -51,6 +51,8 @@ def isolated_approved_test_lessons(tmp_path, monkeypatch, retriever):
     return tmp_path
 
 
+# Cần corpus RAG cục bộ (app/backend/data hoặc LESSONAI_DATA_DIR), không có trong Git (ADR 0012).
+@pytest.mark.corpus_integration
 def test_retriever_initialization_and_corpus_size(retriever):
     """Kiểm tra tầng RAG nạp đúng kích thước kho dữ liệu Toán 12 và chặn truy xuất khi chưa duyệt."""
     candidates = retriever.get_corpus_candidates_for_review()
@@ -63,6 +65,8 @@ def test_retriever_initialization_and_corpus_size(retriever):
     assert retriever.questions == []
 
 
+# Cần corpus RAG cục bộ (app/backend/data hoặc LESSONAI_DATA_DIR), không có trong Git (ADR 0012).
+@pytest.mark.corpus_integration
 def test_retrieval_latency_under_30ms(retriever, isolated_approved_test_lessons):
     """Kiểm tra thời gian truy xuất hoàn tất dưới 30ms (kể cả hybrid scoring và kiểm tra hash duyệt)."""
     for lid in TEST_LESSONS:
@@ -81,6 +85,8 @@ def test_retrieval_latency_under_30ms(retriever, isolated_approved_test_lessons)
         assert len(questions) > 0, f"Không tìm thấy câu hỏi đã duyệt cho bài {lid}"
 
 
+# Cần corpus RAG cục bộ (app/backend/data hoặc LESSONAI_DATA_DIR), không có trong Git (ADR 0012).
+@pytest.mark.corpus_integration
 def test_hard_metadata_filtering(retriever, isolated_approved_test_lessons):
     """Kiểm tra tính chính xác của bộ lọc cứng: đúng bài, đúng hoạt động."""
     lid = "M12-C3-B2"
@@ -96,6 +102,8 @@ def test_hard_metadata_filtering(retriever, isolated_approved_test_lessons):
         assert q.get("lesson_id") == lid, f"Câu hỏi sai bài học: {q.get('lesson_id')}"
 
 
+# Cần corpus RAG cục bộ (app/backend/data hoặc LESSONAI_DATA_DIR), không có trong Git (ADR 0012).
+@pytest.mark.corpus_integration
 def test_differentiation_by_proficiency(retriever, isolated_approved_test_lessons):
     """Kiểm tra phân hóa độ khó theo trình độ lớp học."""
     lid = "M12-C1-B1"
