@@ -1,8 +1,10 @@
-"""Build validated Bàn làm việc slides from an approved Dàn ý in a single AI call (#40, #43)."""
+"""Build validated Bàn làm việc slides from an approved Dàn ý in a single AI call (#40, #43), with Langfuse v5 role tracing."""
 import json
 from uuid import uuid4
 
+from lessonai.llm import tracing
 from lessonai.llm.gateway import llm_gateway
+from lessonai.prompts.roles import WORKBENCH_SLIDE_BUILDER_PROMPT, WORKBENCH_SLIDE_REGENERATE_PROMPT
 from lessonai.schemas.workbench_slides import (
     GeneratedSlideContent,
     GeneratedSlideDeck,
@@ -18,14 +20,6 @@ from lessonai.schemas.workbench_slides import (
 # ADR 0009 & Ticket #40: default 12,000-char prompt budget for a 10-slide outline (~half of legacy 24,600 chars).
 DEFAULT_SLIDE_PROMPT_BUDGET = 12_000
 PROMPT_SIZE_LOG: list[int] = []
-
-# `points` trong Dàn ý là ý/câu hỏi gợi mở cho giáo viên, không phải nội dung trình chiếu.
-# Không có câu này, LLM có xu hướng chép thẳng `points` vào paragraph/items của slide.
-SLIDE_CONTENT_ELABORATION_INSTRUCTION = (
-    "Mỗi points của Mục chỉ là ý/câu hỏi gợi mở cho giáo viên, không phải nội dung trình chiếu. "
-    "Phải diễn giải và triển khai đầy đủ từng points thành nội dung thật (định nghĩa, công thức, lời giải, ví dụ cụ thể...), "
-    "không chép lại nguyên văn points vào title/paragraph/items/caption."
-)
 
 # ADR 0004: Initial Bố cục mẫu catalog. Every coordinate is a multiple of 20 within 1600 × 900.
 LAYOUT_CATALOG: dict[str, dict[str, dict]] = {
@@ -277,33 +271,44 @@ def generate_workbench_slides(
     *,
     budget: int = DEFAULT_SLIDE_PROMPT_BUDGET,
 ) -> WorkbenchSlidesResponse:
-    prompt = build_bounded_slide_prompt(
-        title=request.title,
-        sgk=request.sgk,
-        level=request.level.value,
-        items=request.outline.items,
-        budget=budget,
-    )
-    prompt_chars = len(prompt)
-    PROMPT_SIZE_LOG.append(prompt_chars)
-    generated = GeneratedSlideDeck.model_validate(llm_gateway.generate_structured(
-        prompt=prompt,
-        system_prompt=(
-            "Dựng Bộ slide Toán 12 bằng tiếng Việt từ Dàn ý đã duyệt. "
-            "Mỗi slide thuộc đúng một Mục (item_id) và tổng số slide của mỗi Mục phải bằng đúng slide_count của Mục đó. "
-            "Chọn Bố cục mẫu (layout) phù hợp với Loại mục trong danh mục được cung cấp, "
-            "điền nội dung vào các ô (title, paragraph, items, formula, caption, table, quiz, visual_id), "
-            "không tự sinh tọa độ. Mọi Yêu cầu trực quan của Mục phải xuất hiện trên ít nhất một slide của đúng Mục đó. "
-            + SLIDE_CONTENT_ELABORATION_INSTRUCTION
-        ),
-        response_schema=GeneratedSlideDeck,
-        task_type="slide",
-        model_provider=request.model_provider,
-        model_id=request.model_id,
-        single_attempt=True,
-    ))
-    slides = _validate_and_assemble_slides(generated.slides, request.outline.items)
-    return WorkbenchSlidesResponse(slides=slides, prompt_chars=prompt_chars)
+    with tracing.trace_chain(
+        "chain.workbench_slide_generation",
+        lesson_id=request.lesson_id,
+        topic=request.title,
+        proficiency=request.level.value,
+        input_data={"title": request.title, "sgk": request.sgk, "items_count": len(request.outline.items)},
+    ) as chain_obs:
+        prompt = build_bounded_slide_prompt(
+            title=request.title,
+            sgk=request.sgk,
+            level=request.level.value,
+            items=request.outline.items,
+            budget=budget,
+        )
+        prompt_chars = len(prompt)
+        PROMPT_SIZE_LOG.append(prompt_chars)
+        with tracing.observe_role(
+            WORKBENCH_SLIDE_BUILDER_PROMPT.name,
+            prompt_name=WORKBENCH_SLIDE_BUILDER_PROMPT.name,
+            prompt_version=WORKBENCH_SLIDE_BUILDER_PROMPT.version,
+            input_data={"prompt_chars": prompt_chars},
+        ) as role_obs:
+            generated = GeneratedSlideDeck.model_validate(llm_gateway.generate_structured(
+                prompt=prompt,
+                system_prompt=WORKBENCH_SLIDE_BUILDER_PROMPT.system_prompt,
+                response_schema=GeneratedSlideDeck,
+                task_type="slide",
+                model_provider=request.model_provider,
+                model_id=request.model_id,
+                single_attempt=True,
+                role_name=WORKBENCH_SLIDE_BUILDER_PROMPT.name,
+                prompt_name=WORKBENCH_SLIDE_BUILDER_PROMPT.name,
+                prompt_version=WORKBENCH_SLIDE_BUILDER_PROMPT.version,
+            ))
+            role_obs.set_output({"slides_count": len(generated.slides)})
+        slides = _validate_and_assemble_slides(generated.slides, request.outline.items)
+        chain_obs.set_output({"slides_count": len(slides), "prompt_chars": prompt_chars})
+        return WorkbenchSlidesResponse(slides=slides, prompt_chars=prompt_chars)
 
 
 def regenerate_workbench_item_slides(
@@ -314,27 +319,41 @@ def regenerate_workbench_item_slides(
     target = next((item for item in request.outline.items if item.item_id == request.item_id), None)
     if target is None:
         raise KeyError(f"Không tìm thấy Mục «{request.item_id}» trong Dàn ý.")
-    prompt = build_bounded_slide_prompt(
-        title=request.title,
-        sgk=request.sgk,
-        level=request.level.value,
-        items=[target],
-        budget=budget,
-    )
-    prompt_chars = len(prompt)
-    PROMPT_SIZE_LOG.append(prompt_chars)
-    generated = GeneratedSlideDeck.model_validate(llm_gateway.generate_structured(
-        prompt=prompt,
-        system_prompt=(
-            "Sinh lại các slide của đúng Mục dàn ý được yêu cầu. "
-            "Chỉ trả về đúng slide_count slide cho item_id này, chọn Bố cục mẫu trong danh mục và điền nội dung, không sinh tọa độ. "
-            + SLIDE_CONTENT_ELABORATION_INSTRUCTION
-        ),
-        response_schema=GeneratedSlideDeck,
-        task_type="slide",
-        model_provider=request.model_provider,
-        model_id=request.model_id,
-        single_attempt=True,
-    ))
-    slides = _validate_and_assemble_slides(generated.slides, [target])
-    return WorkbenchSlidesResponse(slides=slides, prompt_chars=prompt_chars)
+    with tracing.trace_chain(
+        "chain.workbench_slide_regeneration",
+        lesson_id=request.lesson_id,
+        topic=request.title,
+        proficiency=request.level.value,
+        input_data={"title": request.title, "sgk": request.sgk, "item_id": request.item_id},
+    ) as chain_obs:
+        prompt = build_bounded_slide_prompt(
+            title=request.title,
+            sgk=request.sgk,
+            level=request.level.value,
+            items=[target],
+            budget=budget,
+        )
+        prompt_chars = len(prompt)
+        PROMPT_SIZE_LOG.append(prompt_chars)
+        with tracing.observe_role(
+            WORKBENCH_SLIDE_REGENERATE_PROMPT.name,
+            prompt_name=WORKBENCH_SLIDE_REGENERATE_PROMPT.name,
+            prompt_version=WORKBENCH_SLIDE_REGENERATE_PROMPT.version,
+            input_data={"prompt_chars": prompt_chars, "item_id": request.item_id},
+        ) as role_obs:
+            generated = GeneratedSlideDeck.model_validate(llm_gateway.generate_structured(
+                prompt=prompt,
+                system_prompt=WORKBENCH_SLIDE_REGENERATE_PROMPT.system_prompt,
+                response_schema=GeneratedSlideDeck,
+                task_type="slide",
+                model_provider=request.model_provider,
+                model_id=request.model_id,
+                single_attempt=True,
+                role_name=WORKBENCH_SLIDE_REGENERATE_PROMPT.name,
+                prompt_name=WORKBENCH_SLIDE_REGENERATE_PROMPT.name,
+                prompt_version=WORKBENCH_SLIDE_REGENERATE_PROMPT.version,
+            ))
+            role_obs.set_output({"slides_count": len(generated.slides)})
+        slides = _validate_and_assemble_slides(generated.slides, [target])
+        chain_obs.set_output({"slides_count": len(slides), "prompt_chars": prompt_chars})
+        return WorkbenchSlidesResponse(slides=slides, prompt_chars=prompt_chars)

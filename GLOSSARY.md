@@ -50,6 +50,10 @@ _Avoid_: outline, đề cương, khung bài
 Một ý trọn vẹn của Dàn ý, thuộc đúng một Hoạt động và có một Loại mục, mang số slide và số phút dự kiến, có thể kèm Yêu cầu trực quan. Mọi Slide đều thuộc đúng một Mục dàn ý.
 _Avoid_: slide dàn ý, outline item, ý chính
 
+**Ý gợi mở**:
+Từng dòng trong `points` của một Mục dàn ý: ý hoặc câu hỏi định hướng cho giáo viên, không phải nội dung trình chiếu đã viết xong. Khi dựng Bộ slide, hệ thống phải diễn giải Ý gợi mở thành nội dung thật (định nghĩa, công thức, lời giải, ví dụ); khi soạn Kế hoạch bài dạy, hệ thống phải giữ nguyên văn Ý gợi mở theo đúng thứ tự trong hoạt động tương ứng, vì văn bản đó là hồ sơ nhà trường yêu cầu.
+_Avoid_: points, nội dung dàn ý, gạch đầu dòng
+
 **Loại mục**:
 Loại nội dung của một Mục dàn ý: Mở đầu, Tình huống khởi động, Kiến thức trọng tâm, Ví dụ, Bài luyện tập, Câu hỏi trắc nghiệm hoặc Tổng kết.
 _Avoid_: visual type, loại slide, kiểu slide

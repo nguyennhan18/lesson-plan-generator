@@ -1,8 +1,10 @@
-"""Generate a 5512 Kế hoạch bài dạy directly from an approved Bàn làm việc v3 Dàn ý in a single AI call (#50, ADR 0002)."""
+"""Generate a 5512 Kế hoạch bài dạy directly from an approved Bàn làm việc v3 Dàn ý in a single AI call (#50, ADR 0002), with Langfuse v5 role tracing."""
 import json
 from pydantic import BaseModel
 
+from lessonai.llm import tracing
 from lessonai.llm.gateway import llm_gateway
+from lessonai.prompts.roles import WORKBENCH_LESSON_PLAN_AUTHOR_PROMPT
 from lessonai.schemas.schemas import LessonPlanSchema
 from lessonai.schemas.workbench_slides import WorkbenchApprovedOutlineItem, WorkbenchSlidesRequest
 from lessonai.services.generation.outline_contract import normalize_outline_text
@@ -84,41 +86,62 @@ def validate_workbench_plan_outline(
 
 def generate_workbench_lesson_plan(request: WorkbenchSlidesRequest) -> WorkbenchLessonPlanResponse:
     """Generate a validated 5512 LessonPlanSchema from the v3 Dàn ý in a single AI call (#50)."""
-    prompt = json.dumps({
-        "tiêu đề": request.title,
-        "bài SGK": request.sgk,
-        "trình độ lớp": request.level.value,
-        "mục dàn ý": [
-            {
-                "item_id": item.item_id,
-                "activity": item.activity,
-                "kind": item.kind,
-                "title": item.title,
-                "points": list(item.points),
-                "minutes": item.minutes,
-            }
-            for item in request.outline.items
-        ],
-    }, ensure_ascii=False)
+    with tracing.trace_chain(
+        "chain.workbench_lesson_plan_generation",
+        lesson_id=request.lesson_id,
+        topic=request.title,
+        proficiency=request.level.value,
+        input_data={"title": request.title, "sgk": request.sgk, "items_count": len(request.outline.items)},
+    ) as chain_obs:
+        prompt = json.dumps({
+            "tiêu đề": request.title,
+            "bài SGK": request.sgk,
+            "trình độ lớp": request.level.value,
+            "mục dàn ý": [
+                {
+                    "item_id": item.item_id,
+                    "activity": item.activity,
+                    "kind": item.kind,
+                    "title": item.title,
+                    "points": list(item.points),
+                    "minutes": item.minutes,
+                }
+                for item in request.outline.items
+            ],
+        }, ensure_ascii=False)
 
-    raw_plan = llm_gateway.generate_structured(
-        prompt=prompt,
-        system_prompt=(
-            "Soạn Kế hoạch bài dạy Toán 12 theo Công văn 5512 bằng tiếng Việt từ Dàn ý đã duyệt. "
-            "Có đủ 4 hoạt động (activity_number = 1, 2, 3, 4: Khởi động, Hình thành kiến thức, Luyện tập, Vận dụng) "
-            "với tổng time_minutes bằng 45 phút và đủ 4 bước tổ chức (step_1_assign, step_2_excute, step_3_report, step_4_conclusion). "
-            "Bắt buộc giữ đầy đủ tiêu đề và các ý (points) của từng Mục dàn ý theo đúng thứ tự trong Hoạt động tương ứng."
-        ),
-        response_schema=LessonPlanSchema,
-        task_type="lesson_plan",
-        model_provider=request.model_provider,
-        model_id=request.model_id,
-        single_attempt=True,
-    )
-    plan = LessonPlanSchema.model_validate(raw_plan)
-    val_5512 = validate_5512_lesson_plan(plan)
-    if not val_5512.is_valid:
-        raise ValueError("; ".join(val_5512.errors))
-    fidelity_warnings = validate_workbench_plan_outline(plan, request.outline.items)
-    all_warnings = [*val_5512.warnings, *fidelity_warnings]
-    return WorkbenchLessonPlanResponse(plan=plan, warnings=all_warnings)
+        with tracing.observe_role(
+            WORKBENCH_LESSON_PLAN_AUTHOR_PROMPT.name,
+            prompt_name=WORKBENCH_LESSON_PLAN_AUTHOR_PROMPT.name,
+            prompt_version=WORKBENCH_LESSON_PLAN_AUTHOR_PROMPT.version,
+            input_data={"items_count": len(request.outline.items)},
+        ) as role_obs:
+            raw_plan = llm_gateway.generate_structured(
+                prompt=prompt,
+                system_prompt=WORKBENCH_LESSON_PLAN_AUTHOR_PROMPT.system_prompt,
+                response_schema=LessonPlanSchema,
+                task_type="lesson_plan",
+                model_provider=request.model_provider,
+                model_id=request.model_id,
+                single_attempt=True,
+                role_name=WORKBENCH_LESSON_PLAN_AUTHOR_PROMPT.name,
+                prompt_name=WORKBENCH_LESSON_PLAN_AUTHOR_PROMPT.name,
+                prompt_version=WORKBENCH_LESSON_PLAN_AUTHOR_PROMPT.version,
+            )
+            plan = LessonPlanSchema.model_validate(raw_plan)
+            role_obs.set_output({"activities_count": len(plan.activities)})
+
+        with tracing.observe_evaluator(
+            "gate.workbench_lesson_plan_5512_and_fidelity",
+            input_data={"items_count": len(request.outline.items)},
+        ) as gate_obs:
+            val_5512 = validate_5512_lesson_plan(plan)
+            if not val_5512.is_valid:
+                gate_obs.fail("; ".join(val_5512.errors))
+                raise ValueError("; ".join(val_5512.errors))
+            fidelity_warnings = validate_workbench_plan_outline(plan, request.outline.items)
+            all_warnings = [*val_5512.warnings, *fidelity_warnings]
+            gate_obs.set_output({"warnings_count": len(all_warnings)})
+
+        chain_obs.set_output({"activities_count": len(plan.activities), "warnings_count": len(all_warnings)})
+        return WorkbenchLessonPlanResponse(plan=plan, warnings=all_warnings)
