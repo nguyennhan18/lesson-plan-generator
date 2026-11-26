@@ -184,3 +184,11 @@ request khác. `services/visuals/rendering.py` bỏ ảnh cache cũ khi enrich.
 RAG rỗng tới khi người duyệt xong: `reviewed_sources.json` có `"sources": []`, nên
 `/api/v1/curriculum/math12` và truy xuất đều trả ngữ cảnh rỗng. Đây là trạng thái
 mong đợi, không phải lỗi.
+
+`rag/context_builder.py` **trông như mã chết nhưng không được xóa.** Không có
+đường import nào tới nó từ `lessonai.main` (kiểm bằng `grimp`), nhưng
+`test_workbench_outline.py` và `test_workbench_slides.py` monkeypatch
+`PedagogicalContextBuilder.build_slide_deck_context` thành một hàm ném
+`AssertionError("RAG must not run")`. Nó là cái neo chứng minh luồng tạo bài
+không truy xuất corpus trong giai đoạn RAG tạm ngừng. Xóa module là xóa luôn phép
+kiểm đó.

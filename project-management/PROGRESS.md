@@ -105,6 +105,11 @@
 
 [Nhật ký trước 2026-11-14](PROGRESS-before-2026-11-14.md) được lưu riêng.
 
+- `2026-11-26 — Chốt việc treo cuối của đợt tái cấu trúc: giữ rag/context_builder.py`:
+  - Module này được đánh dấu "chết lúc chạy, quyết định ở bước 6" từ `1f519b6`. Nay đo lại bằng `grimp`: đúng là không có đường import nào tới nó từ `lessonai.main`. Nhưng `test_workbench_outline.py` và `test_workbench_slides.py` của `#59` monkeypatch `PedagogicalContextBuilder.build_slide_deck_context` thành hàm ném `AssertionError("RAG must not run")`.
+  - Nghĩa là nó là cái neo của một phép kiểm phủ định: bằng chứng luồng tạo bài không truy xuất corpus trong giai đoạn RAG tạm ngừng. Xóa module là xóa phép kiểm. **Quyết định: giữ**, và ghi lý do vào `docs/architecture/repository.md` để phiên sau không xóa nó như mã chết.
+  - CI trên `5d0ab8b`: cả hai job `backend` và `frontend` xanh (run 45713095745).
+
 - `2026-11-26 — Viết lại bản đồ repo và ghi ADR 0011 cho luật tầng`:
   - `docs/architecture/repository.md` viết lại toàn bộ. Bản cũ mô tả một repo không còn tồn tại: bảng thư mục frontend liệt kê `dashboard` và `slide-editor` đã xóa, mục backend nói `services/` có `chat` và `hình học` (xóa ở `1f519b6`), nhắc `templates/`, nhắc thư mục `quality/` (đã bỏ), và chỉ dẫn năm target Makefile không còn (`make inventory`, `lint-data`, `test-critical`, `audit-baseline`, `audit-acceptance`). Mục "nội dung dự phòng" trái ADR 0001.
   - Bản mới tổ chức quanh câu hỏi người sửa thật sự hỏi: thêm bảng **Tìm theo triệu chứng** (16 dòng, triệu chứng → tệp mở trước tiên), bảng từng package backend kèm phần nó chịu trách nhiệm, và trạng thái tiếp cận được của từng thư mục frontend sau `#59`.
