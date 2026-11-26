@@ -19,6 +19,14 @@ from lessonai.schemas.workbench_slides import (
 DEFAULT_SLIDE_PROMPT_BUDGET = 12_000
 PROMPT_SIZE_LOG: list[int] = []
 
+# `points` trong Dàn ý là ý/câu hỏi gợi mở cho giáo viên, không phải nội dung trình chiếu.
+# Không có câu này, LLM có xu hướng chép thẳng `points` vào paragraph/items của slide.
+SLIDE_CONTENT_ELABORATION_INSTRUCTION = (
+    "Mỗi points của Mục chỉ là ý/câu hỏi gợi mở cho giáo viên, không phải nội dung trình chiếu. "
+    "Phải diễn giải và triển khai đầy đủ từng points thành nội dung thật (định nghĩa, công thức, lời giải, ví dụ cụ thể...), "
+    "không chép lại nguyên văn points vào title/paragraph/items/caption."
+)
+
 # ADR 0004: Initial Bố cục mẫu catalog. Every coordinate is a multiple of 20 within 1600 × 900.
 LAYOUT_CATALOG: dict[str, dict[str, dict]] = {
     "Mở đầu": {
@@ -285,7 +293,8 @@ def generate_workbench_slides(
             "Mỗi slide thuộc đúng một Mục (item_id) và tổng số slide của mỗi Mục phải bằng đúng slide_count của Mục đó. "
             "Chọn Bố cục mẫu (layout) phù hợp với Loại mục trong danh mục được cung cấp, "
             "điền nội dung vào các ô (title, paragraph, items, formula, caption, table, quiz, visual_id), "
-            "không tự sinh tọa độ. Mọi Yêu cầu trực quan của Mục phải xuất hiện trên ít nhất một slide của đúng Mục đó."
+            "không tự sinh tọa độ. Mọi Yêu cầu trực quan của Mục phải xuất hiện trên ít nhất một slide của đúng Mục đó. "
+            + SLIDE_CONTENT_ELABORATION_INSTRUCTION
         ),
         response_schema=GeneratedSlideDeck,
         task_type="slide",
@@ -318,7 +327,8 @@ def regenerate_workbench_item_slides(
         prompt=prompt,
         system_prompt=(
             "Sinh lại các slide của đúng Mục dàn ý được yêu cầu. "
-            "Chỉ trả về đúng slide_count slide cho item_id này, chọn Bố cục mẫu trong danh mục và điền nội dung, không sinh tọa độ."
+            "Chỉ trả về đúng slide_count slide cho item_id này, chọn Bố cục mẫu trong danh mục và điền nội dung, không sinh tọa độ. "
+            + SLIDE_CONTENT_ELABORATION_INSTRUCTION
         ),
         response_schema=GeneratedSlideDeck,
         task_type="slide",
