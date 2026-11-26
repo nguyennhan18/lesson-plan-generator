@@ -165,7 +165,7 @@ Run from the repository root. For PowerShell, use `app/backend/venv/Scripts/pyth
   - Bulk-set `"status": "approved"` in `reviewed_sources.json`, or write any reviewer/approval entry without a human decision file attached to the task.
   - Edit reviewer or sign-off fields in `math12_benchmark_suite.json` or acceptance records without a signed document attached.
   - Mark a human-gated acceptance item PASS (see section 2).
-  - Re-enable retired `410 Gone` endpoints (`/api/v1/rag/preview`, `/api/v1/geometry/*`, `/api/v1/test-cases`, `/api/v1/presentation/outline`, `/api/presentation/outline`, `/api/v1/slide/generate`).
+  - Re-enable retired `410 Gone` endpoints (`/api/v1/rag/preview`, `/api/v1/geometry/*`, `/api/v1/test-cases`, `/api/v1/presentation/outline`, `/api/presentation/outline`, `/api/v1/slide/generate`, `/api/v1/validation/audit-deck`).
   - Inject fallback sample lessons or transparent placeholder pixels when rendering fails.
   - Overwrite existing evidence files in `reports/`.
   - Delete, skip without reason, or loosen tests to make a run green.

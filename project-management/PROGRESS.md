@@ -105,6 +105,12 @@
 
 [Nhật ký trước 2026-11-14](PROGRESS-before-2026-11-14.md) được lưu riêng.
 
+- `2026-11-26 — Thu hồi 410 endpoint validation/audit-deck`:
+  - Sau khi xóa `pedagogicalLinterClient.js`, `POST /api/v1/validation/audit-deck` không còn client nào. Chủ dự án chọn thu hồi (thay vì nối lại vào Bàn làm việc). Chuyển route sang `410 Gone` mã `legacy_deck_audit_retired`, cùng khuôn với `/presentation/outline` và `/slide/generate` của #59.
+  - **Giữ engine** `audit_slide_deck` cùng ~980 dòng kiểm chính tả tiếng Việt / xác minh SymPy / audit định lý trong `services/quality/validation.py` — chỉ bề mặt HTTP dừng lại; có thể nối vào cổng Kiểm tra bài của Bàn làm việc sau. Xóa cả cụm là một đợt dead-code riêng, không gộp vào đổi hợp đồng.
+  - Regen `app/backend/tests/fixtures/api_contract.json` bằng đúng cách `test_openapi_contract` so khớp (`app.openapi()` paths + components): bỏ 124 dòng — request body của audit-deck, schema `DeckAuditResponse` và `SlideWarningItem` (không endpoint nào khác tham chiếu). Thêm `audit-deck` vào danh sách "never re-enable" ở `AGENTS.md` §9.
+  - Kiểm chứng: `make test-backend` `147 passed` (gồm `test_openapi_contract`); `make lint` xanh (1 kept, 1 ignored); runtime trả `410 legacy_deck_audit_retired`.
+
 - `2026-11-26 — Xóa 21 tệp frontend mồ côi của giao diện cũ (3.187 dòng)`:
   - `#59` đưa Bàn làm việc thành giao diện duy nhất, làm 21 tệp của giao diện cũ không còn đường import từ `main.jsx`. Kiểm từng cụm: đều bị **thay thế**, không phải đánh rơi — `WorkbenchPresenter.jsx` tự dựng lớp bút chú thích thay cụm `presentation/` (7 tệp), `WorkbenchVisuals.jsx` vẽ oxyz/khối bằng SVG thay `geometry/ThreeCanvas.jsx` (WebGL) và 3 tệp geometry khác, KHBD 5512 thay `lesson-plan/LessonPlanScreen.jsx` (507 dòng) và `LessonPlanReview.jsx`, cổng cảnh báo của `Workbench.jsx` thay `shared/validation/` (2 tệp, 606 dòng); cùng `HeaderNav`, `slideDeckStorage`, `FunctionPlotter`, `TeacherChatDock`, `exports/documentExportActions`, `generation/lessonGenerationActions`.
   - Trước khi xóa đã xác nhận không test hay E2E nào dựa vào 21 tệp này, và theo định nghĩa mồ côi thì không tệp sống nào import chúng. Mã cũ vẫn tra được trong lịch sử Git nếu bản mới cần chép lại.
