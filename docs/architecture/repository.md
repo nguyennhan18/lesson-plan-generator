@@ -88,22 +88,19 @@ app/backend/venv/bin/python -m pip install --no-deps -e app/backend
 
 ## Frontend
 
-Từ `#59`, Bàn làm việc là giao diện duy nhất. Đo theo chuỗi import từ `main.jsx`:
+Từ `#59`, Bàn làm việc là giao diện duy nhất. Mọi tệp đều tiếp cận được từ
+`main.jsx` (21 tệp mồ côi của giao diện cũ đã xóa; Bàn làm việc đã dựng lại bút
+chú thích, hình 3D/Oxyz, cảnh báo sư phạm và KHBD theo cách riêng).
 
 | Thư mục trong `src/features/` | Trạng thái |
 | --- | --- |
 | `workbench/` | Giao diện đang chạy: 3 cột, Canvas `1600 × 900`, Trình chiếu, Đồ thị/BBT/3D, Trợ giảng AI, KHBD 5512, font WOFF đóng gói |
-| `lesson-plan/`, `analytics/` | Còn một phần tiếp cận được |
-| `chat/`, `exports/`, `generation/`, `geometry/`, `presentation/` | **Mồ côi** từ `#59` — không còn đường import nào từ `main.jsx` |
-
-21 tệp mồ côi (3.187 dòng) chưa xóa: cần chủ dự án xác nhận phần nào sẽ được nối
-lại vào Bàn làm việc. Trước khi dựa vào một tệp ở đây, kiểm tra nó có tiếp cận
-được không.
+| `lesson-plan/`, `analytics/` | Mỗi thư mục còn một tệp mà `workbench/` dùng tới |
 
 `src/shared/` giữ phần nhiều chỗ dùng: `api/client.js` (mọi POST JSON đi qua
 `postJson` để cookie chủ phiên được khởi tạo), `storage/projectStore.js` (IndexedDB,
 giữ bản ghi bản 2), `storage/lessonProject.js` (Bài giảng bản 3 và
-`convertLegacyProjectToV3`), `math/`, `validation/`, `components/`.
+`convertLegacyProjectToV3`), `math/`.
 
 Trạng thái bài giảng, slide đang chọn, tham số 3D và chế độ trình chiếu nằm trong
 `App.jsx`; action nhận giá trị và hàm cập nhật từ đó. **Không tạo bản trạng thái

@@ -105,6 +105,13 @@
 
 [Nhật ký trước 2026-11-14](PROGRESS-before-2026-11-14.md) được lưu riêng.
 
+- `2026-11-26 — Xóa 21 tệp frontend mồ côi của giao diện cũ (3.187 dòng)`:
+  - `#59` đưa Bàn làm việc thành giao diện duy nhất, làm 21 tệp của giao diện cũ không còn đường import từ `main.jsx`. Kiểm từng cụm: đều bị **thay thế**, không phải đánh rơi — `WorkbenchPresenter.jsx` tự dựng lớp bút chú thích thay cụm `presentation/` (7 tệp), `WorkbenchVisuals.jsx` vẽ oxyz/khối bằng SVG thay `geometry/ThreeCanvas.jsx` (WebGL) và 3 tệp geometry khác, KHBD 5512 thay `lesson-plan/LessonPlanScreen.jsx` (507 dòng) và `LessonPlanReview.jsx`, cổng cảnh báo của `Workbench.jsx` thay `shared/validation/` (2 tệp, 606 dòng); cùng `HeaderNav`, `slideDeckStorage`, `FunctionPlotter`, `TeacherChatDock`, `exports/documentExportActions`, `generation/lessonGenerationActions`.
+  - Trước khi xóa đã xác nhận không test hay E2E nào dựa vào 21 tệp này, và theo định nghĩa mồ côi thì không tệp sống nào import chúng. Mã cũ vẫn tra được trong lịch sử Git nếu bản mới cần chép lại.
+  - Năm thư mục `features/{chat,exports,generation,geometry,presentation}` và `shared/{components,validation}` nay rỗng và biến khỏi Git.
+  - Phát hiện ngoài phạm vi: `pedagogicalLinterClient.js` (đã xóa) là nơi duy nhất gọi `POST /api/v1/validation/audit-deck`. Endpoint này giờ không còn client nào, nhưng nằm trong `api_contract.json` nên thu hồi nó là đổi hợp đồng (Ask first) — để lại cho chủ dự án quyết: thu hồi 410, hay trỏ cổng cảnh báo của Bàn làm việc vào nó.
+  - Kiểm chứng: frontend `105/105`; `make build` đạt; đo lại chuỗi import từ `main.jsx` còn **0 tệp mồ côi**; backend không bị chạm.
+
 - `2026-11-26 — Chốt việc treo cuối của đợt tái cấu trúc: giữ rag/context_builder.py`:
   - Module này được đánh dấu "chết lúc chạy, quyết định ở bước 6" từ `1f519b6`. Nay đo lại bằng `grimp`: đúng là không có đường import nào tới nó từ `lessonai.main`. Nhưng `test_workbench_outline.py` và `test_workbench_slides.py` của `#59` monkeypatch `PedagogicalContextBuilder.build_slide_deck_context` thành hàm ném `AssertionError("RAG must not run")`.
   - Nghĩa là nó là cái neo của một phép kiểm phủ định: bằng chứng luồng tạo bài không truy xuất corpus trong giai đoạn RAG tạm ngừng. Xóa module là xóa phép kiểm. **Quyết định: giữ**, và ghi lý do vào `docs/architecture/repository.md` để phiên sau không xóa nó như mã chết.

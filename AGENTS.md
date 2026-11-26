@@ -83,7 +83,7 @@ Single-context layout with root `GLOSSARY.md` and `docs/adr/`. Before exploring 
 │   │   └── tests/                  # Pytest suite + `fixtures/api_contract.json`
 │   └── frontend/
 │       ├── src/App.jsx             # Top-level Bàn làm việc session state container
-│       ├── src/features/           # workbench (Bàn làm việc 3 cột, Canvas 1600x900, Trình chiếu, Đồ thị/BBT/3D, Trợ giảng AI, KHBD 5512, packaged fonts) is the only reachable UI; analytics/ and lesson-plan/ are partly reachable, and chat/, exports/, generation/, geometry/, presentation/ are orphaned since #59
+│       ├── src/features/           # workbench (Bàn làm việc 3 cột, Canvas 1600x900, Trình chiếu, Đồ thị/BBT/3D, Trợ giảng AI, KHBD 5512, packaged fonts) is the only UI; analytics/ and lesson-plan/ keep one reachable file each. The old studio's 21 orphaned files were deleted after #59
 │       ├── src/shared/             # api/client.js, storage/projectStore.js (IndexedDB + v2 preservation), storage/lessonProject.js (Bài giảng bản 3 + chuyển v2->v3), math/, validation/, components/
 │       ├── tests/                  # Node unit/contract tests (`*.test.js`)
 │       └── e2e/                    # Playwright real-backend tests (`ban-lam-viec.spec.js`)
