@@ -2,6 +2,17 @@
 
 > **Tài liệu tham chiếu kỹ thuật toàn diện về tầng giao diện người dùng (Front-End Layer), cơ chế quản lý trạng thái, lõi Canvas Editor và quy trình xử lý dữ liệu đầu vào.**
 
+> ⚠️ **Tài liệu này không phản ánh frontend hiện tại của `LessonAI-5512`.** Chính tiêu đề đã ghi "DỰ ÁN PRESENTATION AI" — một dự án khác. Stack mô tả ở đây (Next.js 16, Plate.js/Slate.js, Zustand, TanStack Query, Apache ECharts, AntV Infographic, cấu trúc thư mục `presentation-ai/src/`) không khớp với bất kỳ dependency nào trong [`app/frontend/package.json`](../../app/frontend/package.json).
+>
+> Lịch sử Git (`git log --follow`) chỉ có một commit duy nhất cho file này — `c26e20a` ("chore(repo): track mặc định..."), commit đảo `.gitignore` theo ADR 0012 để đưa các tệp trước đó chỉ có ở máy vào Git cùng một lúc. Không có commit hay nội dung nào trong file gắn nhãn đây là đề xuất/kế hoạch chưa triển khai ("đề xuất", "dự kiến", "roadmap"...); file trình bày như tài liệu kiến trúc hiện hành. Vì vậy nhiều khả năng đây là tài liệu bị chép nhầm từ một dự án khác, không phải bản thảo viết lại cho `LessonAI-5512`.
+>
+> **Kiến trúc frontend thật đang chạy** (xem [`app/frontend/package.json`](../../app/frontend/package.json), [`app/frontend/src/App.jsx`](../../app/frontend/src/App.jsx), [`AGENTS.md`](../../AGENTS.md) mục 4 và 7):
+> - **Stack:** React 19 + Vite 6 thuần (không Next.js), Tailwind CSS 3, KaTeX + MathLive cho công thức toán, Three.js cho hình 3D, Lucide React cho icon. Không có Zustand, TanStack Query, Plate.js, ECharts, AntV, hay Vercel AI SDK trong `package.json`.
+> - **Quản lý state:** một state container duy nhất — `useState` trong [`App.jsx`](../../app/frontend/src/App.jsx) (biến `workbench`), với các action được tạo bởi `createWorkbenchActions()`. AGENTS.md mục 7 nói rõ: *"Do not create a second state store in `src/features/*`"* — không dùng Zustand hay store riêng trong từng feature.
+> - **Giao diện:** Bàn làm việc (`src/features/workbench/`, component `Workbench.jsx`) là giao diện mặc định và duy nhất của ứng dụng — không có router kiểu Next.js App Router, không có nhiều trang `page.tsx` như tài liệu mô tả.
+>
+> Giữ nguyên nội dung file dưới đây để tham khảo lịch sử; đừng dùng nó để suy ra kiến trúc frontend hiện tại.
+
 ---
 
 ## MỤC LỤC
