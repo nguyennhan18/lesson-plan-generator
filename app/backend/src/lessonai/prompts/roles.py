@@ -50,6 +50,58 @@ OUTLINE_PLANNER_PROMPT = RolePromptSpec(
 
 
 # ==============================================================================
+# 0C. VAI TRÒ DỰNG BỘ SLIDE BÀN LÀM VIỆC BẢN 3 (WORKBENCH SLIDE BUILDER)
+# ==============================================================================
+
+# `points` của Mục dàn ý chỉ là ý/câu hỏi gợi mở cho giáo viên (xem GLOSSARY.md), không phải
+# nội dung trình chiếu. Không có câu này, LLM có xu hướng chép thẳng points vào slide.
+_SLIDE_CONTENT_ELABORATION_INSTRUCTION = (
+    "Mỗi points của Mục chỉ là ý/câu hỏi gợi mở cho giáo viên, không phải nội dung trình chiếu. "
+    "Phải diễn giải và triển khai đầy đủ từng points thành nội dung thật (định nghĩa, công thức, lời giải, ví dụ cụ thể...), "
+    "không chép lại nguyên văn points vào title/paragraph/items/caption."
+)
+
+WORKBENCH_SLIDE_BUILDER_PROMPT = RolePromptSpec(
+    name="role.workbench_slide_builder",
+    version="v1.1",
+    system_prompt=(
+        "Dựng Bộ slide Toán 12 bằng tiếng Việt từ Dàn ý đã duyệt. "
+        "Mỗi slide thuộc đúng một Mục (item_id) và tổng số slide của mỗi Mục phải bằng đúng slide_count của Mục đó. "
+        "Chọn Bố cục mẫu (layout) phù hợp với Loại mục trong danh mục được cung cấp, "
+        "điền nội dung vào các ô (title, paragraph, items, formula, caption, table, quiz, visual_id), "
+        "không tự sinh tọa độ. Mọi Yêu cầu trực quan của Mục phải xuất hiện trên ít nhất một slide của đúng Mục đó. "
+        + _SLIDE_CONTENT_ELABORATION_INSTRUCTION
+    ),
+)
+
+WORKBENCH_SLIDE_REGENERATE_PROMPT = RolePromptSpec(
+    name="role.workbench_slide_regenerate",
+    version="v1.1",
+    system_prompt=(
+        "Sinh lại các slide của đúng Mục dàn ý được yêu cầu. "
+        "Chỉ trả về đúng slide_count slide cho item_id này, chọn Bố cục mẫu trong danh mục và điền nội dung, không sinh tọa độ. "
+        + _SLIDE_CONTENT_ELABORATION_INSTRUCTION
+    ),
+)
+
+
+# ==============================================================================
+# 0D. VAI TRÒ SOẠN KẾ HOẠCH BÀI DẠY BÀN LÀM VIỆC BẢN 3 (WORKBENCH LESSON PLAN AUTHOR)
+# ==============================================================================
+
+WORKBENCH_LESSON_PLAN_AUTHOR_PROMPT = RolePromptSpec(
+    name="role.workbench_lesson_plan_author",
+    version="v1.0",
+    system_prompt=(
+        "Soạn Kế hoạch bài dạy Toán 12 theo Công văn 5512 bằng tiếng Việt từ Dàn ý đã duyệt. "
+        "Có đủ 4 hoạt động (activity_number = 1, 2, 3, 4: Khởi động, Hình thành kiến thức, Luyện tập, Vận dụng) "
+        "với tổng time_minutes bằng 45 phút và đủ 4 bước tổ chức (step_1_assign, step_2_excute, step_3_report, step_4_conclusion). "
+        "Bắt buộc giữ đầy đủ tiêu đề và các ý (points) của từng Mục dàn ý theo đúng thứ tự trong Hoạt động tương ứng."
+    ),
+)
+
+
+# ==============================================================================
 # 1. CHUỖI GIÁO ÁN 5512 — VAI TRÒ 1: KIẾN TRÚC SƯ SƯ PHẠM (PEDAGOGICAL ARCHITECT)
 # ==============================================================================
 

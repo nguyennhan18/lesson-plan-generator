@@ -7,6 +7,7 @@ from lessonai.core.hashing import fingerprint
 from lessonai.schemas.workbench_slides import WorkbenchApprovedOutline, WorkbenchSlide
 from lessonai.services.quality.content_quality import _walk, check_formula
 from lessonai.services.quality.expert_confirmation import METHOD, apply_review, sign_review
+from lessonai.services.quality.validation import check_textbook_theorems_in_slide, check_vietnamese_spelling_in_slide
 from lessonai.services.quality.visual_requirements import (
     ITEM_SOURCE_FIELDS,
     ConfirmationKeyChanged,
@@ -77,6 +78,37 @@ def workbench_deck_snapshot(payload: dict[str, Any]) -> dict[str, Any]:
         "title": payload.get("title"),
         "items": items,
         "slides": slides,
+    }
+
+
+def _legacy_slide_view(slide: dict[str, Any]) -> dict[str, Any]:
+    """Flatten a Workbench canvas slide's elements into the field shape the
+    Vietnamese spelling and textbook-theorem checks (ported from the retired
+    audit-deck engine) expect: title/subtitle/bullet_points/math_formulas/quiz_options."""
+    bullet_points: list[str] = []
+    math_formulas: list[str] = []
+    quiz_options: list[dict[str, Any]] = []
+    for element in slide.get("elements") or []:
+        if element.get("text"):
+            bullet_points.append(str(element["text"]))
+        bullet_points.extend(str(item) for item in element.get("items") or [])
+        if element.get("question"):
+            bullet_points.append(str(element["question"]))
+        if element.get("latex"):
+            math_formulas.append(str(element["latex"]))
+        for option in element.get("options") or []:
+            quiz_options.append({
+                "text": option.get("text"),
+                "is_correct": option.get("correct"),
+                "distractor_rationale": option.get("why"),
+            })
+    return {
+        "title": "",
+        "subtitle": "",
+        "teacher_note": slide.get("notes") or "",
+        "bullet_points": bullet_points,
+        "math_formulas": math_formulas,
+        "quiz_options": quiz_options,
     }
 
 
@@ -202,6 +234,18 @@ def evaluate_workbench_deck(payload: dict[str, Any]) -> dict[str, Any]:
                             "message": res["reason"],
                         })
 
+        legacy_view = _legacy_slide_view(slide)
+        for warning in (*check_vietnamese_spelling_in_slide(legacy_view, s_idx), *check_textbook_theorems_in_slide(legacy_view, s_idx)):
+            issues.append({
+                "slide_id": sid,
+                "slide_index": s_idx,
+                "field": warning.field or "content",
+                "severity": warning.severity,
+                "message": warning.message,
+                "category": warning.category,
+                **({"suggestion": warning.suggestion} if warning.suggestion else {}),
+            })
+
     issues.append({
         "field": "content",
         "severity": "warning",
@@ -220,7 +264,7 @@ def evaluate_workbench_deck(payload: dict[str, Any]) -> dict[str, Any]:
         "overflow_elements": overflow_elements,
         "edited_slides": edited_slides,
         "content_fingerprint": fingerprint(snapshot),
-        "scope": "Hình chưa xác nhận dữ kiện, phần tử tràn chữ, slide đã sửa tay và đẳng thức số học.",
+        "scope": "Hình chưa xác nhận dữ kiện, phần tử tràn chữ, slide đã sửa tay, đẳng thức số học, chính tả tiếng Việt và công thức lệch chuẩn SGK.",
     }
 
 
